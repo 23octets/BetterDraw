@@ -60,3 +60,39 @@ describe('édition', () => {
     expect(shapeHandles(sq).filter((h) => h.h.kind === 'mid')).toHaveLength(4)
   })
 })
+
+describe('poignées de Bézier des deux côtés', () => {
+  // courbe de Bézier puis arc, lisses au sommet (100, 0)
+  const s: Shape = {
+    id: 'm', closed: false,
+    pts: [{ x: 0, y: 50 }, { x: 100, y: 0 }, { x: 200, y: 0 }],
+    segs: [{ t: 'cubic', c1: { x: 30, y: 50 }, c2: { x: 70, y: 0 } }, { t: 'arc', bulge: -0.3 }],
+  }
+  it('a vertex touching a Bézier curve has a handle on the arc side too', () => {
+    const virt = shapeHandles(s).filter((h) => h.h.kind === 'ctrl' && (h.h as { virtual?: boolean }).virtual)
+    expect(virt).toHaveLength(1)
+    expect(virt[0].h).toMatchObject({ i: 1, which: 'c1' })
+  })
+  it('dragging that handle turns the arc into a Bézier curve with the same ends', async () => {
+    const { moveControl, segAsCubic } = await import('./edit')
+    const eq = segAsCubic(s, 1)
+    const r = moveControl(s, 1, 'c1', { x: eq.c1.x + 10, y: eq.c1.y - 20 }, true)
+    expect(r.segs[1].t).toBe('cubic')
+    expect((r.segs[1] as { c2: { x: number } }).c2.x).toBeCloseTo(eq.c2.x)
+    expect(r.pts).toEqual(s.pts)
+  })
+  it('a smooth vertex keeps its handles aligned', async () => {
+    const { moveControl } = await import('./edit')
+    const line: Shape = {
+      id: 'l', closed: false,
+      pts: [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 200, y: 0 }],
+      segs: [{ t: 'cubic', c1: { x: 30, y: 0 }, c2: { x: 70, y: 0 } }, { t: 'cubic', c1: { x: 140, y: 0 }, c2: { x: 170, y: 0 } }],
+    }
+    const r = moveControl(line, 1, 'c1', { x: 100, y: -40 })
+    const c2 = (r.segs[0] as { c2: { x: number; y: number } }).c2
+    expect(c2.x).toBeCloseTo(100)
+    expect(c2.y).toBeCloseTo(30) // longueur conservée (30), opposée
+    const broken = moveControl(line, 1, 'c1', { x: 100, y: -40 }, true)
+    expect((broken.segs[0] as { c2: { x: number } }).c2.x).toBe(70)
+  })
+})

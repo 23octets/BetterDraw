@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid'
 import type { Segment, Shape, Vec } from '../model/types'
-import { add, sub, type Mat } from './vec'
-import { bulgeFromThrough, segCount, shapeBounds, transformShape, flatten } from './shapes'
+import { add, sub, mul, lerp, len, dot, type Mat } from './vec'
+import { arcGeometry, bulgeFromThrough, segCount, segEndTangent, segStartTangent, shapeBounds, transformShape, flatten } from './shapes'
 
 /** Déplace un sommet ; les poignées de Bézier adjacentes suivent. */
 export function moveVertex(s: Shape, i: number, p: Vec): Shape {
@@ -42,11 +42,61 @@ export function setSegmentType(s: Shape, i: number, type: Segment['t']): Shape {
   return { ...s, segs: s.segs.map((g, k) => (k === i ? seg : g)) }
 }
 
-export function moveControl(s: Shape, i: number, which: 'c1' | 'c2', p: Vec): Shape {
-  return {
-    ...s,
-    segs: s.segs.map((g, k): Segment => (k === i && g.t === 'cubic' ? { ...g, [which]: p } : g)),
+/** Points de contrôle équivalents d'un segment (droite ou arc convertis en cubique). */
+export function segAsCubic(s: Shape, i: number): { c1: Vec; c2: Vec } {
+  const p0 = s.pts[i]
+  const p1 = s.pts[(i + 1) % s.pts.length]
+  const g = s.segs[i]
+  if (g.t === 'cubic') return { c1: g.c1, c2: g.c2 }
+  if (g.t === 'arc' && Math.abs(g.bulge) > 1e-9) {
+    const { radius, sweep } = arcGeometry(p0, p1, g.bulge)
+    const k = (4 / 3) * Math.tan(Math.abs(sweep) / 4) * radius
+    const t0 = segStartTangent(s, i)
+    const t1 = segEndTangent(s, i)
+    return { c1: add(p0, mul(t0, k)), c2: sub(p1, mul(t1, k)) }
   }
+  return { c1: lerp(p0, p1, 1 / 3), c2: lerp(p0, p1, 2 / 3) }
+}
+
+/** Index du segment et poignée opposée au même sommet (pour garder un point lisse). */
+export function oppositeControl(s: Shape, i: number, which: 'c1' | 'c2'): { i: number; which: 'c1' | 'c2' } | null {
+  const n = segCount(s)
+  if (which === 'c1') {
+    const j = i - 1 >= 0 ? i - 1 : s.closed ? n - 1 : -1
+    return j >= 0 ? { i: j, which: 'c2' } : null
+  }
+  const j = i + 1 < n ? i + 1 : s.closed ? 0 : -1
+  return j >= 0 ? { i: j, which: 'c1' } : null
+}
+
+/**
+ * Déplace une poignée de courbe. Une droite ou un arc devient une courbe de Bézier (forme conservée).
+ * Si le sommet est lisse (poignées alignées), la poignée opposée tourne avec (sauf `breakSmooth`).
+ */
+export function moveControl(s: Shape, i: number, which: 'c1' | 'c2', p: Vec, breakSmooth = false): Shape {
+  const n = segCount(s)
+  const vi = which === 'c1' ? i : (i + 1) % s.pts.length
+  const V = s.pts[vi]
+  const segs = [...s.segs]
+  const cur = segAsCubic(s, i)
+  segs[i] = { t: 'cubic', c1: which === 'c1' ? p : cur.c1, c2: which === 'c2' ? p : cur.c2 }
+  const opp = oppositeControl(s, i, which)
+  if (!breakSmooth && opp && opp.i < n && s.segs[opp.i].t === 'cubic') {
+    const og = s.segs[opp.i] as Extract<Segment, { t: 'cubic' }>
+    const before = which === 'c1' ? sub(cur.c1, V) : sub(cur.c2, V)
+    const oppVec = sub(og[opp.which], V)
+    const lb = len(before), lo = len(oppVec)
+    // lisse si les deux poignées sont opposées (à ~3° près)
+    if (lb > 1e-6 && lo > 1e-6 && dot(before, oppVec) / (lb * lo) < -Math.cos((3 * Math.PI) / 180)) {
+      const nv = sub(p, V)
+      const ln = len(nv)
+      if (ln > 1e-6) {
+        const np = sub(V, mul(nv, lo / ln))
+        segs[opp.i] = { ...og, [opp.which]: np }
+      }
+    }
+  }
+  return { ...s, segs }
 }
 
 export function translateShapes(shapes: Shape[], d: Vec): Shape[] {

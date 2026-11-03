@@ -3,7 +3,7 @@ import { useEditor } from '../store/editor'
 import type { Shape, Vec } from '../model/types'
 import { distToShape, segCount, segPoint, arcMidPoint, shapeToD } from '../geometry/shapes'
 import { dist, sub } from '../geometry/vec'
-import { bendSegment, cloneShapes, moveControl, moveVertex, shapesInRect, translateShapes } from '../geometry/edit'
+import { bendSegment, cloneShapes, moveControl, moveVertex, segAsCubic, shapesInRect, translateShapes } from '../geometry/edit'
 import { snapPoint, type SnapResult } from '../geometry/snap'
 import { snapFor, SnapMarker, useToolKeys } from './common'
 import type { ToolHandlers, ToolPointer } from './useActiveTool'
@@ -12,7 +12,7 @@ import { setPendingCarry } from '../store/fills'
 type Handle =
   | { kind: 'vertex'; shapeId: string; i: number }
   | { kind: 'mid'; shapeId: string; i: number }
-  | { kind: 'ctrl'; shapeId: string; i: number; which: 'c1' | 'c2' }
+  | { kind: 'ctrl'; shapeId: string; i: number; which: 'c1' | 'c2'; virtual?: boolean }
 
 type Drag =
   | { kind: 'move'; start: Vec; ids: string[]; anchor: Vec; moved: boolean }
@@ -49,20 +49,26 @@ export function shapeHandles(s: Shape, minGap = 0): { h: Handle; p: Vec }[] {
     const k = Math.min(d / 3, minGap * 1.6) / d
     return { x: anchor.x + (other.x - anchor.x) * k, y: anchor.y + (other.y - anchor.y) * k }
   }
-  for (let i = 0; i < segCount(s); i++) {
+  const n = segCount(s)
+  const isCubic = (j: number) => j >= 0 && j < n && s.segs[j].t === 'cubic'
+  for (let i = 0; i < n; i++) {
     const g = s.segs[i]
+    const p0 = s.pts[i]
+    const p1 = s.pts[(i + 1) % s.pts.length]
     if (g.t === 'cubic') {
-      const p0 = s.pts[i]
-      const p1 = s.pts[(i + 1) % s.pts.length]
       out.push({ h: { kind: 'ctrl', shapeId: s.id, i, which: 'c1' }, p: away(g.c1, p0, p1) })
       out.push({ h: { kind: 'ctrl', shapeId: s.id, i, which: 'c2' }, p: away(g.c2, p1, p0) })
-      // milieu de la courbe : le glisser la transforme en arc de cercle
-      out.push({ h: { kind: 'mid', shapeId: s.id, i }, p: segPoint(s, i, 0.5) })
     } else {
-      const p0 = s.pts[i]
-      const p1 = s.pts[(i + 1) % s.pts.length]
-      out.push({ h: { kind: 'mid', shapeId: s.id, i }, p: g.t === 'arc' ? arcMidPoint(p0, p1, g.bulge) : segPoint(s, i, 0.5) })
+      // poignées « virtuelles » côté droite / arc d'un sommet qui touche une courbe de Bézier :
+      // chaque sommet a ainsi une poignée de chaque côté
+      const prev = i - 1 >= 0 ? i - 1 : s.closed ? n - 1 : -1
+      const next = i + 1 < n ? i + 1 : s.closed ? 0 : -1
+      const eq = segAsCubic(s, i)
+      if (isCubic(prev)) out.push({ h: { kind: 'ctrl', shapeId: s.id, i, which: 'c1', virtual: true }, p: eq.c1 })
+      if (isCubic(next)) out.push({ h: { kind: 'ctrl', shapeId: s.id, i, which: 'c2', virtual: true }, p: eq.c2 })
     }
+    // milieu du segment : le glisser le transforme en arc de cercle
+    out.push({ h: { kind: 'mid', shapeId: s.id, i }, p: g.t === 'arc' ? arcMidPoint(p0, p1, g.bulge) : segPoint(s, i, 0.5) })
   }
   s.pts.forEach((p, i) => out.push({ h: { kind: 'vertex', shapeId: s.id, i }, p }))
   return out
@@ -144,7 +150,7 @@ export function useSelectTool(active: boolean): ToolHandlers {
     }
     hover.current = null
     if (h.kind === 'mid') return bendSegment(s, h.i, p.world)
-    return moveControl(s, h.i, h.which, p.world)
+    return moveControl(s, h.i, h.which, p.world, p.alt)
   }
 
   return {
@@ -279,7 +285,7 @@ export function useSelectTool(active: boolean): ToolHandlers {
                     <g key={k}>
                       <line x1={anchor.x} y1={anchor.y} x2={p.x} y2={p.y} className="handle-line" />
                       {/* losange : poignée de courbe de Bézier */}
-                      <path d={`M${p.x} ${p.y - q * 1.2}L${p.x + q * 1.2} ${p.y}L${p.x} ${p.y + q * 1.2}L${p.x - q * 1.2} ${p.y}Z`} className="handle-dot" data-testid="handle-ctrl" />
+                      <path d={`M${p.x} ${p.y - q * 1.2}L${p.x + q * 1.2} ${p.y}L${p.x} ${p.y + q * 1.2}L${p.x - q * 1.2} ${p.y}Z`} className={`handle-dot${h.virtual ? ' virtual' : ''}`} data-testid="handle-ctrl" />
                     </g>
                   )
                 }
