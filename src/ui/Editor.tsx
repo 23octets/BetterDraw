@@ -43,7 +43,6 @@ export function Editor({ variantId }: { variantId: string }) {
   const mode = useEditor((s) => s.mode)
   const [exporting, setExporting] = useState(false)
   const [shortcuts, setShortcuts] = useState(false)
-  const metaHeld = useMetaHeld()
 
   if (status === 'missing') {
     return (
@@ -62,7 +61,7 @@ export function Editor({ variantId }: { variantId: string }) {
       <main className="stage">
         <Canvas />
         <CanvasOverlay />
-        {(shortcuts || metaHeld) && <ShortcutsPanel />}
+        {shortcuts && <ShortcutsPanel />}
       </main>
       <aside className="side-panel">
         {mode === 'consult' ? <ConsultPanel onExport={() => setExporting(true)} /> : <SidePanelContent />}
@@ -172,7 +171,7 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
       <GridMenu />
       <div className="spacer" />
       <span className={`save-state${saving ? ' busy' : ''}`} data-testid="save-state">{saving ? 'Enregistrement…' : 'Enregistré'}</span>
-      <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier (maintenir ⌘)" aria-label="Raccourcis clavier">
+      <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier" aria-label="Raccourcis clavier">
         <Icon name="keyboard" /> Raccourcis
       </button>
       <button className="icon-btn" onClick={() => setSettings(true)} data-testid="open-settings" title="Réglages : taille du mur, origine, lignes de la grille" aria-label="Réglages">
@@ -268,44 +267,10 @@ export function ShortcutsPanel() {
         {row(<K>Clic</K>, 'zoomer / dézoomer une case', 'cc')}
         {row(<><K>←</K><K>→</K><K>↑</K><K>↓</K></>, 'case voisine', 'arr')}
       </ul>
-      <p className="shortcuts-foot">Maintiens <K>⌘</K> pour afficher ce panneau.</p>
     </aside>
   )
 }
 
-/** Affiche les raccourcis tant que ⌘ est enfoncé (seul). */
-function useMetaHeld() {
-  const [held, setHeld] = useState(false)
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'Meta') timer = setTimeout(() => setHeld(true), 350)
-      else {
-        clearTimeout(timer)
-        setHeld(false)
-      }
-    }
-    const up = (e: KeyboardEvent) => {
-      if (e.key === 'Meta') {
-        clearTimeout(timer)
-        setHeld(false)
-      }
-    }
-    const blur = () => {
-      clearTimeout(timer)
-      setHeld(false)
-    }
-    window.addEventListener('keydown', down)
-    window.addEventListener('keyup', up)
-    window.addEventListener('blur', blur)
-    return () => {
-      window.removeEventListener('keydown', down)
-      window.removeEventListener('keyup', up)
-      window.removeEventListener('blur', blur)
-    }
-  }, [])
-  return held
-}
 
 function useShortcuts() {
   useEffect(() => {

@@ -29,10 +29,11 @@ test('infobulle des outils, raccourcis (bouton et ⌘ maintenu), grille dans le 
   await page.getByTestId('toggle-shortcuts').click()
   await expect(page.getByTestId('shortcuts-panel')).toHaveCount(0)
   await page.mouse.move(700, 400)
+  // maintenir ⌘ n'affiche plus le panneau
   await page.keyboard.down('Meta')
-  await expect(page.getByTestId('shortcuts-panel')).toBeVisible()
-  await page.keyboard.up('Meta')
+  await page.waitForTimeout(500)
   await expect(page.getByTestId('shortcuts-panel')).toHaveCount(0)
+  await page.keyboard.up('Meta')
 
   // « Grille » ouvre le menu, l'œil affiche / masque
   await page.getByTestId('grid-menu').click()
