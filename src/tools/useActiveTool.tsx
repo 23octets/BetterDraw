@@ -8,6 +8,7 @@ import { useMeasureTool } from './measure'
 import { useSelectTool } from './select'
 import { useEraseTool, useFillTool, usePickTool } from './paint'
 import { useImageTool } from './image'
+import { useConsultTool } from './consult'
 
 export interface ToolPointer {
   screen: Vec
@@ -46,6 +47,8 @@ export function useActiveTool(): ToolHandlers {
     pick: usePickTool(),
     image: useImageTool(selectedImageId, setSelectedImage),
   }
+  const consult = useConsultTool(mode === 'consult')
+  if (mode === 'consult') return tool === 'measure' ? tools.measure! : consult
   if (!edit && tool !== 'measure') return {}
   return tools[tool] ?? {}
 }

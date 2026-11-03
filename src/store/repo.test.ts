@@ -4,6 +4,7 @@ import * as repo from './repo'
 import { useEditor, flushPersistence } from './editor'
 
 beforeEach(async () => {
+  await flushPersistence()
   await db.delete()
   await db.open()
 })

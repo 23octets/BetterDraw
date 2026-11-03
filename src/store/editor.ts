@@ -49,6 +49,12 @@ export interface EditorState {
   overrides: Record<string, Shape> | null
   clipboard: Shape[]
   selectedImageId: string | null
+  /** Case zoomée en mode consultation. */
+  consultCell: string | null
+  /** Mode « choisir les cases à imprimer ». */
+  pickPrint: boolean
+  setConsultCell: (id: string | null) => void
+  setPickPrint: (v: boolean) => void
   imagePreview: { id: string; opacity: number } | null
 
   setSelectedImage: (id: string | null) => void
@@ -88,6 +94,14 @@ export const useEditor = create<EditorState>((set, get) => ({
   overrides: null,
   clipboard: [],
   selectedImageId: null,
+  consultCell: null,
+  pickPrint: false,
+  setConsultCell(consultCell) {
+    set({ consultCell })
+  },
+  setPickPrint(pickPrint) {
+    set({ pickPrint })
+  },
   imagePreview: null,
 
   setSelectedImage(selectedImageId) {
@@ -129,9 +143,9 @@ export const useEditor = create<EditorState>((set, get) => ({
     // après un retour en arrière, une entrée « Retour à l'état » est insérée avant (voir repo.recordChange)
     const seq = maxSeq > headSeq ? maxSeq + 2 : headSeq + 1
     set((s) => ({ doc: next, headSeq: seq, maxSeq: seq, saving: s.saving + 1, rev: s.rev + 1 }))
-    enqueue(() => repo.recordChange(variant.id, label, next, patches, inverse)).finally(() =>
-      set((s) => ({ saving: s.saving - 1 })),
-    )
+    enqueue(() => repo.recordChange(variant.id, label, next, patches, inverse))
+      .catch(() => get().flash('Enregistrement impossible (voir la console)', 'error'))
+      .finally(() => set((s) => ({ saving: s.saving - 1 })))
   },
 
   async undo() {
@@ -161,7 +175,7 @@ export const useEditor = create<EditorState>((set, get) => ({
     set({ tool })
   },
   setMode(mode) {
-    set({ mode, selection: mode === 'edit' ? get().selection : [] })
+    set({ mode, selection: mode === 'edit' ? get().selection : [], consultCell: null, pickPrint: false, tool: mode === 'consult' ? 'select' : get().tool })
   },
   setSelection(selection) {
     set({ selection })

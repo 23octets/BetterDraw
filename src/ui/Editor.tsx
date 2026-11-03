@@ -6,6 +6,8 @@ import { navigate } from './router'
 import { GridSection, WallSection } from './SidePanel'
 import { Toolbar } from './Toolbar'
 import { HistoryPanel } from './HistoryPanel'
+import { ConsultPanel } from './ConsultPanel'
+import { ExportDialog } from './ExportDialog'
 import { ImagesSection } from './ImagesSection'
 import { SelectionSection } from './SelectionSection'
 import { PaletteSection, SurfacesSection } from './PaintSections'
@@ -32,6 +34,8 @@ export function Editor({ variantId }: { variantId: string }) {
   }, [variantId, load])
 
   useShortcuts()
+  const mode = useEditor((s) => s.mode)
+  const [exporting, setExporting] = useState(false)
 
   if (status === 'missing') {
     return (
@@ -45,15 +49,16 @@ export function Editor({ variantId }: { variantId: string }) {
 
   return (
     <div className="editor">
-      <TopBar projectName={project?.name ?? ''} />
+      <TopBar projectName={project?.name ?? ''} onExport={() => setExporting(true)} />
       <Toolbar />
       <main className="stage">
         <Canvas />
         <StatusBar />
       </main>
       <aside className="side-panel">
-        <SideTabs />
+        {mode === 'consult' ? <ConsultPanel onExport={() => setExporting(true)} /> : <SideTabs />}
       </aside>
+      {exporting && <ExportDialog meta={{ project: project?.name ?? 'Projet', variant: variant.name, date: new Date().toLocaleDateString('fr-FR') }} onClose={() => setExporting(false)} />}
     </div>
   )
 }
@@ -120,7 +125,7 @@ function VariantSwitcher() {
   )
 }
 
-function TopBar({ projectName }: { projectName: string }) {
+function TopBar({ projectName, onExport }: { projectName: string; onExport: () => void }) {
   const saving = useEditor((s) => s.saving)
   const headSeq = useEditor((s) => s.headSeq)
   const maxSeq = useEditor((s) => s.maxSeq)
@@ -143,6 +148,7 @@ function TopBar({ projectName }: { projectName: string }) {
       <div className="spacer" />
       <button className="ghost" onClick={() => undo()} disabled={headSeq <= 0} title="Annuler (⌘Z)" data-testid="undo">↶</button>
       <button className="ghost" onClick={() => redo()} disabled={headSeq >= maxSeq} title="Rétablir (⇧⌘Z)" data-testid="redo">↷</button>
+      <button onClick={onExport} data-testid="export">Exporter…</button>
       <span className={`save-state${saving ? ' busy' : ''}`} data-testid="save-state">{saving ? 'Enregistrement…' : 'Enregistré'}</span>
     </header>
   )

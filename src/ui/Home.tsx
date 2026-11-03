@@ -4,6 +4,7 @@ import type { Project, Variant } from '../model/types'
 import { navigate } from './router'
 import { DEFAULT_WALL } from '../model/defaults'
 import { DocPreview } from './DocPreview'
+import { importProject } from '../export/project'
 
 type Row = Project & { variants: Variant[] }
 
@@ -12,6 +13,7 @@ export function Home() {
   const [name, setName] = useState('')
   const [w, setW] = useState(DEFAULT_WALL.w)
   const [h, setH] = useState(DEFAULT_WALL.h)
+  const [importMsg, setImportMsg] = useState<string | null>(null)
 
   const refresh = () => repo.listProjects().then(setProjects)
   useEffect(() => {
@@ -56,7 +58,26 @@ export function Home() {
       </form>
 
       <section className="projects">
-        <h2>Projets</h2>
+        <div className="projects-head">
+          <h2>Projets</h2>
+          <label className="import-btn">
+            <input type="file" accept=".json,application/json" hidden data-testid="import-project"
+              onChange={async (e) => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (!f) return
+                try {
+                  const { project } = await importProject(JSON.parse(await f.text()))
+                  setImportMsg(`« ${project.name} » importé`)
+                  refresh()
+                } catch (err) {
+                  setImportMsg(`Import impossible : ${(err as Error).message}`)
+                }
+              }} />
+            Importer une sauvegarde (.json)
+          </label>
+        </div>
+        {importMsg && <p className="hint" data-testid="import-msg">{importMsg}</p>}
         {projects === null ? null : projects.length === 0 ? (
           <p className="empty">Aucun projet pour l'instant.</p>
         ) : (

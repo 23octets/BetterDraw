@@ -8,6 +8,7 @@ import type { Shape } from '../model/types'
 const line = (id: string, a: [number, number], b: [number, number]): Shape => ({ id, pts: [{ x: a[0], y: a[1] }, { x: b[0], y: b[1] }], segs: [{ t: 'line' }], closed: false })
 
 beforeEach(async () => {
+  await flushPersistence()
   await db.delete()
   await db.open()
   const { variant } = await repo.createProject('Peinture', { w: 300, h: 200 })

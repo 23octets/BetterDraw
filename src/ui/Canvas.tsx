@@ -5,10 +5,11 @@ import { useActiveTool, type ToolPointer } from '../tools/useActiveTool'
 import { DocLayers } from './DocLayers'
 import { importImageFiles } from './ImagesSection'
 
-export function fitView(wall: { w: number; h: number }, size: { w: number; h: number }) {
-  const margin = 70
+export function fitView(wall: { w: number; h: number; x?: number; y?: number }, size: { w: number; h: number }, margin = 70) {
+  const ox = wall.x ?? 0
+  const oy = wall.y ?? 0
   const zoom = Math.max(0.05, Math.min((size.w - margin * 2) / wall.w, (size.h - margin * 2) / wall.h))
-  return { zoom, panX: (size.w - wall.w * zoom) / 2, panY: (size.h - wall.h * zoom) / 2 }
+  return { zoom, panX: (size.w - wall.w * zoom) / 2 - ox * zoom, panY: (size.h - wall.h * zoom) / 2 - oy * zoom }
 }
 
 export function Canvas() {
@@ -38,7 +39,10 @@ export function Canvas() {
   }, [setView])
 
   useEffect(() => {
-    const onFit = () => setView(fitView(useEditor.getState().doc.wall, size))
+    const onFit = (e: Event) => {
+      const rect = (e as CustomEvent<{ x: number; y: number; w: number; h: number } | null>).detail
+      setView(rect ? fitView(rect, size, 90) : fitView(useEditor.getState().doc.wall, size))
+    }
     window.addEventListener('bd:fit', onFit)
     return () => window.removeEventListener('bd:fit', onFit)
   }, [size, setView])
