@@ -20,6 +20,8 @@ type Drag =
   | { kind: 'marquee'; start: Vec; cur: Vec; add: boolean }
 
 const HIT_PX = 7
+const HANDLE_PX = 13
+const HANDLE_GAP_PX = 18
 
 export function hitShape(shapes: Shape[], p: Vec, tol: number): Shape | null {
   let best: Shape | null = null
@@ -34,13 +36,26 @@ export function hitShape(shapes: Shape[], p: Vec, tol: number): Shape | null {
   return best
 }
 
-export function shapeHandles(s: Shape): { h: Handle; p: Vec }[] {
+/**
+ * Poignées d'une forme. `minGap` (cm) : une poignée de Bézier collée à son sommet est
+ * affichée un peu à l'écart (vers l'autre extrémité) pour rester attrapable.
+ */
+export function shapeHandles(s: Shape, minGap = 0): { h: Handle; p: Vec }[] {
   const out: { h: Handle; p: Vec }[] = []
+  const away = (c: Vec, anchor: Vec, other: Vec): Vec => {
+    if (dist(c, anchor) >= minGap) return c
+    const d = dist(anchor, other)
+    if (d < 1e-9) return c
+    const k = Math.min(d / 3, minGap * 1.6) / d
+    return { x: anchor.x + (other.x - anchor.x) * k, y: anchor.y + (other.y - anchor.y) * k }
+  }
   for (let i = 0; i < segCount(s); i++) {
     const g = s.segs[i]
     if (g.t === 'cubic') {
-      out.push({ h: { kind: 'ctrl', shapeId: s.id, i, which: 'c1' }, p: g.c1 })
-      out.push({ h: { kind: 'ctrl', shapeId: s.id, i, which: 'c2' }, p: g.c2 })
+      const p0 = s.pts[i]
+      const p1 = s.pts[(i + 1) % s.pts.length]
+      out.push({ h: { kind: 'ctrl', shapeId: s.id, i, which: 'c1' }, p: away(g.c1, p0, p1) })
+      out.push({ h: { kind: 'ctrl', shapeId: s.id, i, which: 'c2' }, p: away(g.c2, p1, p0) })
     } else {
       const p0 = s.pts[i]
       const p1 = s.pts[(i + 1) % s.pts.length]
@@ -90,9 +105,9 @@ export function useSelectTool(active: boolean): ToolHandlers {
 
   const findHandle = (p: Vec): Handle | null => {
     if (!single) return null
-    const tol = (HIT_PX + 2) / zoom
+    const tol = HANDLE_PX / zoom
     // sommets prioritaires
-    const hs = shapeHandles(single).sort((a, b) => (a.h.kind === 'vertex' ? -1 : 1) - (b.h.kind === 'vertex' ? -1 : 1))
+    const hs = shapeHandles(single, HANDLE_GAP_PX / zoom).sort((a, b) => (a.h.kind === 'vertex' ? -1 : 1) - (b.h.kind === 'vertex' ? -1 : 1))
     let best: Handle | null = null
     let bd = tol
     for (const { h, p: q } of hs) {
@@ -223,8 +238,8 @@ export function useSelectTool(active: boolean): ToolHandlers {
             <path key={s.id} d={shapeToD(s)} className="selected-shape" data-testid="selected-shape" />
           ))}
           {single &&
-            shapeHandles(single).map(({ h, p }, k) => {
-              const r = (h.kind === 'vertex' ? 4.5 : 3.5) / zoom
+            shapeHandles(single, HANDLE_GAP_PX / zoom).map(({ h, p }, k) => {
+              const r = (h.kind === 'vertex' ? 6 : 5.5) / zoom
               if (h.kind === 'ctrl') {
                 const anchor = h.which === 'c1' ? single.pts[h.i] : single.pts[(h.i + 1) % single.pts.length]
                 return (

@@ -1,7 +1,8 @@
 import type { DocState } from '../model/types'
 import { shapeToD } from '../geometry/shapes'
 import { resolveFills } from '../store/fills'
-import { gridLayout } from '../geometry/grid'
+import { useId } from 'react'
+import { GridLinesAdaptive } from './GridLinesAdaptive'
 
 /** Rendu statique d'un dessin (vignettes, comparaison, exports). */
 export function DocPreview({
@@ -20,7 +21,7 @@ export function DocPreview({
   lineWidth?: number
 }) {
   const fills = resolveFills(doc)
-  const layout = gridLayout(doc.wall, doc.grid)
+  const uid = useId().replace(/:/g, '')
   const pad = showLabels ? Math.max(doc.wall.w, doc.wall.h) * 0.06 : 0
   return (
     <svg
@@ -37,16 +38,7 @@ export function DocPreview({
         doc.shapes.map((s) => (
           <path key={s.id} d={shapeToD(s)} fill="none" stroke="#1d1f22" strokeWidth={lineWidth} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
         ))}
-      {showGrid && doc.grid.show && (
-        <g stroke="#c8643b" strokeOpacity={0.6} strokeWidth={0.8} vectorEffect="non-scaling-stroke" strokeDasharray="3 2">
-          {layout.vLines.map((l, i) => (
-            <line key={`v${i}`} x1={l.pos} x2={l.pos} y1={0} y2={doc.wall.h} vectorEffect="non-scaling-stroke" />
-          ))}
-          {layout.hLines.map((l, i) => (
-            <line key={`h${i}`} x1={0} x2={doc.wall.w} y1={l.pos} y2={l.pos} vectorEffect="non-scaling-stroke" />
-          ))}
-        </g>
-      )}
+      {showGrid && <g className="preview-grid"><GridLinesAdaptive doc={doc} idPrefix={`pv${uid}`} /></g>}
       <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} fill="none" stroke="#1d1f22" strokeWidth={1.2} vectorEffect="non-scaling-stroke" />
     </svg>
   )

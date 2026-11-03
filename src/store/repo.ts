@@ -117,10 +117,28 @@ export async function moveHead(variantId: string, target: number): Promise<Varia
   })
 }
 
-/** Snapshot : crée une variante indépendante (historique vierge) à partir de l'état courant. */
-export async function snapshotVariant(variantId: string, name?: string) {
+/** État d'une variante à une position d'historique donnée (sans déplacer la tête). */
+export async function stateAt(variantId: string, seq: number): Promise<DocState> {
   const v = await db.variants.get(variantId)
   if (!v) throw new Error('variante introuvable')
+  let state = v.state
+  if (seq < v.headSeq) {
+    const es = await db.entries.where('[variantId+seq]').between([variantId, seq + 1], [variantId, v.headSeq], true, true).toArray()
+    es.sort((a, b) => b.seq - a.seq)
+    for (const e of es) state = applyPatches(state, e.inverse as Patch[])
+  } else if (seq > v.headSeq) {
+    const es = await db.entries.where('[variantId+seq]').between([variantId, v.headSeq + 1], [variantId, seq], true, true).toArray()
+    es.sort((a, b) => a.seq - b.seq)
+    for (const e of es) state = applyPatches(state, e.patches as Patch[])
+  }
+  return state
+}
+
+/** Snapshot : crée une variante indépendante (historique vierge) à partir de l'état courant (ou d'un état passé). */
+export async function snapshotVariant(variantId: string, name?: string, atSeq?: number) {
+  const v0 = await db.variants.get(variantId)
+  if (!v0) throw new Error('variante introuvable')
+  const v = atSeq === undefined ? v0 : { ...v0, headSeq: atSeq, state: await stateAt(variantId, atSeq) }
   const count = await db.variants.where('projectId').equals(v.projectId).count()
   const t = now()
   const nv: Variant = {

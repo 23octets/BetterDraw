@@ -6,7 +6,7 @@ import type { Vec } from '../model/types'
 import type { ToolHandlers } from './useActiveTool'
 import { toScreen } from './common'
 
-const GAP_PX = 14
+const GAP_PX = 20
 
 function insideWall(p: Vec) {
   const { wall } = useEditor.getState().doc

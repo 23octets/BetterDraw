@@ -17,7 +17,7 @@ export function defaultPalette(): PaletteColor[] {
 export function defaultDoc(): DocState {
   return {
     wall: { ...DEFAULT_WALL },
-    grid: { step: 50, origin: 'bl', snapStep: 5, show: true },
+    grid: { step: 50, origin: 'bl', snapStep: 5, show: true, subStep: 10 },
     shapes: [],
     fills: [],
     palette: defaultPalette(),

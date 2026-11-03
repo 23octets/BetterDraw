@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useEditor, flushPersistence } from '../store/editor'
 import * as repo from '../store/repo'
+import { Icon } from './icons'
+import { navigate } from './router'
 
 interface Row {
   seq: number
@@ -25,6 +27,14 @@ export function HistoryPanel() {
   const [slider, setSlider] = useState(headSeq)
 
   useEffect(() => setSlider(headSeq), [headSeq])
+
+  const branch = async (seq: number) => {
+    if (!variant) return
+    await flushPersistence()
+    const nv = await repo.snapshotVariant(variant.id, undefined, seq)
+    navigate(`/v/${nv.id}`)
+    setTimeout(() => useEditor.getState().flash(`${nv.name} créée depuis l’état #${seq} de ${variant.name}`), 50)
+  }
 
   useEffect(() => {
     if (!variant) return
@@ -61,27 +71,22 @@ export function HistoryPanel() {
       <p className="hint" style={{ margin: 0 }}>
         Glisse pour remonter le temps. Rien n’est jamais perdu : modifier après un retour en arrière ajoute une étape « Retour à l’état ».
       </p>
+      <button className="wide" data-testid="history-branch" onClick={() => branch(headSeq)}>
+        <Icon name="branch" size={15} /> Créer une variante depuis l’état #{headSeq}
+      </button>
       <ol className="history-list">
-        {rows.map((r) => (
-          <li key={r.seq}>
-            <button
-              className={`history-item${r.seq === headSeq ? ' current' : ''}${r.seq > headSeq ? ' future' : ''}`}
-              data-testid="history-item"
-              onClick={() => goTo(r.seq)}
-            >
+        {[...rows, { seq: 0, label: 'État initial', ts: variant?.createdAt ?? 0 }].map((r) => (
+          <li key={r.seq} className={`history-row${r.seq === headSeq ? ' current' : ''}${r.seq > headSeq ? ' future' : ''}`}>
+            <button className="history-item" data-testid="history-item" onClick={() => goTo(r.seq)}>
               <span className="seq">#{r.seq}</span>
               <span className="label">{r.label}</span>
               <span className="time">{fmtTime(r.ts)}</span>
             </button>
+            <button className="icon-btn ghost small branch-btn" title={`Créer une variante depuis l’état #${r.seq}`} aria-label={`Créer une variante depuis l’état #${r.seq}`} onClick={() => branch(r.seq)}>
+              <Icon name="branch" size={14} />
+            </button>
           </li>
         ))}
-        <li>
-          <button className={`history-item${headSeq === 0 ? ' current' : ''}`} data-testid="history-item" onClick={() => goTo(0)}>
-            <span className="seq">#0</span>
-            <span className="label">État initial</span>
-            <span className="time">{variant ? fmtTime(variant.createdAt) : ''}</span>
-          </button>
-        </li>
       </ol>
     </div>
   )

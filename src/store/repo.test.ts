@@ -143,3 +143,17 @@ describe('snapshots / variantes', () => {
     expect(await repo.listVariants(project.id)).toHaveLength(1)
   })
 })
+
+describe('variante depuis l’historique', () => {
+  it('creates a variant from a past state without moving the head', async () => {
+    const { variant } = await repo.createProject('Branche')
+    await useEditor.getState().load(variant.id)
+    for (let i = 1; i <= 4; i++) useEditor.getState().commit(`w${i}`, (d) => { d.wall.w = 300 + i })
+    await flushPersistence()
+    const nv = await repo.snapshotVariant(variant.id, undefined, 2)
+    expect(nv.state.wall.w).toBe(302)
+    expect(nv.parentSeq).toBe(2)
+    expect((await repo.getVariant(variant.id))!.headSeq).toBe(4)
+    expect((await repo.getVariant(variant.id))!.state.wall.w).toBe(304)
+  })
+})

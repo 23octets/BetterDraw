@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useEditor } from '../store/editor'
 import { imageSize, placeImage, readFileAsDataUrl, storeImage } from '../store/images'
 import { Section } from './SidePanel'
+import { Icon } from './icons'
 
 export async function importImageFiles(files: FileList | File[]) {
   const st = useEditor.getState()
@@ -49,23 +50,23 @@ export function ImagesSection() {
           if (e.target.files?.length) importImageFiles(e.target.files)
           e.target.value = ''
         }} />
-      <button onClick={() => input.current?.click()} data-testid="import-image">+ Importer une image</button>
+      <button className="wide" onClick={() => input.current?.click()} data-testid="import-image"><Icon name="plus" size={14} /> Importer une image</button>
       {images.length > 0 && (
         <ul className="image-list">
           {[...images].reverse().map((im) => {
             const op = preview?.id === im.id ? preview.opacity : im.opacity
             return (
-              <li key={im.id} className={`image-row${selected === im.id && tool === 'image' ? ' on' : ''}`} data-testid="image-row">
+              <li key={im.id} data-hidden={!im.visible || undefined} className={`image-row${selected === im.id && tool === 'image' ? ' on' : ''}`} data-testid="image-row">
                 <div className="image-row-head">
                   <button className="ghost small name" onClick={() => { setSelected(im.id); setTool('image') }} title={im.name}>{im.name}</button>
-                  <button className="ghost small" title={im.visible ? 'Masquer' : 'Afficher'} data-testid="image-visible"
-                    onClick={() => update(im.id, im.visible ? 'Masquer une image' : 'Afficher une image', { visible: !im.visible })}>{im.visible ? '👁' : '◌'}</button>
-                  <button className="ghost small" title={im.locked ? 'Déverrouiller' : 'Verrouiller'} data-testid="image-lock"
-                    onClick={() => update(im.id, im.locked ? 'Déverrouiller une image' : 'Verrouiller une image', { locked: !im.locked })}>{im.locked ? '🔒' : '🔓'}</button>
-                  <button className="ghost small" title="Vers l’avant" onClick={() => move(im.id, 1)}>↑</button>
-                  <button className="ghost small" title="Vers l’arrière" onClick={() => move(im.id, -1)}>↓</button>
-                  <button className="ghost small danger" title="Retirer" data-testid="image-delete"
-                    onClick={() => { commit('Retirer une image', (d) => { d.images = d.images.filter((x) => x.id !== im.id) }); if (selected === im.id) setSelected(null) }}>✕</button>
+                  <button className={`icon-btn ghost small${im.visible ? '' : ' off'}`} title={im.visible ? 'Masquer' : 'Afficher'} aria-pressed={!im.visible} data-testid="image-visible"
+                    onClick={() => update(im.id, im.visible ? 'Masquer une image' : 'Afficher une image', { visible: !im.visible })}><Icon name={im.visible ? 'eye' : 'eyeOff'} size={15} /></button>
+                  <button className={`icon-btn ghost small${im.locked ? ' off' : ''}`} title={im.locked ? 'Déverrouiller' : 'Verrouiller'} aria-pressed={im.locked} data-testid="image-lock"
+                    onClick={() => update(im.id, im.locked ? 'Déverrouiller une image' : 'Verrouiller une image', { locked: !im.locked })}><Icon name={im.locked ? 'lock' : 'unlock'} size={15} /></button>
+                  <button className="icon-btn ghost small" title="Vers l’avant" aria-label="Vers l’avant" onClick={() => move(im.id, 1)}><Icon name="up" size={15} /></button>
+                  <button className="icon-btn ghost small" title="Vers l’arrière" aria-label="Vers l’arrière" onClick={() => move(im.id, -1)}><Icon name="down" size={15} /></button>
+                  <button className="icon-btn ghost small danger" title="Retirer" aria-label="Retirer l’image" data-testid="image-delete"
+                    onClick={() => { commit('Retirer une image', (d) => { d.images = d.images.filter((x) => x.id !== im.id) }); if (selected === im.id) setSelected(null) }}><Icon name="close" size={15} /></button>
                 </div>
                 <label className="opacity">
                   <span>Opacité {Math.round(op * 100)} %</span>

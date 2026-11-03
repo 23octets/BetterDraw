@@ -62,10 +62,6 @@ export function GridSection() {
           ))}
         </div>
       </div>
-      <label className="check">
-        <input type="checkbox" checked={g.show} onChange={(e) => commit(e.target.checked ? 'Afficher la grille' : 'Masquer la grille', (d) => { d.grid.show = e.target.checked })} />
-        Afficher la grille
-      </label>
       <p className="hint" data-testid="grid-summary">
         {layout.cols} × {layout.rows} cases
         {lastW && lastW !== g.step ? ` · dernière colonne ${round(lastW)} cm` : ''}

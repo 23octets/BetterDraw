@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 import { produceWithPatches, type Draft } from 'immer'
-import type { DocState, Shape, Variant, Vec } from '../model/types'
+import type { DocState, RefImage, Shape, Variant, Vec } from '../model/types'
 import { defaultDoc } from '../model/defaults'
 import * as repo from './repo'
 
-export type Tool = 'select' | 'polyline' | 'arc' | 'bezier' | 'fill' | 'erase' | 'pick' | 'measure' | 'image'
+export type Tool = 'select' | 'polyline' | 'arc' | 'bezier' | 'trim' | 'fill' | 'erase' | 'pick' | 'measure' | 'image'
 export type Mode = 'edit' | 'render' | 'consult'
 
 export interface View {
@@ -56,6 +56,9 @@ export interface EditorState {
   setConsultCell: (id: string | null) => void
   setPickPrint: (v: boolean) => void
   imagePreview: { id: string; opacity: number } | null
+  /** Image en cours de déplacement / redimensionnement (affichée en direct). */
+  imageDrag: RefImage | null
+  setImageDrag: (im: RefImage | null) => void
 
   setSelectedImage: (id: string | null) => void
   setImagePreview: (p: { id: string; opacity: number } | null) => void
@@ -103,6 +106,10 @@ export const useEditor = create<EditorState>((set, get) => ({
     set({ pickPrint })
   },
   imagePreview: null,
+  imageDrag: null,
+  setImageDrag(imageDrag) {
+    set({ imageDrag })
+  },
 
   setSelectedImage(selectedImageId) {
     set({ selectedImageId })

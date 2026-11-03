@@ -55,6 +55,8 @@ export interface GridSettings {
   step: number
   origin: GridOrigin
   snapStep: number
+  /** Pas de la sous-grille affichée en vue détail (consultation). */
+  subStep?: number
   show: boolean
 }
 

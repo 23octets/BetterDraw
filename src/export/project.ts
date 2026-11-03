@@ -70,7 +70,7 @@ export function sanitizeDoc(x: unknown): DocState {
   })
   return {
     wall: { w: num(wall.w, 'mur', 1, 100000), h: num(wall.h, 'mur', 1, 100000) },
-    grid: { step: num(grid.step, 'grille', 0.1, 100000), origin: origin as GridSettings['origin'], snapStep: num(grid.snapStep, 'grille', 0.01, 100000), show: bool(grid.show, 'grille') },
+    grid: { step: num(grid.step, 'grille', 0.1, 100000), origin: origin as GridSettings['origin'], snapStep: num(grid.snapStep, 'grille', 0.01, 100000), show: bool(grid.show, 'grille'), subStep: grid.subStep === undefined ? 10 : num(grid.subStep, 'grille', 0.1, 100000) },
     shapes,
     fills: arr(o.fills, 'zones').map((fx) => {
       const f = obj(fx, 'zone')

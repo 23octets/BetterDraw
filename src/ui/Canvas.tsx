@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useEditor } from '../store/editor'
-import { GridLabels, GridLines } from './GridOverlay'
+import { GridLabels } from './GridOverlay'
+import { GridLinesAdaptive } from './GridLinesAdaptive'
 import { useActiveTool, type ToolPointer } from '../tools/useActiveTool'
 import { DocLayers } from './DocLayers'
 import { importImageFiles } from './ImagesSection'
@@ -8,8 +9,10 @@ import { importImageFiles } from './ImagesSection'
 export function fitView(wall: { w: number; h: number; x?: number; y?: number }, size: { w: number; h: number }, margin = 70) {
   const ox = wall.x ?? 0
   const oy = wall.y ?? 0
-  const zoom = Math.max(0.05, Math.min((size.w - margin * 2) / wall.w, (size.h - margin * 2) / wall.h))
-  return { zoom, panX: (size.w - wall.w * zoom) / 2 - ox * zoom, panY: (size.h - wall.h * zoom) / 2 - oy * zoom }
+  // marge du bas plus grande : les contrôles de zoom flottent en bas à droite
+  const bottomExtra = 36
+  const zoom = Math.max(0.05, Math.min((size.w - margin * 2) / wall.w, (size.h - margin * 2 - bottomExtra) / wall.h))
+  return { zoom, panX: (size.w - wall.w * zoom) / 2 - ox * zoom, panY: (size.h - bottomExtra - wall.h * zoom) / 2 - oy * zoom }
 }
 
 export function Canvas() {
@@ -153,7 +156,7 @@ export function Canvas() {
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} className="wall-shadow" />
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} fill={doc.background.hex} className="wall" data-testid="wall" />
         <DocLayers doc={doc} mode={mode} />
-        <GridLines doc={doc} strong={mode === 'consult'} />
+        <GridLinesAdaptive doc={doc} strong={mode === 'consult'} idPrefix="cv" />
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} className="wall-outline" />
         {tool.renderWorld?.()}
       </g>

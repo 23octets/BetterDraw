@@ -15,24 +15,27 @@ export function imageCorners(im: Pick<RefImage, 'x' | 'y' | 'w' | 'h'>): Vec[] {
   ]
 }
 
-/** Outil images : glisser pour déplacer, flèches aux coins pour agrandir (proportions conservées). */
+const CORNER_CURSOR = ['nwse-resize', 'nesw-resize', 'nwse-resize', 'nesw-resize']
+
+/** Outil images : glisser pour déplacer (l'image suit), flèches aux coins pour agrandir (proportions conservées). */
 export function useImageTool(selectedId: string | null, setSelectedId: (id: string | null) => void): ToolHandlers {
   const drag = useRef<Drag | null>(null)
-  const preview = useRef<RefImage | null>(null)
-  const [, render] = useReducer((x: number) => x + 1, 0)
+  const [cursor, setCursor] = useReducer((_: string, c: string) => c, 'default')
   const zoom = useEditor((s) => s.view.zoom)
   const images = useEditor((s) => s.doc.images)
+  const live = useEditor((s) => s.imageDrag)
   const sel = images.find((i) => i.id === selectedId) ?? null
-  const shown = preview.current && sel && preview.current.id === sel.id ? preview.current : sel
+  const shown = live && sel && live.id === sel.id ? live : sel
 
   const cornerAt = (p: Vec): number => {
-    if (!shown || shown.locked) return -1
-    const tol = 12 / zoom
+    if (!shown || shown.locked || !shown.visible) return -1
+    const tol = 14 / zoom
     return imageCorners(shown).findIndex((c) => Math.abs(c.x - p.x) < tol && Math.abs(c.y - p.y) < tol)
   }
+  const imageAt = (p: Vec) => [...images].reverse().find((im) => im.visible && p.x >= im.x && p.x <= im.x + im.w && p.y >= im.y && p.y <= im.y + im.h)
 
   return {
-    cursor: 'move',
+    cursor,
     onPointerDown(p) {
       if (p.button !== 0) return
       const corner = cornerAt(p.world)
@@ -40,41 +43,49 @@ export function useImageTool(selectedId: string | null, setSelectedId: (id: stri
         drag.current = { kind: 'resize', id: shown.id, corner, orig: shown }
         return
       }
-      const hit = [...images].reverse().find((im) => im.visible && p.world.x >= im.x && p.world.x <= im.x + im.w && p.world.y >= im.y && p.world.y <= im.y + im.h)
+      const hit = imageAt(p.world)
       setSelectedId(hit?.id ?? null)
-      if (hit && !hit.locked) drag.current = { kind: 'move', id: hit.id, start: p.world, orig: hit }
-      render()
+      if (hit && !hit.locked) {
+        drag.current = { kind: 'move', id: hit.id, start: p.world, orig: hit }
+        setCursor('grabbing')
+      }
     },
     onPointerMove(p) {
       const d = drag.current
-      if (!d) return
-      if (d.kind === 'move') preview.current = { ...d.orig, x: d.orig.x + p.world.x - d.start.x, y: d.orig.y + p.world.y - d.start.y }
-      else preview.current = { ...d.orig, ...resizeKeepRatio(d.orig, d.corner, p.world) }
-      render()
+      const st = useEditor.getState()
+      if (!d) {
+        const corner = cornerAt(p.world)
+        const hit = imageAt(p.world)
+        setCursor(corner >= 0 ? CORNER_CURSOR[corner] : hit && !hit.locked ? 'grab' : 'default')
+        return
+      }
+      if (d.kind === 'move') st.setImageDrag({ ...d.orig, x: d.orig.x + p.world.x - d.start.x, y: d.orig.y + p.world.y - d.start.y })
+      else st.setImageDrag({ ...d.orig, ...resizeKeepRatio(d.orig, d.corner, p.world) })
     },
     onPointerUp() {
+      const st = useEditor.getState()
       const d = drag.current
-      const pv = preview.current
+      const pv = st.imageDrag
       drag.current = null
-      preview.current = null
       if (d && pv && (pv.x !== d.orig.x || pv.y !== d.orig.y || pv.w !== d.orig.w)) {
-        useEditor.getState().commit(d.kind === 'move' ? 'Déplacer une image' : 'Redimensionner une image', (doc) => {
+        st.commit(d.kind === 'move' ? 'Déplacer une image' : 'Redimensionner une image', (doc) => {
           const im = doc.images.find((i) => i.id === d.id)
           if (im) Object.assign(im, { x: pv.x, y: pv.y, w: pv.w, h: pv.h })
         })
       }
-      render()
+      st.setImageDrag(null)
+      if (d?.kind === 'move') setCursor('grab')
     },
     renderWorld: () =>
-      shown && (
+      shown && shown.visible && (
         <g className="image-handles" data-testid="image-selection">
           <rect x={shown.x} y={shown.y} width={shown.w} height={shown.h} className="image-frame" />
           {!shown.locked &&
             imageCorners(shown).map((c, i) => {
-              const s = 9 / zoom
+              const s = 10 / zoom
               const rot = [225, 315, 45, 135][i]
               return (
-                <g key={i} transform={`translate(${c.x} ${c.y}) rotate(${rot})`} className="image-corner" data-testid="image-corner">
+                <g key={i} transform={`translate(${c.x} ${c.y}) rotate(${rot})`} className="image-corner" data-testid="image-corner" style={{ cursor: CORNER_CURSOR[i] }}>
                   <circle r={s} />
                   <path d={`M${-s * 0.5} 0 H${s * 0.5} M${s * 0.15} ${-s * 0.35} L${s * 0.5} 0 L${s * 0.15} ${s * 0.35}`} />
                 </g>

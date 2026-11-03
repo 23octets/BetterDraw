@@ -95,3 +95,32 @@ export function formatCm(n: number): string {
   const r = Math.round(n * 10) / 10
   return `${Number.isInteger(r) ? r : r.toFixed(1)} cm`
 }
+
+const ACCENT = [200, 100, 59]
+
+function rgb(hex: string): [number, number, number] {
+  let h = hex.replace('#', '')
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('')
+  const n = parseInt(h.slice(0, 6), 16)
+  return Number.isFinite(n) ? [(n >> 16) & 255, (n >> 8) & 255, n & 255] : [255, 255, 255]
+}
+
+export function luminance(hex: string): number {
+  const [r, g, b] = rgb(hex).map((c) => {
+    const s = c / 255
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+/**
+ * Couleur de grille lisible sur un aplat donné : l'accent orangé sur les fonds clairs
+ * éloignés de l'accent, sinon noir ou blanc selon la luminance.
+ */
+export function gridStrokeFor(hex: string): string {
+  const [r, g, b] = rgb(hex)
+  const d = Math.hypot(r - ACCENT[0], g - ACCENT[1], b - ACCENT[2])
+  const L = luminance(hex)
+  if (L > 0.45 && d > 140) return 'rgba(200,100,59,0.75)'
+  return L > 0.3 ? 'rgba(20,20,22,0.6)' : 'rgba(255,255,255,0.8)'
+}

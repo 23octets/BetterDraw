@@ -35,11 +35,13 @@ function RefImageView({ im, opacity }: { im: RefImage; opacity: number }) {
 /** Images de référence (filigrane) : jamais exportées, visibles seulement en édition. */
 export function ImagesLayer({ doc }: { doc: DocState }) {
   const preview = useEditor((s) => s.imagePreview)
+  const drag = useEditor((s) => s.imageDrag)
   return (
     <g className="ref-images" style={{ pointerEvents: 'none' }}>
-      {doc.images.filter((i) => i.visible).map((im) => (
-        <RefImageView key={im.id} im={im} opacity={preview?.id === im.id ? preview.opacity : im.opacity} />
-      ))}
+      {doc.images.filter((i) => i.visible).map((im) => {
+        const shown = drag?.id === im.id ? drag : im
+        return <RefImageView key={im.id} im={shown} opacity={preview?.id === im.id ? preview.opacity : im.opacity} />
+      })}
     </g>
   )
 }
@@ -49,7 +51,7 @@ export function DocLayers({ doc, mode }: { doc: DocState; mode: Mode }) {
     <g className="doc-layers">
       <FillsLayer doc={doc} />
       {mode === 'edit' && <ImagesLayer doc={doc} />}
-      {mode !== 'render' && <ShapesLayer doc={doc} />}
+      {mode === 'edit' && <ShapesLayer doc={doc} />}
     </g>
   )
 }

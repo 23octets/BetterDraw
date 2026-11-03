@@ -2,6 +2,7 @@ import { useEditor } from '../store/editor'
 import { gridLayout } from '../geometry/grid'
 import { neighborCell, togglePrintCell, zoomToCell } from '../tools/consult'
 import { Section } from './SidePanel'
+import { NumberField } from './fields'
 
 export function ConsultPanel({ onExport }: { onExport: () => void }) {
   const doc = useEditor((s) => s.doc)
@@ -23,6 +24,8 @@ export function ConsultPanel({ onExport }: { onExport: () => void }) {
       <Section title="Consultation" testId="consult-panel">
         <p className="big-id" data-testid="consult-cell">{c ? c.id : 'Vue d’ensemble'}</p>
         {c && <p className="hint" style={{ textAlign: 'center', margin: 0 }}>{Math.round(c.w * 10) / 10} × {Math.round(c.h * 10) / 10} cm</p>}
+        <NumberField label="Sous-grille de la vue détail" suffix="cm" min={1} max={500} value={doc.grid.subStep ?? 10} testId="sub-step"
+          onCommit={(v) => commit(`Sous-grille : ${v} cm`, (d) => { d.grid.subStep = v })} />
         <div className="cell-nav">
           <span />
           <button onClick={() => nav('ArrowUp')} title="Case au-dessus">↑</button>
@@ -34,7 +37,7 @@ export function ConsultPanel({ onExport }: { onExport: () => void }) {
           <button onClick={() => nav('ArrowDown')} title="Case en dessous">↓</button>
           <span />
         </div>
-        <p className="hint" style={{ margin: 0 }}>Clic sur une case pour zoomer, flèches du clavier pour passer à la voisine, Échap pour la vue d’ensemble.</p>
+        <p className="hint" style={{ margin: 0 }}>Clic sur une case pour zoomer, nouveau clic pour revenir à la vue d’ensemble. Flèches du clavier : case voisine.</p>
         <label className="check">
           <input type="checkbox" checked={tool === 'measure'} onChange={(e) => setTool(e.target.checked ? 'measure' : 'select')} data-testid="consult-measure" />
           Outil mesure

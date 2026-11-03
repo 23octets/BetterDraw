@@ -33,10 +33,13 @@ test('peindre des zones, surfaces et litres, mode rendu', async ({ page }) => {
   await page.getByTestId('swatch-Rose poudré').click()
   await clickWall(page, 20, 20)
   await expect(fills(page)).toHaveCount(3)
+  await page.screenshot({ path: `${SHOTS}/step4-01-peinture-edition.png` })
+  await page.getByTestId('open-estimate').click()
   await expect(page.getByTestId('surface-row')).toHaveCount(3)
   // sol : 300 × 80 = 2.40 m²
   await expect(page.getByTestId('surfaces-table')).toContainText('2.40 m²')
-  await page.screenshot({ path: `${SHOTS}/step4-01-peinture-edition.png` })
+  await page.screenshot({ path: `${SHOTS}/step4-04-estimation-peinture.png` })
+  await page.getByTestId('close-estimate').click()
   await page.getByTestId('mode-render').click()
   await expect(page.getByTestId('shapes')).toHaveCount(0)
   await page.screenshot({ path: `${SHOTS}/step4-02-mode-rendu.png` })
@@ -52,7 +55,10 @@ test('peindre des zones, surfaces et litres, mode rendu', async ({ page }) => {
 })
 
 test('une zone mal fermée est refusée et le trou signalé', async ({ page }) => {
-  await poly(page, [[52, 50], [150, 50], [150, 150], [50, 150], [50, 54]])
+  // carré laissé ouvert de 3 cm dans un coin (Alt : sans aimantage)
+  await page.getByTestId('tool-polyline').click()
+  for (const [x, y] of [[53, 50], [150, 50], [150, 150], [50, 150], [50, 53]] as [number, number][]) await clickWall(page, x, y, ['Alt'])
+  await page.keyboard.press('Enter')
   await page.getByTestId('tool-fill').click()
   await clickWall(page, 100, 100)
   await expect(page.getByTestId('flash')).toContainText('Zone mal fermée')
