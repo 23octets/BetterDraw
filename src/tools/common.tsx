@@ -7,7 +7,7 @@ import type { ToolPointer } from './useActiveTool'
 export const SNAP_PX = 10
 
 /** Point aimanté pour un événement pointeur. Alt désactive l'aimantage, Shift contraint l'angle depuis `from`. */
-export function snapFor(p: ToolPointer, opts: { from?: Vec; extra?: Vec[]; exclude?: Set<string> } = {}): SnapResult {
+export function snapFor(p: ToolPointer, opts: { from?: Vec; extra?: Vec[]; exclude?: Set<string>; carroyage?: boolean } = {}): SnapResult {
   const { doc, view } = useEditor.getState()
   if (p.shift && opts.from) {
     const c = constrainAngle(opts.from, p.world, p.alt ? 0 : doc.grid.snapStep)
@@ -15,10 +15,10 @@ export function snapFor(p: ToolPointer, opts: { from?: Vec; extra?: Vec[]; exclu
     // en mode ortho, on garde l'aimant : bords du mur, traits et extrémités situés sur la direction
     // recherche depuis la position non arrondie (l'arrondi au pas d'aimantage éloignerait du bord)
     const raw = constrainAngle(opts.from, p.world, 0)
-    const onRay = snapOnRay(doc, opts.from, raw, SNAP_PX / view.zoom, opts.exclude)
+    const onRay = snapOnRay(doc, opts.from, raw, SNAP_PX / view.zoom, opts.exclude, opts.carroyage)
     return onRay ?? { p: c, kind: 'angle' }
   }
-  return snapPoint(doc, p.world, { radius: SNAP_PX / view.zoom, extra: opts.extra, exclude: opts.exclude, disabled: p.alt })
+  return snapPoint(doc, p.world, { radius: SNAP_PX / view.zoom, extra: opts.extra, exclude: opts.exclude, disabled: p.alt, carroyage: opts.carroyage })
 }
 
 export function toScreen(p: Vec): Vec {

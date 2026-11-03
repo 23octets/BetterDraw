@@ -71,8 +71,6 @@ export function GridSection() {
             else d.grid.stepY = v
           })} />
       </div>
-      <NumberField label="Aimantage" suffix="cm" min={0.5} max={100} value={g.snapStep} testId="snap-step"
-        onCommit={(v) => commit(`Aimantage : ${v} cm`, (d) => { d.grid.snapStep = v })} />
       <StepSuggestions />
       <p
         className="hint grid-summary"

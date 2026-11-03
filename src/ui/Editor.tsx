@@ -173,10 +173,10 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
       <div className="spacer" />
       <span className={`save-state${saving ? ' busy' : ''}`} data-testid="save-state">{saving ? 'Enregistrement…' : 'Enregistré'}</span>
       <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier (maintenir ⌘)" aria-label="Raccourcis clavier">
-        <Icon name="keyboard" />
+        <Icon name="keyboard" /> Raccourcis
       </button>
       <button className="icon-btn" onClick={() => setSettings(true)} data-testid="open-settings" title="Réglages : taille du mur, origine, lignes de la grille" aria-label="Réglages">
-        <Icon name="settings" />
+        <Icon name="sliders" /> Réglages
       </button>
       {settings && <SettingsModal onClose={() => setSettings(false)} />}
       <div className="btn-group">

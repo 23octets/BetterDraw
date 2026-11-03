@@ -2,8 +2,9 @@ import type { DocState, Vec } from '../model/types'
 import { dist, closestOnSegment, sub, len } from './vec'
 import { distToShape, segCount, segEnds, segPoint } from './shapes'
 import { getPaper, nearestOnShape, shapeIntersections, toPaperPath } from './paperScope'
+import { gridLayout } from './grid'
 
-export type SnapKind = 'extrémité' | 'intersection' | 'milieu' | 'sur le trait' | 'coin' | 'bord du mur' | 'grille' | 'angle' | 'libre'
+export type SnapKind = 'extrémité' | 'intersection' | 'milieu' | 'sur le trait' | 'coin' | 'bord du mur' | 'grille' | 'angle' | 'libre' | 'nœud de grille' | 'trait × grille' | 'ligne de grille'
 
 export interface SnapResult {
   p: Vec
@@ -18,6 +19,37 @@ export interface SnapOptions {
   /** Points supplémentaires (ex. points déjà posés du tracé en cours). */
   extra?: Vec[]
   disabled?: boolean
+  /** Aimanter aussi sur la grille de carroyage (nœuds, lignes, croisements avec les traits). */
+  carroyage?: boolean
+}
+
+const gridCache = new WeakMap<object, Map<string, { nodes: Vec[]; cross: Vec[] }>>()
+
+/** Nœuds de la grille de carroyage et croisements des traits avec ses lignes (mémoïsés). */
+export function carroyagePoints(doc: DocState): { nodes: Vec[]; cross: Vec[] } {
+  const key = JSON.stringify([doc.wall, doc.grid.step, doc.grid.stepY, doc.grid.origin])
+  let m = gridCache.get(doc.shapes)
+  if (!m) gridCache.set(doc.shapes, (m = new Map()))
+  const hit = m.get(key)
+  if (hit) return hit
+  const L = gridLayout(doc.wall, doc.grid)
+  const nodes: Vec[] = []
+  for (const v of L.vLines) for (const h of L.hLines) nodes.push({ x: v.pos, y: h.pos })
+  const cross: Vec[] = []
+  if (doc.shapes.length) {
+    const P = getPaper()
+    const lines = [
+      ...L.vLines.map((v) => new P.Path.Line({ from: [v.pos, 0], to: [v.pos, doc.wall.h], insert: false })),
+      ...L.hLines.map((h) => new P.Path.Line({ from: [0, h.pos], to: [doc.wall.w, h.pos], insert: false })),
+    ]
+    for (const s of doc.shapes) {
+      const sp = toPaperPath(s)
+      for (const l of lines) for (const loc of sp.getIntersections(l)) cross.push({ x: loc.point.x, y: loc.point.y })
+    }
+  }
+  const out = { nodes, cross }
+  m.set(key, out)
+  return out
 }
 
 export function snapPoint(doc: DocState, p: Vec, opt: SnapOptions): SnapResult {
@@ -36,6 +68,11 @@ export function snapPoint(doc: DocState, p: Vec, opt: SnapOptions): SnapResult {
   tiers.push({ kind: 'extrémité', pts: ends })
   tiers.push({ kind: 'coin', pts: [{ x: 0, y: 0 }, { x: W.w, y: 0 }, { x: 0, y: W.h }, { x: W.w, y: W.h }] })
   tiers.push({ kind: 'intersection', pts: shapeIntersections(shapes) })
+  if (opt.carroyage && doc.grid.show) {
+    const g = carroyagePoints(doc)
+    tiers.push({ kind: 'trait × grille', pts: g.cross })
+    tiers.push({ kind: 'nœud de grille', pts: g.nodes })
+  }
   tiers.push({ kind: 'milieu', pts: mids })
 
   for (const t of tiers) {
@@ -64,6 +101,31 @@ export function snapPoint(doc: DocState, p: Vec, opt: SnapOptions): SnapResult {
     }
   }
   if (onBest) return { p: onBest, kind: 'sur le trait' }
+
+  // sur une ligne de la grille de carroyage (l'autre coordonnée reste sur l'aimantage fin)
+  if (opt.carroyage && doc.grid.show) {
+    const L = gridLayout(doc.wall, doc.grid)
+    const g = doc.grid.snapStep
+    const fine = (x: number) => (g > 0 ? Math.round(x / g) * g : x)
+    let best: Vec | null = null
+    let bd = r
+    for (const v of L.vLines.filter((v) => v.pos > 1e-6 && v.pos < doc.wall.w - 1e-6)) {
+      const d = Math.abs(p.x - v.pos)
+      if (d <= bd && p.y >= -r && p.y <= doc.wall.h + r) {
+        bd = d
+        best = { x: v.pos, y: Math.max(0, Math.min(doc.wall.h, fine(p.y))) }
+      }
+    }
+    for (const h of L.hLines.filter((h) => h.pos > 1e-6 && h.pos < doc.wall.h - 1e-6)) {
+      const d = Math.abs(p.y - h.pos)
+      if (d <= bd && p.x >= -r && p.x <= doc.wall.w + r) {
+        bd = d
+        best = { x: Math.max(0, Math.min(doc.wall.w, fine(p.x))), y: h.pos }
+      }
+    }
+    if (best) return { p: best, kind: 'ligne de grille' }
+  }
+
 
   // bords du mur
   const corners = [{ x: 0, y: 0 }, { x: W.w, y: 0 }, { x: W.w, y: W.h }, { x: 0, y: W.h }]
@@ -127,7 +189,7 @@ export function segmentsOf(doc: DocState) {
  * Aimantage le long d'une direction contrainte (Shift) : on cherche, près du point contraint,
  * les intersections du rayon avec les bords du mur et les traits, ou une extrémité alignée.
  */
-export function snapOnRay(doc: DocState, from: Vec, constrained: Vec, radius: number, exclude?: Set<string>): SnapResult | null {
+export function snapOnRay(doc: DocState, from: Vec, constrained: Vec, radius: number, exclude?: Set<string>, carroyage = false): SnapResult | null {
   const dir = sub(constrained, from)
   const L = len(dir)
   if (L < 1e-9) return null
@@ -139,6 +201,21 @@ export function snapOnRay(doc: DocState, from: Vec, constrained: Vec, radius: nu
   const W = doc.wall
   const wallPath = new P.Path.Rectangle({ point: [0, 0], size: [W.w, W.h], insert: false })
   for (const loc of ray.getIntersections(wallPath)) cands.push({ p: { x: loc.point.x, y: loc.point.y }, kind: 'bord du mur' })
+  if (carroyage && doc.grid.show) {
+    const L = gridLayout(doc.wall, doc.grid)
+    // les lignes confondues avec les bords du mur restent des « bords du mur »
+    // lignes parallèles au rayon ignorées (pas de vrai croisement)
+    const vertical = Math.abs(u.x) < 1e-9
+    const horizontal = Math.abs(u.y) < 1e-9
+    for (const v of L.vLines.filter((v) => !vertical && v.pos > 1e-6 && v.pos < doc.wall.w - 1e-6)) {
+      const l = new P.Path.Line({ from: [v.pos, 0], to: [v.pos, doc.wall.h], insert: false })
+      for (const loc of ray.getIntersections(l)) cands.push({ p: { x: loc.point.x, y: loc.point.y }, kind: 'ligne de grille' })
+    }
+    for (const h of L.hLines.filter((h) => !horizontal && h.pos > 1e-6 && h.pos < doc.wall.h - 1e-6)) {
+      const l = new P.Path.Line({ from: [0, h.pos], to: [doc.wall.w, h.pos], insert: false })
+      for (const loc of ray.getIntersections(l)) cands.push({ p: { x: loc.point.x, y: loc.point.y }, kind: 'ligne de grille' })
+    }
+  }
   const shapes = exclude?.size ? doc.shapes.filter((s) => !exclude.has(s.id)) : doc.shapes
   for (const s of shapes) {
     const sp = toPaperPath(s)

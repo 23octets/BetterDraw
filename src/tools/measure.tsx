@@ -60,14 +60,14 @@ export function useMeasureTool(active: boolean): ToolHandlers {
     onPointerDown(p) {
       if (p.button !== 0) return
       const dd = draft.current
-      const s = snapFor(p, { from: dd.fixed ? undefined : dd.a ?? undefined })
+      const s = snapFor(p, { from: dd.fixed ? undefined : dd.a ?? undefined, carroyage: true })
       if (!dd.a || dd.fixed) draft.current = { a: s.p, b: s.p, fixed: false, hover: s }
       else draft.current = { ...dd, b: s.p, fixed: true }
       render()
     },
     onPointerMove(p) {
       const dd = draft.current
-      const s = snapFor(p, { from: dd.a && !dd.fixed ? dd.a : undefined })
+      const s = snapFor(p, { from: dd.a && !dd.fixed ? dd.a : undefined, carroyage: true })
       draft.current = { ...dd, hover: s, b: dd.a && !dd.fixed ? s.p : dd.b }
       render()
     },

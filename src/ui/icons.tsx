@@ -21,6 +21,7 @@ const P: Record<string, React.ReactNode> = {
   down: <path d="M11 5v12M6 12l5 5 5-5" />,
   close: <path d="M6 6l10 10M16 6L6 16" />,
   chevron: <path d="M6 9l5 5 5-5" />,
+  sliders: <><path d="M4 6h8M16 6h2M4 11h2M10 11h8M4 16h10M18 16h0" /><circle cx="14" cy="6" r="2" /><circle cx="8" cy="11" r="2" /><circle cx="16" cy="16" r="2" /></>,
   link: <><path d="M9.5 12.5l3-3" /><path d="M8 9.5L6.5 11a3 3 0 0 0 4.2 4.2l1.5-1.5M14 12.5l1.5-1.5a3 3 0 0 0-4.2-4.2L9.8 8.3" /></>,
   unlink: <><path d="M8 9.5L6.5 11a3 3 0 0 0 4.2 4.2l1.5-1.5M14 12.5l1.5-1.5a3 3 0 0 0-4.2-4.2L9.8 8.3" /><path d="M4 4l2 2M16 16l2 2" /></>,
   pencil: <path d="M14.5 4.5l3 3L8 17l-4 1 1-4zM12.5 6.5l3 3" />,

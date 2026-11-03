@@ -92,6 +92,15 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
           </section>
           <section className="settings-block">
+            <h4>Aimantage</h4>
+            <p className="hint">Pas de la grille fine sur laquelle s’accrochent les points tracés et les mesures (en plus des traits et de la grille de carroyage). Alt désactive l’aimantage.</p>
+            <div className="row">
+              <NumberField label="Pas d’aimantage" suffix="cm" min={0.5} max={100} value={grid.snapStep} testId="snap-step"
+                onCommit={(v) => commit(`Aimantage : ${v} cm`, (d) => { d.grid.snapStep = v })} />
+              <span />
+            </div>
+          </section>
+          <section className="settings-block">
             <h4>Lignes de la grille</h4>
             <GridStyleControls />
           </section>

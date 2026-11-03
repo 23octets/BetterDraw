@@ -115,3 +115,21 @@ describe('aimant en mode ortho', () => {
     expect(snapOnRay(d, { x: 20, y: 200 }, { x: 198, y: 200 }, 5)).toBeNull()
   })
 })
+
+describe('aimantage de mesure sur la grille de carroyage', () => {
+  it('snaps to grid nodes, line × grid crossings and grid lines', () => {
+    const d = defaultDoc() // 300 × 250, pas 50, origine bas-gauche
+    d.shapes = [{ id: 'diag', pts: [{ x: 0, y: 0 }, { x: 300, y: 250 }], segs: [{ t: 'line' }], closed: false }]
+    // croisement du trait avec la ligne verticale x = 100 → y = 83.33
+    const c = snapPoint(d, { x: 101, y: 84 }, { radius: 3, carroyage: true })
+    expect(c.kind).toBe('trait × grille')
+    expect(c.p.x).toBeCloseTo(100)
+    expect(c.p.y).toBeCloseTo(83.333, 2)
+    // nœud de grille (150, 100)
+    expect(snapPoint(d, { x: 151, y: 101.5 }, { radius: 3, carroyage: true })).toMatchObject({ kind: 'nœud de grille', p: { x: 150, y: 100 } })
+    // sur une ligne de grille (x = 200), y arrondi à l'aimantage fin
+    expect(snapPoint(d, { x: 201.5, y: 31.2 }, { radius: 3, carroyage: true })).toMatchObject({ kind: 'ligne de grille', p: { x: 200, y: 30 } })
+    // sans l'option : comportement habituel (grille fine)
+    expect(snapPoint(d, { x: 201.5, y: 31.2 }, { radius: 1, carroyage: false }).kind).toBe('grille')
+  })
+})
