@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid'
 import { db } from '../store/db'
-import type { DocState, GridSettings, HistoryEntry, Project, Segment, Shape, StoredImage, Variant, Vec, Wall } from '../model/types'
+import type { DocState, GridSettings, HistoryEntry, ImageEdit, Project, Rect, Segment, Shape, StoredImage, Variant, Vec, Wall } from '../model/types'
 
 export interface ProjectFile {
   format: 'betterdraw-project'
@@ -21,7 +21,8 @@ export async function serializeProject(projectId: string): Promise<ProjectFile> 
   const variants = await db.variants.where('projectId').equals(projectId).toArray()
   const entries: HistoryEntry[] = []
   for (const v of variants) entries.push(...(await db.entries.where('variantId').equals(v.id).toArray()))
-  const blobIds = new Set(variants.flatMap((v) => v.state.images.map((i) => i.blobId)))
+  // images affichées + images d'origine des images retouchées
+  const blobIds = new Set(variants.flatMap((v) => v.state.images.flatMap((i) => (i.edit ? [i.blobId, i.edit.sourceBlobId] : [i.blobId]))))
   const images = (await db.images.bulkGet([...blobIds])).filter((x): x is StoredImage => !!x)
   return { format: 'betterdraw-project', version: 1, exportedAt: Date.now(), project, walls, variants, entries, images }
 }
@@ -50,6 +51,31 @@ function segment(x: unknown): Segment {
   if (o.t === 'arc') return { t: 'arc', bulge: num(o.bulge, 'arc', -1e4, 1e4) }
   if (o.t === 'cubic') return { t: 'cubic', c1: vec(o.c1), c2: vec(o.c2) }
   return fail('segment')
+}
+
+const rect = (x: unknown, what: string): Rect => {
+  const o = obj(x, what)
+  return { x: num(o.x, what), y: num(o.y, what), w: num(o.w, what, 0, 1e7), h: num(o.h, what, 0, 1e7) }
+}
+
+function sanitizeEdit(x: unknown): ImageEdit {
+  const e = obj(x, 'retouche')
+  const quad = arr(e.quad, 'retouche', 4).map(vec)
+  if (quad.length !== 4) fail('retouche')
+  const full = obj(e.full, 'retouche')
+  let realSize: ImageEdit['realSize'] = null
+  if (e.realSize !== null && e.realSize !== undefined) {
+    const r = obj(e.realSize, 'retouche')
+    realSize = { w: num(r.w, 'retouche', 0.01, 1e6), h: num(r.h, 'retouche', 0.01, 1e6) }
+  }
+  return {
+    sourceBlobId: str(e.sourceBlobId, 'id', 40),
+    quad,
+    realSize,
+    full: { w: num(full.w, 'retouche', 1, 1e6), h: num(full.h, 'retouche', 1, 1e6) },
+    rect: rect(e.rect, 'retouche'),
+    crop: rect(e.crop, 'retouche'),
+  }
 }
 
 export function sanitizeDoc(x: unknown): DocState {
@@ -88,6 +114,7 @@ export function sanitizeDoc(x: unknown): DocState {
         id: str(i.id, 'id', 40), blobId: str(i.blobId, 'id', 40), name: str(i.name, 'nom', 300),
         x: num(i.x, 'image'), y: num(i.y, 'image'), w: num(i.w, 'image', 0, 1e7), h: num(i.h, 'image', 0, 1e7),
         opacity: num(i.opacity, 'opacité', 0, 1), locked: bool(i.locked, 'image'), visible: bool(i.visible, 'image'),
+        ...(i.edit === undefined ? {} : { edit: sanitizeEdit(i.edit) }),
       }
     }),
     printCells: arr(o.printCells, 'cases', 10000).map((c) => {

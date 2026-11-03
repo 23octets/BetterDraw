@@ -35,6 +35,29 @@ export interface PaletteColor {
   hex: string
 }
 
+export interface Rect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/** Réglages non destructifs d'une image : perspective corrigée puis recadrage. */
+export interface ImageEdit {
+  /** Image d'origine (jamais modifiée). */
+  sourceBlobId: string
+  /** Coins du mur sur la photo d'origine (px) : haut-gauche, haut-droit, bas-droit, bas-gauche. */
+  quad: Vec[]
+  /** Dimensions réelles du rectangle (cm), pour des proportions et une échelle exactes. */
+  realSize: { w: number; h: number } | null
+  /** Image corrigée complète (px). */
+  full: { w: number; h: number }
+  /** Rectangle issu du quadrilatère, dans l'image corrigée (px). */
+  rect: Rect
+  /** Partie conservée de l'image corrigée (px). */
+  crop: Rect
+}
+
 export interface RefImage {
   id: string
   /** Référence vers la table images (dataURL). */
@@ -47,6 +70,7 @@ export interface RefImage {
   opacity: number
   locked: boolean
   visible: boolean
+  edit?: ImageEdit
 }
 
 export type GridOrigin = 'bl' | 'tl' | 'br' | 'tr'

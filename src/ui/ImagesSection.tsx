@@ -1,4 +1,5 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
+import { ImageEditModal } from './ImageEditModal'
 import { useEditor } from '../store/editor'
 import { imageSize, placeImage, readFileAsDataUrl, storeImage } from '../store/images'
 import { Section } from './SidePanel'
@@ -30,6 +31,7 @@ export function ImagesSection() {
   const preview = useEditor((s) => s.imagePreview)
   const setPreview = useEditor((s) => s.setImagePreview)
   const input = useRef<HTMLInputElement>(null)
+  const [editing, setEditing] = useState<string | null>(null)
   const update = (id: string, label: string, patch: Partial<(typeof images)[number]>) =>
     commit(label, (d) => {
       const im = d.images.find((i) => i.id === id)
@@ -59,6 +61,8 @@ export function ImagesSection() {
               <li key={im.id} data-hidden={!im.visible || undefined} className={`image-row${selected === im.id && tool === 'image' ? ' on' : ''}`} data-testid="image-row">
                 <div className="image-row-head">
                   <button className="ghost small name" onClick={() => { setSelected(im.id); setTool('image') }} title={im.name}>{im.name}</button>
+                  <button className="icon-btn ghost small" title="Ajuster : perspective et recadrage" aria-label="Ajuster l’image" data-testid="image-adjust"
+                    onClick={() => setEditing(im.id)}><Icon name="perspective" size={15} /></button>
                   <button className={`icon-btn ghost small${im.visible ? '' : ' off'}`} title={im.visible ? 'Masquer' : 'Afficher'} aria-pressed={!im.visible} data-testid="image-visible"
                     onClick={() => update(im.id, im.visible ? 'Masquer une image' : 'Afficher une image', { visible: !im.visible })}><Icon name={im.visible ? 'eye' : 'eyeOff'} size={15} /></button>
                   <button className={`icon-btn ghost small${im.locked ? ' off' : ''}`} title={im.locked ? 'Déverrouiller' : 'Verrouiller'} aria-pressed={im.locked} data-testid="image-lock"
@@ -81,6 +85,7 @@ export function ImagesSection() {
           })}
         </ul>
       )}
+      {editing && images.some((i) => i.id === editing) && <ImageEditModal imageId={editing} onClose={() => setEditing(null)} />}
       <p className="hint" style={{ margin: 0 }}>Les images s’affichent en filigrane (au-dessus des aplats, sous les traits), seulement en mode Édition, et ne sont jamais exportées. Glisser-déposer une image sur le mur fonctionne aussi.</p>
     </Section>
   )
