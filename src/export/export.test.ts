@@ -94,3 +94,42 @@ describe('sauvegarde du projet', () => {
     await expect(importProject({ nope: true })).rejects.toThrow('pas un projet')
   })
 })
+
+describe('import : sécurité', () => {
+  beforeEach(async () => {
+    await flushPersistence()
+    await db.delete()
+    await db.open()
+  })
+  async function validFile() {
+    const { project } = await repo.createProject('Ok')
+    return JSON.parse(JSON.stringify(await serializeProject(project.id)))
+  }
+  it('rejects an injected color', async () => {
+    const f = await validFile()
+    f.variants[0].state.palette[0].hex = '#000"/><script>alert(1)</script><x a="'
+    await expect(importProject(f)).rejects.toThrow('Fichier invalide')
+  })
+  it('rejects non-numeric geometry and dangerous history paths', async () => {
+    const f = await validFile()
+    f.variants[0].state.wall.w = '300"><script>'
+    await expect(importProject(f)).rejects.toThrow('Fichier invalide')
+    const g = await validFile()
+    g.entries = [{ variantId: g.variants[0].id, seq: 1, label: 'x', ts: 1, patches: [{ op: 'replace', path: ['__proto__', 'x'], value: 1 }], inverse: [] }]
+    await expect(importProject(g)).rejects.toThrow('Fichier invalide')
+  })
+  it('rejects non-image data urls and drops unknown fields', async () => {
+    const f = await validFile()
+    f.images = [{ id: 'i', dataUrl: 'data:text/html;base64,PHNjcmlwdD4=', width: 1, height: 1 }]
+    await expect(importProject(f)).rejects.toThrow('Fichier invalide')
+    const g = await validFile()
+    g.variants[0].evil = '<script>'
+    const { variants } = await importProject(g)
+    expect('evil' in variants[0]).toBe(false)
+  })
+  it('the svg export neutralises bad colors anyway', () => {
+    const d = sampleDoc()
+    d.background.hex = '"><script>alert(1)</script>'
+    expect(coverPageSvg(d, { project: 'P', variant: 'V' })).not.toContain('<script>')
+  })
+})

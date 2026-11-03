@@ -63,7 +63,8 @@ export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () 
           <div className="export-pages" data-testid="export-pages">
             {pages.map((p, i) => (
               <figure key={i} className="page-preview" data-testid="page-preview">
-                <div className="page-svg" dangerouslySetInnerHTML={{ __html: p }} />
+                {/* rendu via <img> : aucun script d'un SVG ne peut s'y exécuter */}
+                <img className="page-svg" alt={`Page ${i + 1}`} src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(p)}`} />
                 <figcaption>{i === 0 ? 'Page 1 · vue d’ensemble' : `Page ${i + 1}`}</figcaption>
               </figure>
             ))}

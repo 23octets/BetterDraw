@@ -12,6 +12,8 @@ const fmt = (x: number) => {
   const r = Math.round(x * 10) / 10
   return Number.isInteger(r) ? String(r) : r.toFixed(1)
 }
+/** N'accepte qu'une couleur hexadécimale (protège le SVG généré contre une injection). */
+export const safeHex = (h: unknown) => (typeof h === 'string' && /^#[0-9a-f]{3,8}$/i.test(h) ? h : '#999999')
 const FONT = 'Helvetica, Arial, sans-serif'
 const ORIGIN_LABEL = { bl: 'bas-gauche', tl: 'haut-gauche', br: 'bas-droit', tr: 'haut-droit' } as const
 
@@ -24,11 +26,11 @@ export interface ExportMeta {
 /** Contenu du mur (fond, aplats, traits) en coordonnées cm, épaisseurs exprimées en unités du conteneur. */
 function wallContent(doc: DocState, strokeCm: number, opts: { lines?: boolean } = {}) {
   const fills = resolveFills(doc)
-  let s = `<rect x="0" y="0" width="${n(doc.wall.w)}" height="${n(doc.wall.h)}" fill="${doc.background.hex}"/>`
-  for (const f of fills) s += `<path d="${f.region.d}" fill="${f.hex}" stroke="${f.hex}" stroke-width="${n(strokeCm * 0.4)}" stroke-linejoin="round"/>`
+  let s = `<rect x="0" y="0" width="${n(doc.wall.w)}" height="${n(doc.wall.h)}" fill="${safeHex(doc.background.hex)}"/>`
+  for (const f of fills) s += `<path d="${esc(f.region.d)}" fill="${safeHex(f.hex)}" stroke="${safeHex(f.hex)}" stroke-width="${n(strokeCm * 0.4)}" stroke-linejoin="round"/>`
   if (opts.lines !== false)
     for (const sh of doc.shapes)
-      s += `<path d="${shapeToD(sh)}" fill="none" stroke="#1d1f22" stroke-width="${n(strokeCm)}" stroke-linejoin="round" stroke-linecap="round"/>`
+      s += `<path d="${esc(shapeToD(sh))}" fill="none" stroke="#1d1f22" stroke-width="${n(strokeCm)}" stroke-linejoin="round" stroke-linecap="round"/>`
   return s
 }
 
@@ -100,7 +102,7 @@ export function coverPageSvg(doc: DocState, meta: ExportMeta): string {
   const rows = [...S.colors.map((c) => ({ hex: c.hex, name: c.name, area: c.area, liters: c.liters, on: true }))]
   rows.push({ hex: doc.background.hex, name: doc.background.repaint ? 'Fond' : 'Fond (existant)', area: S.background.area, liters: S.background.liters, on: doc.background.repaint })
   for (const r of rows) {
-    body += `<rect x="${lx}" y="${y - 3.2}" width="4" height="4" fill="${r.hex}" stroke="#999" stroke-width="0.2"/>`
+    body += `<rect x="${lx}" y="${y - 3.2}" width="4" height="4" fill="${safeHex(r.hex)}" stroke="#999" stroke-width="0.2"/>`
     body += `<text x="${lx + 6}" y="${y}" font-family="${FONT}" font-size="3.2" fill="${r.on ? '#1d1f22' : '#8a8780'}">${esc(r.name)}</text>`
     body += `<text x="${lx + 50}" y="${y}" font-family="${FONT}" font-size="3.2" fill="#1d1f22" text-anchor="end">${(r.area / 10000).toFixed(2)} m²</text>`
     if (doc.paint.showLiters) body += `<text x="${lx + 69}" y="${y}" font-family="${FONT}" font-size="3.2" fill="#1d1f22" text-anchor="end">${r.on ? `${r.liters.toFixed(2)} L` : '—'}</text>`
@@ -138,7 +140,7 @@ export function cellPageSvg(doc: DocState, cell: GridCell, meta: ExportMeta): st
   const k = Math.min(area.w / vw, area.h / vh)
   const ox = area.x + (area.w - vw * k) / 2 - vx * k
   const oy = area.y + (area.h - vh * k) / 2 - vy * k
-  const clipId = `clip-${cell.id}`
+  const clipId = `clip-${cell.id.replace(/[^A-Z0-9]/g, '')}`
   body += `<defs><clipPath id="${clipId}"><rect x="${n(area.x + (area.w - vw * k) / 2)}" y="${n(area.y + (area.h - vh * k) / 2)}" width="${n(vw * k)}" height="${n(vh * k)}"/></clipPath></defs>`
   body += `<g clip-path="url(#${clipId})"><g transform="translate(${n(ox)} ${n(oy)}) scale(${n(k)})">`
   body += wallContent(doc, 0.35 / k)
