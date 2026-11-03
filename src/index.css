@@ -391,10 +391,10 @@ p.small { margin: 0; }
 /* ---------- Menu grille ---------- */
 .split-btn { position: relative; display: inline-flex; }
 .split-btn > button:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-.split-btn > .caret { width: 26px; padding: 0; border-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
-.split-btn > .on + .caret { border-left: 1px solid rgba(255,255,255,0.25); background: var(--primary); color: #fff; border-color: var(--primary); }
-.caret .icon { transition: transform 0.15s; }
-.caret.open .icon { transform: rotate(180deg); }
+.split-btn > .eye-btn { width: var(--ctl); padding: 0; border-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.split-btn > .on + .eye-btn { border-left: 1px solid var(--line); }
+.eye-btn.off { color: var(--muted); background: var(--paper); }
+.grid-off:not(.on) { color: var(--muted); }
 .popover {
   position: absolute; top: calc(100% + 8px); left: 0; z-index: 60; width: 260px; padding: 14px; display: grid; gap: 12px;
   background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px rgba(0,0,0,0.18);

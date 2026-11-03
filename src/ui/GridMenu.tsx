@@ -27,16 +27,23 @@ export function GridMenu() {
   return (
     <div className="split-btn" ref={ref}>
       <button
-        className={`icon-btn${grid.show ? ' on' : ''}`}
+        className={`icon-btn${open ? ' on' : ''}${grid.show ? '' : ' grid-off'}`}
+        aria-expanded={open}
+        data-testid="grid-menu"
+        title="Réglages des lignes de la grille"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <Icon name="grid" /> Grille
+      </button>
+      <button
+        className={`icon-btn eye-btn${grid.show ? '' : ' off'}`}
         aria-pressed={grid.show}
+        aria-label={grid.show ? 'Masquer la grille' : 'Afficher la grille'}
         data-testid="toggle-grid"
         title={grid.show ? 'Masquer la grille' : 'Afficher la grille'}
         onClick={() => commit(grid.show ? 'Masquer la grille' : 'Afficher la grille', (d) => { d.grid.show = !grid.show })}
       >
-        <Icon name="grid" /> Grille
-      </button>
-      <button className={`icon-btn caret${open ? ' open' : ''}`} aria-expanded={open} aria-label="Réglages des lignes de la grille" data-testid="grid-menu" onClick={() => setOpen((o) => !o)}>
-        <Icon name="chevron" size={14} />
+        <Icon name={grid.show ? 'eye' : 'eyeOff'} size={16} />
       </button>
       {open && (
         <div className="popover" role="dialog" aria-label="Lignes de la grille" data-testid="grid-popover">

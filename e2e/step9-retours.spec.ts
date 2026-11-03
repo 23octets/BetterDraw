@@ -34,8 +34,15 @@ test('infobulle des outils, raccourcis (bouton et ⌘ maintenu), grille dans le 
   await page.keyboard.up('Meta')
   await expect(page.getByTestId('shortcuts-panel')).toHaveCount(0)
 
+  // « Grille » ouvre le menu, l'œil affiche / masque
+  await page.getByTestId('grid-menu').click()
+  await expect(page.getByTestId('grid-popover')).toBeVisible()
+  await page.getByTestId('grid-menu').click()
+  await expect(page.getByTestId('grid-popover')).toHaveCount(0)
   await page.getByTestId('toggle-grid').click()
   await expect(page.getByTestId('grid-lines')).toHaveCount(0)
+  await expect(page.getByTestId('toggle-grid')).toHaveAttribute('aria-pressed', 'false')
+  await page.screenshot({ path: `${SHOTS}/step18-01-grille-masquee.png`, clip: { x: 0, y: 0, width: 1440, height: 120 } })
   await page.getByTestId('toggle-grid').click()
   await expect(page.getByTestId('grid-lines')).toHaveCount(1)
 })
