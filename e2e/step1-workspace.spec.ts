@@ -53,7 +53,7 @@ test('redimensionner le mur et la grille, enregistré en continu', async ({ page
 
 test('liste des projets sur l’accueil', async ({ page }) => {
   await newProject(page, 'Projet 1')
-  await page.getByRole('button', { name: '← Projets' }).click()
+  await page.getByRole('button', { name: 'Projets', exact: true }).click()
   await expect(page.getByTestId('project-card')).toHaveCount(1)
   await expect(page.getByTestId('project-card')).toContainText('300 × 250 cm')
 })

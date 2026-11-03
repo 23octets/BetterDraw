@@ -112,7 +112,7 @@ function VariantSwitcher() {
         ))}
       </select>
       <button
-        className="small"
+        className="icon-btn"
         data-testid="snapshot"
         title="Snapshot : dupliquer ce dessin en une nouvelle variante indépendante"
         onClick={async () => {
@@ -122,10 +122,10 @@ function VariantSwitcher() {
           setTimeout(() => useEditor.getState().flash(`${nv.name} créée à partir de ${variant.name}`), 50)
         }}
       >
-        ⧉ Snapshot
+        <Icon name="copy" /> Snapshot
       </button>
-      <button className="ghost small" data-testid="variants-page" onClick={() => navigate(`/p/${variant.projectId}`)}>
-        Variantes & comparaison
+      <button className="icon-btn" data-testid="variants-page" onClick={() => navigate(`/p/${variant.projectId}`)} title="Toutes les variantes du projet, et leur comparaison côte à côte">
+        <Icon name="layers" /> Variantes
       </button>
     </div>
   )
@@ -142,7 +142,7 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
   const [settings, setSettings] = useState(false)
   return (
     <header className="topbar">
-      <button className="ghost" onClick={() => navigate('/')} title="Retour aux projets">← Projets</button>
+      <button className="icon-btn ghost" onClick={() => navigate('/')} title="Retour aux projets"><Icon name="arrowLeft" size={16} /> Projets</button>
       <div className="title">
         <strong data-testid="project-name">{projectName}</strong>
         <VariantSwitcher />
@@ -154,19 +154,19 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
       </div>
       <GridMenu />
       <div className="spacer" />
+      <span className={`save-state${saving ? ' busy' : ''}`} data-testid="save-state">{saving ? 'Enregistrement…' : 'Enregistré'}</span>
+      <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier (maintenir ⌘)">
+        <Icon name="keyboard" /> Raccourcis
+      </button>
       <button className="icon-btn" onClick={() => setSettings(true)} data-testid="open-settings" title="Réglages : taille du mur, origine">
         <Icon name="settings" /> Réglages
       </button>
       {settings && <SettingsModal onClose={() => setSettings(false)} />}
-      <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier (maintenir ⌘)">
-        <Icon name="keyboard" /> Raccourcis
-      </button>
       <div className="btn-group">
         <button className="icon-btn" onClick={() => undo()} disabled={headSeq <= 0} title="Annuler (⌘Z)" aria-label="Annuler" data-testid="undo"><Icon name="undo" /></button>
         <button className="icon-btn" onClick={() => redo()} disabled={headSeq >= maxSeq} title="Rétablir (⇧⌘Z)" aria-label="Rétablir" data-testid="redo"><Icon name="redo" /></button>
       </div>
       <button className="icon-btn" onClick={onExport} data-testid="export"><Icon name="export" /> Exporter</button>
-      <span className={`save-state${saving ? ' busy' : ''}`} data-testid="save-state">{saving ? 'Enregistrement…' : 'Enregistré'}</span>
     </header>
   )
 }
