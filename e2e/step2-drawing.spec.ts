@@ -69,7 +69,8 @@ test('arc 3 points, courbe de Bézier et mesure', async ({ page }) => {
   await clickWall(page, 50, 150)
   await clickWall(page, 250, 150)
   await expect(page.getByTestId('measure-label')).toHaveText('200 cm')
-  await expect(page.getByTestId('measure-detail')).toContainText('↔ 200 cm')
+  await expect(page.getByTestId('measure-distance')).toHaveText('200 cm')
+  await expect(page.getByTestId('measure-detail')).toContainText('Horizontal 200 cm')
   await page.screenshot({ path: `${SHOTS}/step2-02-arc-bezier-mesure.png` })
 
   // persistance après rechargement

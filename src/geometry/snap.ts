@@ -1,7 +1,7 @@
 import type { DocState, Vec } from '../model/types'
 import { dist, closestOnSegment, sub, len } from './vec'
 import { distToShape, segCount, segEnds, segPoint } from './shapes'
-import { nearestOnShape, shapeIntersections } from './paperScope'
+import { getPaper, nearestOnShape, shapeIntersections, toPaperPath } from './paperScope'
 
 export type SnapKind = 'extrémité' | 'intersection' | 'milieu' | 'sur le trait' | 'coin' | 'bord du mur' | 'grille' | 'angle' | 'libre'
 
@@ -121,4 +121,44 @@ export function segmentsOf(doc: DocState) {
   const out: [Vec, Vec][] = []
   for (const s of doc.shapes) for (let i = 0; i < segCount(s); i++) out.push(segEnds(s, i))
   return out
+}
+
+/**
+ * Aimantage le long d'une direction contrainte (Shift) : on cherche, près du point contraint,
+ * les intersections du rayon avec les bords du mur et les traits, ou une extrémité alignée.
+ */
+export function snapOnRay(doc: DocState, from: Vec, constrained: Vec, radius: number, exclude?: Set<string>): SnapResult | null {
+  const dir = sub(constrained, from)
+  const L = len(dir)
+  if (L < 1e-9) return null
+  const u = { x: dir.x / L, y: dir.y / L }
+  const far = Math.max(doc.wall.w, doc.wall.h) * 4 + L
+  const P = getPaper()
+  const ray = new P.Path.Line({ from: [from.x, from.y], to: [from.x + u.x * far, from.y + u.y * far], insert: false })
+  const cands: { p: Vec; kind: SnapKind }[] = []
+  const W = doc.wall
+  const wallPath = new P.Path.Rectangle({ point: [0, 0], size: [W.w, W.h], insert: false })
+  for (const loc of ray.getIntersections(wallPath)) cands.push({ p: { x: loc.point.x, y: loc.point.y }, kind: 'bord du mur' })
+  const shapes = exclude?.size ? doc.shapes.filter((s) => !exclude.has(s.id)) : doc.shapes
+  for (const s of shapes) {
+    const sp = toPaperPath(s)
+    for (const loc of ray.getIntersections(sp)) cands.push({ p: { x: loc.point.x, y: loc.point.y }, kind: 'sur le trait' })
+    // extrémités alignées sur le rayon
+    for (const q of s.pts) {
+      const t = (q.x - from.x) * u.x + (q.y - from.y) * u.y
+      const perpD = Math.abs((q.x - from.x) * u.y - (q.y - from.y) * u.x)
+      // projection de l'extrémité sur la direction : on reste orthogonal mais aligné sur elle
+      if (t > 0 && perpD < radius) cands.push({ p: { x: from.x + u.x * t, y: from.y + u.y * t }, kind: 'extrémité' })
+    }
+  }
+  let best: { p: Vec; kind: SnapKind } | null = null
+  let bd = radius
+  for (const c of cands) {
+    const d = dist(c.p, constrained)
+    if (d <= bd + 1e-9 && dist(c.p, from) > 1e-6) {
+      bd = d
+      best = c
+    }
+  }
+  return best ? { p: { ...best.p }, kind: best.kind } : null
 }

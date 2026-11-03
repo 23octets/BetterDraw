@@ -91,3 +91,27 @@ describe('outils', () => {
     expect(t.detail).toContain('53.1°')
   })
 })
+
+describe('aimant en mode ortho', () => {
+  it('keeps snapping to the wall edge along the constrained ray', async () => {
+    const { snapOnRay } = await import('./snap')
+    const doc = defaultDoc()
+    // depuis (100, 100), à l'horizontale vers la droite, près du bord x = 300
+    const r = snapOnRay(doc, { x: 100, y: 100 }, { x: 297, y: 100 }, 5)!
+    expect(r.kind).toBe('bord du mur')
+    expect(r.p.x).toBeCloseTo(300)
+    expect(r.p.y).toBeCloseTo(100)
+    expect(snapOnRay(doc, { x: 100, y: 100 }, { x: 250, y: 100 }, 5)).toBeNull()
+  })
+  it('snaps to a line crossed by the ray and aligns on endpoints', async () => {
+    const { snapOnRay } = await import('./snap')
+    const d = docWith()
+    const r = snapOnRay(d, { x: 20, y: 50 }, { x: 98, y: 50 }, 5)!
+    expect(r.kind).toBe('sur le trait')
+    expect(r.p.x).toBeCloseTo(100)
+    // extrémité (100, 200) du trait vertical : alignée sur le rayon, attrapée quand on passe à côté
+    const e = snapOnRay(d, { x: 20, y: 200 }, { x: 102, y: 200 }, 5)!
+    expect(e.p.x).toBeCloseTo(100)
+    expect(snapOnRay(d, { x: 20, y: 200 }, { x: 198, y: 200 }, 5)).toBeNull()
+  })
+})

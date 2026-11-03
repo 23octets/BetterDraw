@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useEditor } from '../store/editor'
-import { constrainAngle, snapPoint, type SnapResult } from '../geometry/snap'
+import { constrainAngle, snapOnRay, snapPoint, type SnapResult } from '../geometry/snap'
 import type { Vec } from '../model/types'
 import type { ToolPointer } from './useActiveTool'
 
@@ -9,7 +9,15 @@ export const SNAP_PX = 10
 /** Point aimanté pour un événement pointeur. Alt désactive l'aimantage, Shift contraint l'angle depuis `from`. */
 export function snapFor(p: ToolPointer, opts: { from?: Vec; extra?: Vec[]; exclude?: Set<string> } = {}): SnapResult {
   const { doc, view } = useEditor.getState()
-  if (p.shift && opts.from) return { p: constrainAngle(opts.from, p.world, p.alt ? 0 : doc.grid.snapStep), kind: 'angle' }
+  if (p.shift && opts.from) {
+    const c = constrainAngle(opts.from, p.world, p.alt ? 0 : doc.grid.snapStep)
+    if (p.alt) return { p: c, kind: 'angle' }
+    // en mode ortho, on garde l'aimant : bords du mur, traits et extrémités situés sur la direction
+    // recherche depuis la position non arrondie (l'arrondi au pas d'aimantage éloignerait du bord)
+    const raw = constrainAngle(opts.from, p.world, 0)
+    const onRay = snapOnRay(doc, opts.from, raw, SNAP_PX / view.zoom, opts.exclude)
+    return onRay ?? { p: c, kind: 'angle' }
+  }
   return snapPoint(doc, p.world, { radius: SNAP_PX / view.zoom, extra: opts.extra, exclude: opts.exclude, disabled: p.alt })
 }
 

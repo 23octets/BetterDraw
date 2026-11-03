@@ -85,7 +85,7 @@ export function usePolylineTool(active: boolean): ToolHandlers {
       } else finish()
       return true
     }
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && (d.pts.length || d.buf)) {
       if (d.buf) draft.current = { ...d, buf: '' }
       else if (d.pts.length >= 2) finish()
       else draft.current = { ...empty(), arcMode: d.arcMode }

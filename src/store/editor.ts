@@ -49,6 +49,10 @@ export interface EditorState {
   overrides: Record<string, Shape> | null
   clipboard: Shape[]
   selectedImageId: string | null
+  /** Aperçu du style de grille pendant le réglage (avant enregistrement). */
+  gridPreview: { lineWidth: number; lineOpacity: number } | null
+  /** Mesure en cours (affichée dans le footer de mesure). */
+  measure: { a: Vec; b: Vec; fixed: boolean } | null
   /** Case zoomée en mode consultation. */
   consultCell: string | null
   /** Mode « choisir les cases à imprimer ». */
@@ -98,6 +102,8 @@ export const useEditor = create<EditorState>((set, get) => ({
   clipboard: [],
   selectedImageId: null,
   consultCell: null,
+  measure: null,
+  gridPreview: null,
   pickPrint: false,
   setConsultCell(consultCell) {
     set({ consultCell })

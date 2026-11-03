@@ -19,6 +19,7 @@ export function Canvas() {
   const doc = useEditor((s) => s.doc)
   const view = useEditor((s) => s.view)
   const mode = useEditor((s) => s.mode)
+  const gridPreview = useEditor((s) => s.gridPreview)
   const setView = useEditor((s) => s.setView)
   const ref = useRef<SVGSVGElement>(null)
   const [size, setSize] = useState({ w: 800, h: 600 })
@@ -156,7 +157,7 @@ export function Canvas() {
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} className="wall-shadow" />
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} fill={doc.background.hex} className="wall" data-testid="wall" />
         <DocLayers doc={doc} mode={mode} />
-        <GridLinesAdaptive doc={doc} strong={mode === 'consult'} idPrefix="cv" />
+        <GridLinesAdaptive doc={doc} strong={mode === 'consult'} idPrefix="cv" style={gridPreview} />
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} className="wall-outline" />
         {tool.renderWorld?.()}
       </g>

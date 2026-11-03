@@ -59,7 +59,7 @@ export function useBezierTool(active: boolean): ToolHandlers {
 
   useToolKeys(active, (e) => {
     const d = draft.current
-    if (e.key === 'Enter' || e.key === 'Escape') {
+    if (e.key === 'Enter' || (e.key === 'Escape' && d.nodes.length)) {
       finish()
       return true
     }

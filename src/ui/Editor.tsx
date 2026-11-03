@@ -6,6 +6,8 @@ import { navigate } from './router'
 import { GridSection, WallSection } from './SidePanel'
 import { Toolbar, TOOLS } from './Toolbar'
 import { Icon } from './icons'
+import { MeasureBar } from './MeasureBar'
+import { GridMenu } from './GridMenu'
 import { HistoryPanel } from './HistoryPanel'
 import { ConsultPanel } from './ConsultPanel'
 import { ExportDialog } from './ExportDialog'
@@ -38,6 +40,7 @@ export function Editor({ variantId }: { variantId: string }) {
   const mode = useEditor((s) => s.mode)
   const [exporting, setExporting] = useState(false)
   const [shortcuts, setShortcuts] = useState(false)
+  const tool = useEditor((s) => s.tool)
   const metaHeld = useMetaHeld()
 
   if (status === 'missing') {
@@ -54,9 +57,10 @@ export function Editor({ variantId }: { variantId: string }) {
     <div className="editor">
       <TopBar projectName={project?.name ?? ''} onExport={() => setExporting(true)} onShortcuts={() => setShortcuts((x) => !x)} shortcutsOpen={shortcuts} />
       <Toolbar />
-      <main className="stage">
+      <main className={`stage${tool === 'measure' ? ' has-footer' : ''}`}>
         <Canvas />
         <CanvasOverlay />
+        <MeasureBar />
         {(shortcuts || metaHeld) && <ShortcutsPanel />}
       </main>
       <aside className="side-panel">
@@ -137,8 +141,6 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
   const redo = useEditor((s) => s.redo)
   const mode = useEditor((s) => s.mode)
   const setMode = useEditor((s) => s.setMode)
-  const gridShown = useEditor((s) => s.doc.grid.show)
-  const commit = useEditor((s) => s.commit)
   return (
     <header className="topbar">
       <button className="ghost" onClick={() => navigate('/')} title="Retour aux projets">← Projets</button>
@@ -151,15 +153,7 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
         <button className={mode === 'render' ? 'on' : ''} onClick={() => setMode('render')} data-testid="mode-render">Rendu</button>
         <button className={mode === 'consult' ? 'on' : ''} onClick={() => setMode('consult')} data-testid="mode-consult">Consultation</button>
       </div>
-      <button
-        className={`icon-btn${gridShown ? ' on' : ''}`}
-        aria-pressed={gridShown}
-        data-testid="toggle-grid"
-        title={gridShown ? 'Masquer la grille' : 'Afficher la grille'}
-        onClick={() => commit(gridShown ? 'Masquer la grille' : 'Afficher la grille', (d) => { d.grid.show = !gridShown })}
-      >
-        <Icon name="grid" /> Grille
-      </button>
+      <GridMenu />
       <div className="spacer" />
       <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier (maintenir ⌘)">
         <Icon name="keyboard" /> Raccourcis
@@ -295,6 +289,11 @@ function useShortcuts() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       const s = useEditor.getState()
       const mod = e.metaKey || e.ctrlKey
+      if (e.key === 'Escape' && s.mode === 'edit' && s.tool !== 'select') {
+        // Échap non consommé par l'outil (rien en cours) : retour à l'outil de sélection
+        s.setTool('select')
+        return
+      }
       if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault()
         if (e.shiftKey) s.redo()

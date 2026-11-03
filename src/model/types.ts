@@ -57,6 +57,10 @@ export interface GridSettings {
   snapStep: number
   /** Pas de la sous-grille affichée en vue détail (consultation). */
   subStep?: number
+  /** Épaisseur des lignes de grille (px à l'écran, 1 = normal). */
+  lineWidth?: number
+  /** Opacité des lignes de grille (0–1). */
+  lineOpacity?: number
   show: boolean
 }
 

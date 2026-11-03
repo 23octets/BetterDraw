@@ -55,7 +55,7 @@ export function useArcTool(active: boolean): ToolHandlers {
       if (p) place(p)
       return true
     }
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && d.a) {
       draft.current = empty()
       render()
       return true

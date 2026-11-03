@@ -64,7 +64,8 @@ export function useConsultTool(active: boolean): ToolHandlers {
   const L = gridLayout(doc.wall, doc.grid)
   const cell = consultCell ? L.cells.find((c) => c.id === consultCell) : null
   return {
-    cursor: pickPrint ? 'copy' : 'zoom-in',
+    // loupe « + » sur la vue d'ensemble, loupe « − » en vue détail (un clic ressort)
+    cursor: pickPrint ? 'copy' : consultCell ? 'zoom-out' : 'zoom-in',
     onPointerDown(p) {
       if (p.button !== 0) return
       const c = cellAt(L, p.world)
@@ -81,7 +82,19 @@ export function useConsultTool(active: boolean): ToolHandlers {
           return c ? <rect key={id} x={c.x} y={c.y} width={c.w} height={c.h} className="print-cell" data-testid="print-cell" /> : null
         })}
         {cell && <SubGrid cell={cell} step={doc.grid.subStep ?? 10} />}
-        {cell && <rect x={cell.x} y={cell.y} width={cell.w} height={cell.h} className="consult-cell" />}
+        {cell && (
+          <>
+            {/* voile sur tout ce qui est hors de la case */}
+            <path
+              className="consult-veil"
+              data-testid="consult-veil"
+              fillRule="evenodd"
+              d={`M${-doc.wall.w} ${-doc.wall.h}h${doc.wall.w * 3}v${doc.wall.h * 3}h${-doc.wall.w * 3}Z M${cell.x} ${cell.y}v${cell.h}h${cell.w}v${-cell.h}Z`}
+            />
+            <rect x={cell.x} y={cell.y} width={cell.w} height={cell.h} className="consult-cell-halo" />
+            <rect x={cell.x} y={cell.y} width={cell.w} height={cell.h} className="consult-cell" />
+          </>
+        )}
       </g>
     ),
     renderScreen: () => {
@@ -102,7 +115,10 @@ export function useConsultTool(active: boolean): ToolHandlers {
             const y = toScreen({ x: 0, y: l.pos }).y
             return <text key={`sh${i}`} x={br.x + 10} y={y + 4} className="sub-cote">{fmt(l.cote)}</text>
           })}
-          <text x={tl.x} y={tl.y - 36} className="consult-title">Case {cell.id}</text>
+          <g transform={`translate(${tl.x} ${tl.y - 58})`} className="consult-badge">
+            <rect width={92} height={28} rx={14} />
+            <text x={46} y={19} textAnchor="middle">Case {cell.id}</text>
+          </g>
           {vx.map((l, i) => {
             const x = toScreen({ x: l.pos, y: 0 }).x
             const left = Math.abs(x - tl.x) < 1
@@ -157,9 +173,14 @@ function SubGrid({ cell, step }: { cell: { x: number; y: number; w: number; h: n
   const doc = useEditor((s) => s.doc)
   const { v, h } = subLines(cell, step, doc)
   return (
-    <g className="sub-grid" data-testid="sub-grid">
-      {v.map((l, i) => <line key={`v${i}`} x1={l.pos} x2={l.pos} y1={cell.y} y2={cell.y + cell.h} />)}
-      {h.map((l, i) => <line key={`h${i}`} x1={cell.x} x2={cell.x + cell.w} y1={l.pos} y2={l.pos} />)}
+    <g className="sub-grid">
+      {/* sous-couche claire + tirets sombres : lisible sur tous les aplats */}
+      {(['under', 'over'] as const).map((layer) => (
+        <g key={layer} className={layer} data-testid={layer === 'over' ? 'sub-grid' : undefined}>
+          {v.map((l, i) => <line key={`v${i}`} x1={l.pos} x2={l.pos} y1={cell.y} y2={cell.y + cell.h} />)}
+          {h.map((l, i) => <line key={`h${i}`} x1={cell.x} x2={cell.x + cell.w} y1={l.pos} y2={l.pos} />)}
+        </g>
+      ))}
     </g>
   )
 }

@@ -38,8 +38,16 @@ export function useMeasureTool(active: boolean): ToolHandlers {
     }
   })
 
+  // publie la mesure pour le footer
+  useEffect(() => {
+    const d = draft.current
+    const m = active && d.a && d.b && dist(d.a, d.b) > 0.01 ? { a: d.a, b: d.b, fixed: d.fixed } : null
+    const cur = useEditor.getState().measure
+    if (JSON.stringify(cur) !== JSON.stringify(m)) useEditor.setState({ measure: m })
+  })
+
   useToolKeys(active, (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && draft.current.a) {
       draft.current = empty()
       render()
       return true
@@ -80,7 +88,6 @@ export function useMeasureTool(active: boolean): ToolHandlers {
           {t && (
             <>
               <ScreenLabel at={mid(d.a!, d.b!)} testId="measure-label" dy={-16}>{t.main}</ScreenLabel>
-              <ScreenLabel at={mid(d.a!, d.b!)} testId="measure-detail" dy={8}>{t.detail}</ScreenLabel>
             </>
           )}
         </>

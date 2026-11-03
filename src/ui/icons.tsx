@@ -20,6 +20,7 @@ const P: Record<string, React.ReactNode> = {
   up: <path d="M11 17V5M6 10l5-5 5 5" />,
   down: <path d="M11 5v12M6 12l5 5 5-5" />,
   close: <path d="M6 6l10 10M16 6L6 16" />,
+  chevron: <path d="M6 9l5 5 5-5" />,
   branch: <><circle cx="6" cy="5" r="2" /><circle cx="6" cy="17" r="2" /><circle cx="16" cy="9" r="2" /><path d="M6 7v8M16 11c0 3-4 3-8.5 5" /></>,
   drop: <path d="M11 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" />,
   fit: <path d="M4 8V4h4M14 4h4v4M18 14v4h-4M8 18H4v-4" />,

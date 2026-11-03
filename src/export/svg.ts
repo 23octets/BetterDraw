@@ -36,20 +36,22 @@ function wallContent(doc: DocState, strokeCm: number, opts: { lines?: boolean } 
 
 let clipSeq = 0
 /** Grille dont la couleur s'adapte à chaque aplat (lignes redessinées dans chaque zone peinte). */
-function gridLines(doc: DocState, strokeCm: number, _color?: string, dash = true) {
+function gridLines(doc: DocState, strokeCm0: number, _color?: string, dash = true) {
   const L = gridLayout(doc.wall, doc.grid)
+  const strokeCm = strokeCm0 * (doc.grid.lineWidth ?? 1)
+  const op = doc.grid.lineOpacity ?? 1
   const da = dash ? ` stroke-dasharray="${n(strokeCm * 4)} ${n(strokeCm * 3)}"` : ''
   let lines = ''
   for (const l of L.vLines) lines += `<line x1="${n(l.pos)}" y1="0" x2="${n(l.pos)}" y2="${n(doc.wall.h)}"/>`
   for (const l of L.hLines) lines += `<line x1="0" y1="${n(l.pos)}" x2="${n(doc.wall.w)}" y2="${n(l.pos)}"/>`
-  let s = `<g stroke="${gridStrokeFor(safeHex(doc.background.hex))}" stroke-width="${n(strokeCm)}" fill="none"${da}>${lines}</g>`
+  let s = `<g opacity="${n(op)}"><g stroke="${gridStrokeFor(safeHex(doc.background.hex))}" stroke-width="${n(strokeCm)}" fill="none"${da}>${lines}</g>`
   for (const f of resolveFills(doc)) {
     const id = `gc${++clipSeq}`
     s += `<defs><clipPath id="${id}"><path d="${esc(f.region.d)}"/></clipPath></defs>`
     s += `<g clip-path="url(#${id})"><g stroke="${safeHex(f.hex)}" stroke-width="${n(strokeCm * 1.2)}" fill="none">${lines}</g>`
     s += `<g stroke="${gridStrokeFor(safeHex(f.hex))}" stroke-width="${n(strokeCm)}" fill="none"${da}>${lines}</g></g>`
   }
-  return s
+  return s + '</g>'
 }
 
 /** Mur complet avec grille, repères et cotes, placé dans le rectangle (x, y, w, h) en mm. */
