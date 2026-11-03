@@ -8,6 +8,8 @@ import { SettingsModal } from './SettingsModal'
 import { Toolbar, TOOLS } from './Toolbar'
 import { Icon } from './icons'
 import { MeasureBar } from './MeasureBar'
+import { VariantsOverlay } from './VariantsOverlay'
+import { TextField } from './fields'
 import { GridMenu } from './GridMenu'
 import { HistoryPanel } from './HistoryPanel'
 import { ConsultPanel } from './ConsultPanel'
@@ -16,7 +18,7 @@ import { ImagesSection } from './ImagesSection'
 import { SelectionSection } from './SelectionSection'
 import { BackgroundSection, PaletteSection } from './PaintSections'
 import { copySelection, duplicateSelection, pasteClipboard } from '../tools/select'
-import type { Project, Variant } from '../model/types'
+import type { Project } from '../model/types'
 
 export function Editor({ variantId }: { variantId: string }) {
   const load = useEditor((s) => s.load)
@@ -121,22 +123,19 @@ function HistoryButton() {
 
 function VariantSwitcher() {
   const variant = useEditor((s) => s.variant)!
-  const [list, setList] = useState<Variant[]>([])
-  useEffect(() => {
-    repo.listVariants(variant.projectId).then(setList)
-  }, [variant.projectId, variant.id])
+  const [open, setOpen] = useState(false)
   return (
     <div className="variant-switcher">
-      <select
-        value={variant.id}
-        data-testid="variant-select"
-        onChange={(e) => navigate(`/v/${e.target.value}`)}
-        title="Changer de variante"
-      >
-        {list.map((v) => (
-          <option key={v.id} value={v.id}>{v.name}</option>
-        ))}
-      </select>
+      <span className="title-sep" aria-hidden>/</span>
+      <TextField
+        className="variant-title"
+        value={variant.name}
+        testId="variant-name-input"
+        onCommit={async (name) => {
+          await repo.renameVariant(variant.id, name)
+          useEditor.setState((s) => (s.variant ? { variant: { ...s.variant, name } } : {}))
+        }}
+      />
       <button
         className="icon-btn"
         data-testid="snapshot"
@@ -150,9 +149,10 @@ function VariantSwitcher() {
       >
         <Icon name="copy" /> Snapshot
       </button>
-      <button className="icon-btn" data-testid="variants-page" onClick={() => navigate(`/p/${variant.projectId}`)} title="Toutes les variantes du projet, et leur comparaison côte à côte">
+      <button className={`icon-btn${open ? ' on' : ''}`} data-testid="variants-page" onClick={() => setOpen(true)} title="Toutes les variantes du projet">
         <Icon name="layers" /> Variantes
       </button>
+      {open && <VariantsOverlay onClose={() => setOpen(false)} />}
     </div>
   )
 }

@@ -86,7 +86,6 @@ export function ImagesSection() {
         </ul>
       )}
       {editing && images.some((i) => i.id === editing) && <ImageEditModal imageId={editing} onClose={() => setEditing(null)} />}
-      <p className="hint" style={{ margin: 0 }}>Les images s’affichent en filigrane (au-dessus des aplats, sous les traits), seulement en mode Édition, et ne sont jamais exportées. Glisser-déposer une image sur le mur fonctionne aussi.</p>
     </Section>
   )
 }

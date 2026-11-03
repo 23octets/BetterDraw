@@ -48,17 +48,18 @@ export interface GridLayout {
  * les lignes (1, 2, …) aussi. La dernière case peut être partielle.
  */
 export function gridLayout(wall: { w: number; h: number }, g: GridSettings): GridLayout {
-  const step = Math.max(1, g.step)
+  const stepX = Math.max(1, g.step)
+  const stepY = Math.max(1, g.stepY ?? g.step)
   const fromRight = g.origin === 'br' || g.origin === 'tr'
   const fromBottom = g.origin === 'bl' || g.origin === 'br'
-  const coords = (size: number) => {
+  const coords = (size: number, step: number) => {
     const out: number[] = []
     for (let c = 0; c < size - 1e-6; c += step) out.push(c)
     out.push(size)
     return out
   }
-  const xs = coords(wall.w)
-  const ys = coords(wall.h)
+  const xs = coords(wall.w, stepX)
+  const ys = coords(wall.h, stepY)
   const vLines = xs.map((c) => ({ pos: fromRight ? wall.w - c : c, cote: c }))
   const hLines = ys.map((c) => ({ pos: fromBottom ? wall.h - c : c, cote: c }))
   const cells: GridCell[] = []
@@ -190,3 +191,6 @@ export function commonStepSuggestions(w: number, h: number, step: number) {
   const above = ds.find((d) => d > step)
   return { below: below ?? null, above: above ?? null }
 }
+
+/** Pas vertical effectif. */
+export const stepYOf = (g: Pick<GridSettings, 'step' | 'stepY'>) => g.stepY ?? g.step

@@ -21,6 +21,8 @@ const P: Record<string, React.ReactNode> = {
   down: <path d="M11 5v12M6 12l5 5 5-5" />,
   close: <path d="M6 6l10 10M16 6L6 16" />,
   chevron: <path d="M6 9l5 5 5-5" />,
+  link: <><path d="M9.5 12.5l3-3" /><path d="M8 9.5L6.5 11a3 3 0 0 0 4.2 4.2l1.5-1.5M14 12.5l1.5-1.5a3 3 0 0 0-4.2-4.2L9.8 8.3" /></>,
+  unlink: <><path d="M8 9.5L6.5 11a3 3 0 0 0 4.2 4.2l1.5-1.5M14 12.5l1.5-1.5a3 3 0 0 0-4.2-4.2L9.8 8.3" /><path d="M4 4l2 2M16 16l2 2" /></>,
   pencil: <path d="M14.5 4.5l3 3L8 17l-4 1 1-4zM12.5 6.5l3 3" />,
   clock: <><circle cx="11" cy="11" r="8" /><path d="M11 6v5l3 2" /></>,
   trash: <><path d="M4 6h14M9 6V4h4v2M6 6l1 13h8l1-13" /><path d="M10 10v6M12 10v6" /></>,

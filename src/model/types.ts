@@ -80,6 +80,8 @@ export interface GridSettings {
   step: number
   origin: GridOrigin
   snapStep: number
+  /** Pas vertical (lignes) s'il diffère du pas horizontal ; absent = identique. */
+  stepY?: number
   /** Pas de la sous-grille affichée en vue détail (consultation). */
   subStep?: number
   /** Épaisseur des lignes de grille (px à l'écran, 1 = normal). */

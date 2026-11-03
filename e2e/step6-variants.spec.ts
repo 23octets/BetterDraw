@@ -21,8 +21,7 @@ test('snapshot, galerie de variantes et comparaison côte à côte', async ({ pa
 
   // snapshot → variante B, qu'on modifie
   await page.getByTestId('snapshot').click()
-  await expect(page.getByTestId('variant-select')).toHaveValue(/.+/)
-  await expect(page.getByTestId('variant-select').locator('option:checked')).toHaveText('Variante B')
+  await expect(page.getByTestId('variant-name-input')).toHaveValue('Variante B')
   await expect(page.getByTestId('fills').locator('path')).toHaveCount(2)
   await page.getByTestId('tab-history').click()
   await expect(page.getByTestId('history-count')).toHaveText('0 modification')
@@ -35,12 +34,19 @@ test('snapshot, galerie de variantes et comparaison côte à côte', async ({ pa
 
   // une 3e variante
   await page.getByTestId('snapshot').click()
-  await expect(page.getByTestId('variant-select').locator('option:checked')).toHaveText('Variante C')
+  await expect(page.getByTestId('variant-name-input')).toHaveValue('Variante C')
   await page.getByTestId('swatch-Anthracite').click()
   await clickWall(page, 250, 100)
 
+  // renommer la variante en cours directement dans l'en-tête
+  await page.getByTestId('variant-name-input').fill('Variante C sombre')
+  await page.getByTestId('variant-name-input').press('Enter')
+  // la liste des variantes s'ouvre par-dessus l'éditeur
   await page.getByTestId('variants-page').click()
+  await expect(page.getByTestId('variants-overlay')).toBeVisible()
+  await expect(page.getByTestId('canvas')).toBeVisible()
   await expect(page.getByTestId('variant-card')).toHaveCount(3)
+  await expect(page.getByTestId('variant-card').nth(2)).toContainText('Variante C sombre')
   await expect(page.getByTestId('variant-card').nth(1)).toContainText('Issue de Variante A')
   await page.screenshot({ path: `${SHOTS}/step6-01-galerie-variantes.png` })
 

@@ -97,7 +97,7 @@ test('variante depuis l’historique et image qui suit le déplacement', async (
   await page.getByTestId('history-item').filter({ hasText: '#1' }).hover()
   await page.screenshot({ path: `${SHOTS}/step9-07-historique-variante.png` })
   await page.getByRole('button', { name: 'Créer une variante depuis l’état #1' }).click()
-  await expect(page.getByTestId('variant-select').locator('option:checked')).toHaveText('Variante B')
+  await expect(page.getByTestId('variant-name-input')).toHaveValue('Variante B')
   await expect(shapes(page)).toHaveCount(1)
 
   await page.keyboard.press('Escape')
