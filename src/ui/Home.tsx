@@ -3,10 +3,14 @@ import * as repo from '../store/repo'
 import type { Project, Variant } from '../model/types'
 import { navigate } from './router'
 import { DEFAULT_WALL } from '../model/defaults'
-import { DocPreview } from './DocPreview'
+import { Thumb } from './DocPreview'
 import { importProject } from '../export/project'
+import { Icon } from './icons'
 
 type Row = Project & { variants: Variant[] }
+
+const latest = (vs: Variant[]) => [...vs].sort((a, b) => b.updatedAt - a.updatedAt)[0]
+const fmtDate = (t: number) => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 
 export function Home() {
   const [projects, setProjects] = useState<Row[] | null>(null)
@@ -40,26 +44,27 @@ export function Home() {
 
       <form className="new-project" onSubmit={create} data-testid="new-project-form">
         <h2>Nouveau projet</h2>
-        <label>
-          Nom
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Chambre de Léa" name="name" />
-        </label>
-        <div className="row">
-          <label>
-            Largeur du mur (cm)
+        <div className="new-project-fields">
+          <label className="field grow">
+            <span>Nom</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Chambre de Léa" name="name" />
+          </label>
+          <label className="field">
+            <span>Largeur (cm)</span>
             <input type="number" min={10} value={w} onChange={(e) => setW(+e.target.value)} name="width" />
           </label>
-          <label>
-            Hauteur du mur (cm)
+          <span className="times" aria-hidden>×</span>
+          <label className="field">
+            <span>Hauteur (cm)</span>
             <input type="number" min={10} value={h} onChange={(e) => setH(+e.target.value)} name="height" />
           </label>
+          <button type="submit" className="primary"><Icon name="plus" size={15} /> Créer le projet</button>
         </div>
-        <button type="submit" className="primary">Créer le projet</button>
       </form>
 
       <section className="projects">
         <div className="projects-head">
-          <h2>Projets</h2>
+          <h2>Projets{projects?.length ? <span className="count">{projects.length}</span> : null}</h2>
           <label className="import-btn">
             <input type="file" accept=".json,application/json" hidden data-testid="import-project"
               onChange={async (e) => {
@@ -74,50 +79,51 @@ export function Home() {
                   setImportMsg(`Import impossible : ${(err as Error).message}`)
                 }
               }} />
-            Importer une sauvegarde (.json)
+            <Icon name="export" size={15} /> Importer une sauvegarde
           </label>
         </div>
         {importMsg && <p className="hint" data-testid="import-msg">{importMsg}</p>}
         {projects === null ? null : projects.length === 0 ? (
-          <p className="empty">Aucun projet pour l'instant.</p>
+          <p className="empty">Aucun projet pour l'instant. Crée ton premier mur ci-dessus.</p>
         ) : (
-          <ul className="project-list">
-            {projects.map((p) => (
-              <li key={p.id} className="project-card" data-testid="project-card">
-                {p.variants[0] && (
-                  <button className="thumb small-thumb" onClick={() => navigate(`/p/${p.id}`)}>
-                    <DocPreview doc={[...p.variants].sort((a, b) => b.updatedAt - a.updatedAt)[0].state} showGrid={false} className="thumb-svg" />
-                  </button>
-                )}
-                <div className="project-main">
-                  <strong>{p.name}</strong>
-                  <span className="muted">
-                    {p.variants[0] ? `${p.variants[0].state.wall.w} × ${p.variants[0].state.wall.h} cm · ` : ''}
-                    {p.variants.length} variante{p.variants.length > 1 ? 's' : ''} · modifié le{' '}
-                    {new Date(p.updatedAt).toLocaleDateString('fr-FR')}
-                  </span>
-                </div>
-                <div className="project-actions">
-                  {p.variants[0] && (
-                    <button className="primary" onClick={() => navigate(`/v/${[...p.variants].sort((a, b) => b.updatedAt - a.updatedAt)[0].id}`)}>
-                      Ouvrir
+          <ul className="card-grid">
+            {projects.map((p) => {
+              const last = p.variants.length ? latest(p.variants) : null
+              return (
+                <li key={p.id} className="card" data-testid="project-card">
+                  {last && <Thumb doc={last.state} onOpen={() => navigate(`/v/${last.id}`)} label={`Ouvrir ${p.name}`} />}
+                  <div className="card-body">
+                    <strong className="card-title" title={p.name}>{p.name}</strong>
+                    <span className="card-meta">
+                      {last ? `${last.state.wall.w} × ${last.state.wall.h} cm` : ''}
+                    </span>
+                    <span className="card-meta">
+                      <Icon name="layers" size={13} /> {p.variants.length} variante{p.variants.length > 1 ? 's' : ''} · {fmtDate(p.updatedAt)}
+                    </span>
+                  </div>
+                  <div className="card-actions">
+                    {last && <button className="primary small" onClick={() => navigate(`/v/${last.id}`)}>Ouvrir</button>}
+                    <button className="small" onClick={() => navigate(`/p/${p.id}`)} data-testid="open-variants">
+                      <Icon name="layers" size={14} /> Variantes
                     </button>
-                  )}
-                  <button onClick={() => navigate(`/p/${p.id}`)} data-testid="open-variants">Variantes</button>
-                  <button
-                    className="ghost danger"
-                    onClick={async () => {
-                      if (confirm(`Supprimer le projet « ${p.name} » ?`)) {
-                        await repo.deleteProject(p.id)
-                        refresh()
-                      }
-                    }}
-                  >
-                    Supprimer
-                  </button>
-                </div>
-              </li>
-            ))}
+                    <div className="spacer" />
+                    <button
+                      className="icon-btn ghost small danger"
+                      title="Supprimer le projet"
+                      aria-label={`Supprimer ${p.name}`}
+                      onClick={async () => {
+                        if (confirm(`Supprimer le projet « ${p.name} » et toutes ses variantes ?`)) {
+                          await repo.deleteProject(p.id)
+                          refresh()
+                        }
+                      }}
+                    >
+                      <Icon name="trash" size={15} />
+                    </button>
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>
