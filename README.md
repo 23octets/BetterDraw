@@ -43,4 +43,4 @@ npm run test:e2e     # tests de bout en bout (Playwright), captures dans docs/sc
 npm run test:all
 ```
 
-Un exemple de PDF chantier généré par les tests : [`docs/exemple-chantier.pdf`](docs/exemple-chantier.pdf).
+Les tests e2e génèrent des captures dans `docs/screenshots/` et un exemple de PDF chantier dans `docs/exemple-chantier.pdf` (non versionnés).

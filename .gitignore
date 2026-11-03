@@ -4,3 +4,9 @@ test-results
 playwright-report
 *.local
 .DS_Store
+
+# fichiers générés
+*.tsbuildinfo
+# captures et PDF d'exemple produits à chaque lancement des tests e2e
+docs/screenshots/
+docs/exemple-chantier.pdf
