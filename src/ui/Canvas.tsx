@@ -51,6 +51,15 @@ export function Canvas() {
     return () => window.removeEventListener('bd:fit', onFit)
   }, [size, setView])
 
+  // la taille du mur change : on réajuste la vue
+  const wallKey = `${doc.wall.w}x${doc.wall.h}`
+  const lastWall = useRef(wallKey)
+  useEffect(() => {
+    if (lastWall.current === wallKey) return
+    lastWall.current = wallKey
+    setView(fitView(doc.wall, size))
+  }, [wallKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const tool = useActiveTool()
 
   const toPointer = useCallback(

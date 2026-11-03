@@ -52,12 +52,12 @@ button.wide { width: 100%; }
 .icon { flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .btn-group { display: inline-flex; gap: 2px; }
 
-input:not([type='checkbox']):not([type='range']):not([type='color']), select {
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']), select {
   height: var(--ctl); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 0 8px; background: #fff; min-width: 0; width: 100%;
 }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
-input[type='checkbox'] { width: 15px; height: 15px; margin: 0; accent-color: var(--ink); }
+input[type='checkbox'], input[type='radio'] { width: 15px; height: 15px; margin: 0; accent-color: var(--ink); }
 
 .key {
   display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px;
@@ -240,7 +240,7 @@ input[type='checkbox'] { width: 15px; height: 15px; margin: 0; accent-color: var
 .swatch input[type=color] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 .swatch-row .name { height: var(--ctl-sm) !important; border-color: transparent !important; background: transparent !important; padding: 0 4px !important; cursor: pointer; }
 .swatch-row .name:focus { background: #fff !important; cursor: text; }
-.modal-small { width: min(560px, 94vw); height: auto; max-height: 90vh; }
+.modal.modal-small { width: min(560px, 94vw); height: auto; max-height: 90vh; }
 .modal-pad { padding: 16px; display: grid; gap: 12px; overflow-y: auto; }
 .surf-table th { text-align: left; font-weight: 600; font-size: 11px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 2px; border-bottom: 1px solid var(--ink); }
 .surf-table th.num { text-align: right; }
@@ -422,3 +422,20 @@ p.small { margin: 0; }
 .image-edit-side h4 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--ink-2); }
 .image-edit-side .hint { margin: 0; }
 .hint.error { color: var(--danger); }
+
+/* ---------- Réglages ---------- */
+.settings-block { display: grid; gap: 10px; }
+.settings-block + .settings-block { padding-top: 14px; border-top: 1px solid var(--line-2); }
+.settings-block h4 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--ink-2); }
+.settings-block .hint { margin: 0; }
+.origin-chooser { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.origin-preview { flex: 0 0 auto; }
+.op-wall { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
+.op-corner { cursor: pointer; }
+.op-corner circle { fill: #fff; stroke: var(--ink-2); stroke-width: 1.5; transition: r 0.12s; }
+.op-corner:hover circle { stroke: var(--accent); }
+.op-corner.on circle { fill: var(--accent); stroke: var(--accent-ink); }
+.op-corner text { fill: #fff; font-size: 11px; font-weight: 700; pointer-events: none; }
+.op-axes line { stroke: var(--accent-ink); stroke-width: 1.5; marker-end: none; }
+.op-axes text { fill: var(--accent-ink); font-size: 10px; font-weight: 600; }
+.origin-list { display: grid; gap: 8px; }

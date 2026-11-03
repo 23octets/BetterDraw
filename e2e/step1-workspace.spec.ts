@@ -21,12 +21,16 @@ test('création de projet, mur par défaut et grille cotée', async ({ page }) =
 
 test('redimensionner le mur et la grille, enregistré en continu', async ({ page }) => {
   await newProject(page, 'Salon')
+  await page.getByTestId('open-settings').click()
   await setField(page, 'wall-w', 420)
+  await page.getByTestId('origin-tl').click()
+  await page.screenshot({ path: `${SHOTS}/step14-01-reglages.png` })
+  await page.getByTestId('close-settings').click()
+  await expect(page.getByTestId('settings-modal')).toHaveCount(0)
   await setField(page, 'grid-step', 40)
   await expect(page.getByTestId('grid-summary')).toContainText('11 × 7 cases')
   await expect(page.getByTestId('grid-summary')).toContainText('dernière colonne 20 cm')
   await expect(page.getByTestId('grid-summary')).toContainText('dernière ligne 10 cm')
-  await page.getByTestId('origin-tl').click()
   await page.getByTestId('fit').click()
   await expect(page.getByTestId('save-state')).toHaveText('Enregistré')
   await page.screenshot({ path: `${SHOTS}/step1-03-mur-420-grille-40.png` })
@@ -36,8 +40,13 @@ test('redimensionner le mur et la grille, enregistré en continu', async ({ page
   await expect(page.getByTestId('grid-step')).toHaveValue('40')
   // annuler / rétablir
   await page.getByTestId('undo').click()
-  await page.getByTestId('undo').click()
   await expect(page.getByTestId('grid-step')).toHaveValue('50')
+  // l'origine (haut-gauche) a bien été enregistrée
+  await page.getByTestId('open-settings').click()
+  await expect(page.getByRole('radio', { name: 'Haut gauche' })).toBeChecked()
+  await expect(page.getByTestId('origin-tl')).toHaveAttribute('aria-pressed', 'true')
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('settings-modal')).toHaveCount(0)
   await page.getByTestId('redo').click()
   await expect(page.getByTestId('grid-step')).toHaveValue('40')
 })

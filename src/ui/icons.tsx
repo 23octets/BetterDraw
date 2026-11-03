@@ -21,6 +21,7 @@ const P: Record<string, React.ReactNode> = {
   down: <path d="M11 5v12M6 12l5 5 5-5" />,
   close: <path d="M6 6l10 10M16 6L6 16" />,
   chevron: <path d="M6 9l5 5 5-5" />,
+  settings: <><circle cx="11" cy="11" r="3" /><path d="M11 2.5v2.2M11 17.3v2.2M2.5 11h2.2M17.3 11h2.2M5 5l1.6 1.6M15.4 15.4L17 17M5 17l1.6-1.6M15.4 6.6L17 5" /></>,
   perspective: <><path d="M5 5l12 2v8L5 17z" /><path d="M5 5v12M17 7v8" /><circle cx="5" cy="5" r="1.3" /><circle cx="17" cy="7" r="1.3" /><circle cx="17" cy="15" r="1.3" /><circle cx="5" cy="17" r="1.3" /></>,
   width: <path d="M3 11h16M6 8l-3 3 3 3M16 8l3 3-3 3M3 5v12M19 5v12" />,
   height: <path d="M11 3v16M8 6l3-3 3 3M8 16l3 3 3-3M5 3h12M5 19h12" />,

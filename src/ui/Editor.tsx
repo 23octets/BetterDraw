@@ -3,7 +3,8 @@ import { useEditor, flushPersistence } from '../store/editor'
 import * as repo from '../store/repo'
 import { Canvas } from './Canvas'
 import { navigate } from './router'
-import { GridSection, WallSection } from './SidePanel'
+import { GridSection } from './SidePanel'
+import { SettingsModal } from './SettingsModal'
 import { Toolbar, TOOLS } from './Toolbar'
 import { Icon } from './icons'
 import { MeasureBar } from './MeasureBar'
@@ -83,7 +84,6 @@ function SideTabs() {
           <PaletteSection />
           <BackgroundSection />
           <ImagesSection />
-          <WallSection />
           <GridSection />
         </>
       ) : (
@@ -139,6 +139,7 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
   const redo = useEditor((s) => s.redo)
   const mode = useEditor((s) => s.mode)
   const setMode = useEditor((s) => s.setMode)
+  const [settings, setSettings] = useState(false)
   return (
     <header className="topbar">
       <button className="ghost" onClick={() => navigate('/')} title="Retour aux projets">← Projets</button>
@@ -153,6 +154,10 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
       </div>
       <GridMenu />
       <div className="spacer" />
+      <button className="icon-btn" onClick={() => setSettings(true)} data-testid="open-settings" title="Réglages : taille du mur, origine">
+        <Icon name="settings" /> Réglages
+      </button>
+      {settings && <SettingsModal onClose={() => setSettings(false)} />}
       <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier (maintenir ⌘)">
         <Icon name="keyboard" /> Raccourcis
       </button>

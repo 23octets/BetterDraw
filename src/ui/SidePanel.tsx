@@ -28,11 +28,11 @@ export function WallSection() {
   )
 }
 
-const ORIGINS: { id: GridOrigin; label: string }[] = [
-  { id: 'tl', label: '↖' },
-  { id: 'tr', label: '↗' },
-  { id: 'bl', label: '↙' },
-  { id: 'br', label: '↘' },
+export const ORIGINS: { id: GridOrigin; label: string }[] = [
+  { id: 'tl', label: 'Haut gauche' },
+  { id: 'tr', label: 'Haut droite' },
+  { id: 'bl', label: 'Bas gauche' },
+  { id: 'br', label: 'Bas droite' },
 ]
 
 export function GridSection() {
@@ -49,18 +49,6 @@ export function GridSection() {
           onCommit={(step) => commit(`Pas de grille : ${step} cm`, (d) => { d.grid.step = step })} />
         <NumberField label="Aimantage" suffix="cm" min={0.5} max={100} value={g.snapStep} testId="snap-step"
           onCommit={(v) => commit(`Aimantage : ${v} cm`, (d) => { d.grid.snapStep = v })} />
-      </div>
-      <div className="field">
-        <span>Origine (cotes et repères)</span>
-        <div className="origin-picker" role="radiogroup">
-          {ORIGINS.map((o) => (
-            <button key={o.id} className={g.origin === o.id ? 'on' : ''} aria-pressed={g.origin === o.id}
-              data-testid={`origin-${o.id}`}
-              onClick={() => commit('Origine de la grille', (d) => { d.grid.origin = o.id })}>
-              {o.label}
-            </button>
-          ))}
-        </div>
       </div>
       <p className="hint" data-testid="grid-summary">
         {layout.cols} × {layout.rows} cases
