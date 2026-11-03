@@ -117,16 +117,22 @@ export function remapFills(
     if (face.interior.x < 0 || face.interior.y < 0 || face.interior.x > after.wall.w || face.interior.y > after.wall.h) return
     const region = faceRegion(graph, k)
     if (region.area < 1e-3) return
-    let best: { colorId: string; score: number } | null = null
+    // part de la nouvelle zone couverte par chaque couleur (en additionnant tous les anciens
+    // morceaux de cette couleur : une zone recoupée puis refondue garde sa couleur)
+    const share = new Map<string, number>()
     for (const o of candidates) {
       if (!o.colorId || !boundsOverlap(o.region.item.bounds, region.item.bounds)) continue
       const inter = region.item.intersect(o.region.item, { insert: false })
       const a = Math.abs((inter as paper.Path).area)
       if (a < 1e-3) continue
-      const score = a / region.area
-      if (!best || score > best.score) best = { colorId: o.colorId, score }
+      share.set(o.colorId, (share.get(o.colorId) ?? 0) + a / region.area)
     }
-    if (best && best.score > 0.5) out.push({ id: nanoid(8), seed: interiorOf(region.item), colorId: best.colorId })
+    // la couleur la plus représentée l'emporte, si elle couvre plus que la part non peinte
+    const painted = [...share.values()].reduce((x, y) => x + y, 0)
+    const unpainted = Math.max(0, 1 - painted)
+    let best: { colorId: string; score: number } | null = null
+    for (const [colorId, score] of share) if (!best || score > best.score) best = { colorId, score }
+    if (best && best.score > unpainted) out.push({ id: nanoid(8), seed: interiorOf(region.item), colorId: best.colorId })
   })
   return out
 }

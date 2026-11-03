@@ -109,3 +109,27 @@ describe('transport des couleurs', () => {
     expect(colorAt(doc, { x: 30, y: 30 })).toBe(doc.palette[1].id)
   })
 })
+
+describe('suppression d’un trait qui découpait une zone peinte', () => {
+  it('les morceaux de même couleur refondus gardent leur couleur', () => {
+    // bande horizontale peinte, coupée par 3 traits verticaux en 4 morceaux de même couleur
+    useEditor.getState().commit('bande', (d) => {
+      d.shapes.push(line('h1', [0, 60], [300, 60]), line('h2', [0, 140], [300, 140]))
+    })
+    useEditor.getState().commit('coupes', (d) => {
+      d.shapes.push(line('c', [20, 20], [280, 180]))
+    })
+    // peindre les morceaux de la bande en vert (index 3), le haut en ocre (index 2)
+    for (const [x, y] of [[30, 100], [150, 120], [270, 80], [150, 75]] as [number, number][]) paint(x, y, 3)
+    paint(150, 20, 2)
+    const st = useEditor.getState()
+    const green = st.doc.palette[3].id
+    expect(colorAt(st.doc, { x: 150, y: 100 })).toBe(green)
+    // supprimer le trait qui coupait la bande
+    useEditor.getState().commit('supprimer', (d) => { d.shapes = d.shapes.filter((s) => s.id !== 'c') })
+    const doc = useEditor.getState().doc
+    expect(colorAt(doc, { x: 150, y: 100 })).toBe(green)
+    expect(colorAt(doc, { x: 20, y: 100 })).toBe(green)
+    expect(colorAt(doc, { x: 150, y: 20 })).toBe(doc.palette[2].id)
+  })
+})
