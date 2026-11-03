@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react'
 import type { Vec } from '../model/types'
+import { useEditor } from '../store/editor'
+import { usePolylineTool } from './polyline'
+import { useArcTool } from './arc'
+import { useBezierTool } from './bezier'
+import { useMeasureTool } from './measure'
 
 export interface ToolPointer {
   screen: Vec
@@ -22,5 +27,15 @@ export interface ToolHandlers {
 }
 
 export function useActiveTool(): ToolHandlers {
-  return {}
+  const tool = useEditor((s) => s.tool)
+  const mode = useEditor((s) => s.mode)
+  const edit = mode === 'edit'
+  const tools: Partial<Record<string, ToolHandlers>> = {
+    polyline: usePolylineTool(edit && tool === 'polyline'),
+    arc: useArcTool(edit && tool === 'arc'),
+    bezier: useBezierTool(edit && tool === 'bezier'),
+    measure: useMeasureTool(tool === 'measure'),
+  }
+  if (!edit && tool !== 'measure') return {}
+  return tools[tool] ?? {}
 }

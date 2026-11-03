@@ -86,14 +86,29 @@ function TopBar({ projectName }: { projectName: string }) {
 function StatusBar() {
   const view = useEditor((s) => s.view)
   const message = useEditor((s) => s.message)
+  const tool = useEditor((s) => s.tool)
+  const mode = useEditor((s) => s.mode)
   return (
     <div className="statusbar">
-      {message && <span className={`flash ${message.kind}`} data-testid="flash">{message.text}</span>}
+      {message ? (
+        <span className={`flash ${message.kind}`} data-testid="flash">{message.text}</span>
+      ) : (
+        <span className="tool-hint" data-testid="tool-hint">{TOOL_HINTS[mode === 'edit' ? tool : 'consult'] ?? ''}</span>
+      )}
       <div className="spacer" />
       <button className="ghost small" onClick={() => window.dispatchEvent(new Event('bd:fit'))} data-testid="fit">Ajuster</button>
       <span className="muted" data-testid="zoom">{Math.round(view.zoom * 100) / 100} px/cm</span>
     </div>
   )
+}
+
+const TOOL_HINTS: Record<string, React.ReactNode> = {
+  select: <>Clic : sélectionner · <kbd>⇧</kbd> ajouter · glisser : déplacer · <kbd>Suppr</kbd> effacer</>,
+  polyline: <>Clic : poser un point · <kbd>A</kbd> arc tangent · tape une longueur puis <kbd>Entrée</kbd> · <kbd>⇧</kbd> 45° · <kbd>Alt</kbd> sans aimant · double-clic / <kbd>Entrée</kbd> : terminer</>,
+  arc: <>Clic : départ, puis arrivée, puis point de passage · tape une longueur pour la corde</>,
+  bezier: <>Clic : point anguleux · cliquer-glisser : point lisse · clic sur le 1er point : fermer · <kbd>Entrée</kbd> : terminer</>,
+  measure: <>Clic sur deux points pour mesurer · <kbd>Échap</kbd> : effacer</>,
+  consult: <>Clic sur une case pour zoomer</>,
 }
 
 function useShortcuts() {
