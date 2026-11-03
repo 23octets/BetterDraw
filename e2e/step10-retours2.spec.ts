@@ -63,7 +63,12 @@ test('mesure : infos dans le footer, Shift garde l’aimant sur le bord du mur',
   await page.mouse.click(near.x, near.y)
   await page.keyboard.up('Shift')
   await expect(page.getByTestId('measure-distance')).toHaveText('200 cm')
-  await expect(page.getByTestId('measure-detail')).toContainText('Vertical 0 cm')
+  await expect(page.getByTestId('measure-dy')).toHaveText('0 cm')
+  // la pastille de mesure est à gauche du zoom
+  const mb = (await page.getByTestId('measure-bar').boundingBox())!
+  const zb = (await page.getByTestId('zoom').boundingBox())!
+  expect(mb.x + mb.width).toBeLessThan(zb.x)
+  expect(Math.abs(mb.y + mb.height / 2 - (zb.y + zb.height / 2))).toBeLessThan(4)
   await page.screenshot({ path: `${SHOTS}/step10-02-mesure-footer.png` })
   await page.keyboard.press('Escape')
   await page.keyboard.press('Escape')

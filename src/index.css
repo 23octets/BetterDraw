@@ -170,10 +170,6 @@ input[type='checkbox'] { width: 15px; height: 15px; margin: 0; accent-color: var
 }
 .toast.error { background: var(--danger); }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
-.zoom-controls {
-  position: absolute; right: 14px; bottom: 14px; z-index: 10; display: flex; align-items: center; gap: 2px; padding: 3px;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-}
 .zoom-controls .icon-btn { border-color: transparent; background: transparent; }
 .zoom-controls .icon-btn:hover { background: rgba(0,0,0,0.05); }
 .zoom-value { font-size: 12px; color: var(--ink-2); min-width: 74px; text-align: center; font-variant-numeric: tabular-nums; }
@@ -244,8 +240,6 @@ input[type='checkbox'] { width: 15px; height: 15px; margin: 0; accent-color: var
 .swatch input[type=color] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 .swatch-row .name { height: var(--ctl-sm) !important; border-color: transparent !important; background: transparent !important; padding: 0 4px !important; cursor: pointer; }
 .swatch-row .name:focus { background: #fff !important; cursor: text; }
-.bg-row { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: center; }
-.bg-label { font-size: 13px; }
 .modal-small { width: min(560px, 94vw); height: auto; max-height: 90vh; }
 .modal-pad { padding: 16px; display: grid; gap: 12px; overflow-y: auto; }
 .surf-table th { text-align: left; font-weight: 600; font-size: 11px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 2px; border-bottom: 1px solid var(--ink); }
@@ -365,19 +359,18 @@ p.small { margin: 0; }
 .projects-head { display: flex; align-items: center; justify-content: space-between; }
 .import-btn:hover { border-color: var(--ink-2); }
 
-/* ---------- Footer de mesure ---------- */
-.measure-bar {
-  display: flex; align-items: center; gap: 16px; height: 40px; padding: 0 14px; flex: 0 0 auto;
-  border-top: 1px solid var(--line); background: var(--panel); font-size: 13px; font-variant-numeric: tabular-nums;
-  white-space: nowrap; overflow: hidden;
+/* ---------- Pastilles flottantes (mesure, zoom) ---------- */
+.canvas-hud { position: absolute; right: 14px; bottom: 14px; z-index: 10; display: flex; align-items: center; gap: 8px; }
+.hud-pill {
+  display: flex; align-items: center; gap: 2px; height: 40px; padding: 3px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,0.08);
 }
-.measure-bar .icon { color: #e0007a; }
-.measure-bar .m-main { font-weight: 700; font-size: 15px; }
-.measure-bar .m-item { display: inline-flex; gap: 6px; align-items: baseline; }
-.measure-bar em { font-style: normal; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 8px; }
-.measure-bar em:first-child { margin-left: 0; }
-.stage.has-footer .zoom-controls { bottom: 54px; }
-.stage.has-footer .toast { bottom: 58px; }
+.measure-pill { gap: 12px; padding: 0 12px; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.measure-pill .icon { color: var(--muted); }
+.hud-item { display: inline-flex; align-items: center; gap: 5px; }
+.hud-item.strong .icon { color: #e0007a; }
+.hud-item b { font-size: 14px; }
+.hud-sep { width: 1px; height: 20px; background: var(--line); }
 
 /* ---------- Menu grille ---------- */
 .split-btn { position: relative; display: inline-flex; }

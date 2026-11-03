@@ -89,27 +89,11 @@ export function PaletteSection() {
 
 export function BackgroundSection() {
   const doc = useEditor((s) => s.doc)
-  const commit = useEditor((s) => s.commit)
   const [open, setOpen] = useState(false)
   const s = surfaces(doc)
-  const totalL = s.colors.reduce((a, c) => a + c.liters, 0) + (doc.background.repaint ? s.background.liters : 0)
+  const totalL = s.colors.reduce((a, c) => a + c.liters, 0)
   return (
-    <Section title="Fond & peinture" testId="surfaces-section">
-      <div className="bg-row">
-        <label className="swatch" style={{ background: doc.background.hex }} title="Couleur du fond">
-          <input type="color" value={doc.background.hex} data-testid="background-color"
-            onChange={(e) => {
-              const hex = e.target.value
-              commit('Couleur du fond', (d) => { d.background.hex = hex })
-            }} />
-        </label>
-        <span className="bg-label">Fond du mur</span>
-        <label className="check">
-          <input type="checkbox" checked={doc.background.repaint} data-testid="background-repaint"
-            onChange={(e) => commit(e.target.checked ? 'Fond à repeindre' : 'Fond existant', (d) => { d.background.repaint = e.target.checked })} />
-          à repeindre
-        </label>
-      </div>
+    <Section title="Peinture" testId="surfaces-section">
       <button className="wide" onClick={() => setOpen(true)} data-testid="open-estimate">
         <Icon name="drop" size={15} /> Estimer la peinture{s.colors.length ? ` · ${L(totalL)} L` : ''}
       </button>
@@ -122,8 +106,8 @@ export function EstimateModal({ onClose }: { onClose: () => void }) {
   const doc = useEditor((s) => s.doc)
   const commit = useEditor((s) => s.commit)
   const s = surfaces(doc)
-  const totalA = s.colors.reduce((a, c) => a + c.area, 0) + (doc.background.repaint ? s.background.area : 0)
-  const totalL = s.colors.reduce((a, c) => a + c.liters, 0) + (doc.background.repaint ? s.background.liters : 0)
+  const totalA = s.colors.reduce((a, c) => a + c.area, 0)
+  const totalL = s.colors.reduce((a, c) => a + c.liters, 0)
   return (
     <div className="modal-backdrop" onClick={onClose} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
       <div className="modal modal-small" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Estimation de la peinture" data-testid="estimate-modal">
@@ -151,10 +135,10 @@ export function EstimateModal({ onClose }: { onClose: () => void }) {
                   <td className="num">{L(c.liters)} L</td>
                 </tr>
               ))}
-              <tr className={doc.background.repaint ? '' : 'muted'} data-testid="surface-background">
-                <td><span className="dot" style={{ background: doc.background.hex }} />Fond{doc.background.repaint ? '' : ' (existant)'}</td>
+              <tr className="muted" data-testid="surface-background">
+                <td><span className="dot" style={{ background: doc.background.hex }} />Non peint</td>
                 <td className="num">{m2(s.background.area)} m²</td>
-                <td className="num">{doc.background.repaint ? `${L(s.background.liters)} L` : '—'}</td>
+                <td className="num">—</td>
               </tr>
             </tbody>
             <tfoot>

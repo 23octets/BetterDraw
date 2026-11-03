@@ -1,46 +1,32 @@
 import { useEditor } from '../store/editor'
-import { measureText } from '../tools/measure'
-import { toGridCoords } from '../geometry/grid'
+import { dist } from '../geometry/vec'
 import { fmtLen } from '../tools/common'
 import { Icon } from './icons'
 
-const fmt = (n: number) => {
-  const r = Math.round(n * 10) / 10
-  return Number.isInteger(r) ? String(r) : r.toFixed(1)
-}
-
-/** Footer affiché pendant l'utilisation de l'outil mesure. */
+/** Pastille de mesure, posée à gauche des contrôles de zoom. */
 export function MeasureBar() {
   const tool = useEditor((s) => s.tool)
   const m = useEditor((s) => s.measure)
-  const doc = useEditor((s) => s.doc)
   if (tool !== 'measure') return null
   if (!m) {
     return (
-      <footer className="measure-bar" data-testid="measure-bar">
+      <div className="hud-pill measure-pill" data-testid="measure-bar" title="Clic sur deux points pour mesurer · Shift : horizontal, vertical ou 45°">
         <Icon name="measure" size={16} />
-        <span className="muted">Clic sur un premier point, puis sur un second. Shift : à l’horizontale, à la verticale ou à 45°.</span>
-      </footer>
+        <span className="muted">2 clics</span>
+      </div>
     )
   }
-  const t = measureText(m.a, m.b)
-  const A = toGridCoords(doc.wall, doc.grid, m.a)
-  const B = toGridCoords(doc.wall, doc.grid, m.b)
   const dx = Math.abs(m.b.x - m.a.x)
   const dy = Math.abs(m.b.y - m.a.y)
+  let ang = (Math.atan2(-(m.b.y - m.a.y), m.b.x - m.a.x) * 180) / Math.PI
+  if (ang < 0) ang += 360
   return (
-    <footer className="measure-bar" data-testid="measure-bar">
-      <Icon name="measure" size={16} />
-      <span className="m-main" data-testid="measure-distance">{t.main}</span>
-      <span className="m-item" data-testid="measure-detail">
-        <em>Horizontal</em> {fmtLen(dx)}
-        <em>Vertical</em> {fmtLen(dy)}
-        <em>Angle</em> {t.detail.split(' · ').at(-1)}
-      </span>
-      <span className="m-item muted">
-        A ({fmt(A.x)} ; {fmt(A.y)}) → B ({fmt(B.x)} ; {fmt(B.y)}) cm
-      </span>
-      {!m.fixed && <span className="m-item muted">clic pour fixer</span>}
-    </footer>
+    <div className="hud-pill measure-pill" data-testid="measure-bar">
+      <span className="hud-item strong" title="Distance"><Icon name="measure" size={16} /><b data-testid="measure-distance">{fmtLen(dist(m.a, m.b))}</b></span>
+      <span className="hud-sep" />
+      <span className="hud-item" title="Écart horizontal" data-testid="measure-dx"><Icon name="width" size={16} />{fmtLen(dx)}</span>
+      <span className="hud-item" title="Écart vertical" data-testid="measure-dy"><Icon name="height" size={16} />{fmtLen(dy)}</span>
+      <span className="hud-item" title="Angle" data-testid="measure-angle"><Icon name="angle" size={16} />{Math.round(ang * 10) / 10}°</span>
+    </div>
   )
 }

@@ -40,7 +40,6 @@ export function Editor({ variantId }: { variantId: string }) {
   const mode = useEditor((s) => s.mode)
   const [exporting, setExporting] = useState(false)
   const [shortcuts, setShortcuts] = useState(false)
-  const tool = useEditor((s) => s.tool)
   const metaHeld = useMetaHeld()
 
   if (status === 'missing') {
@@ -57,10 +56,9 @@ export function Editor({ variantId }: { variantId: string }) {
     <div className="editor">
       <TopBar projectName={project?.name ?? ''} onExport={() => setExporting(true)} onShortcuts={() => setShortcuts((x) => !x)} shortcutsOpen={shortcuts} />
       <Toolbar />
-      <main className={`stage${tool === 'measure' ? ' has-footer' : ''}`}>
+      <main className="stage">
         <Canvas />
         <CanvasOverlay />
-        <MeasureBar />
         {(shortcuts || metaHeld) && <ShortcutsPanel />}
       </main>
       <aside className="side-panel">
@@ -182,11 +180,14 @@ function CanvasOverlay() {
   return (
     <>
       {message && <div className={`toast ${message.kind}`} data-testid="flash" role="status">{message.text}</div>}
-      <div className="zoom-controls">
+      <div className="canvas-hud">
+      <MeasureBar />
+      <div className="zoom-controls hud-pill">
         <button className="icon-btn" onClick={() => zoomBy(1 / 1.25)} aria-label="Dézoomer"><Icon name="minus" /></button>
         <span className="zoom-value" data-testid="zoom">{Math.round(view.zoom * 100) / 100} px/cm</span>
         <button className="icon-btn" onClick={() => zoomBy(1.25)} aria-label="Zoomer"><Icon name="plus" /></button>
         <button className="icon-btn" onClick={() => window.dispatchEvent(new CustomEvent('bd:fit', { detail: null }))} data-testid="fit" title="Ajuster à l’écran"><Icon name="fit" /></button>
+      </div>
       </div>
     </>
   )

@@ -111,7 +111,7 @@ export function coverPageSvg(doc: DocState, meta: ExportMeta): string {
   body += `<text x="${lx}" y="${y}" font-family="${FONT}" font-size="4" font-weight="bold" fill="#1d1f22">Couleurs</text>`
   y += 7
   const rows = [...S.colors.map((c) => ({ hex: c.hex, name: c.name, area: c.area, liters: c.liters, on: true }))]
-  rows.push({ hex: doc.background.hex, name: doc.background.repaint ? 'Fond' : 'Fond (existant)', area: S.background.area, liters: S.background.liters, on: doc.background.repaint })
+  rows.push({ hex: doc.background.hex, name: 'Non peint', area: S.background.area, liters: 0, on: false })
   for (const r of rows) {
     body += `<rect x="${lx}" y="${y - 3.2}" width="4" height="4" fill="${safeHex(r.hex)}" stroke="#999" stroke-width="0.2"/>`
     body += `<text x="${lx + 6}" y="${y}" font-family="${FONT}" font-size="3.2" fill="${r.on ? '#1d1f22' : '#8a8780'}">${esc(r.name)}</text>`
@@ -119,8 +119,8 @@ export function coverPageSvg(doc: DocState, meta: ExportMeta): string {
     if (doc.paint.showLiters) body += `<text x="${lx + 69}" y="${y}" font-family="${FONT}" font-size="3.2" fill="#1d1f22" text-anchor="end">${r.on ? `${r.liters.toFixed(2)} L` : '—'}</text>`
     y += 6.5
   }
-  const totalA = S.colors.reduce((a, c) => a + c.area, 0) + (doc.background.repaint ? S.background.area : 0)
-  const totalL = S.colors.reduce((a, c) => a + c.liters, 0) + (doc.background.repaint ? S.background.liters : 0)
+  const totalA = S.colors.reduce((a, c) => a + c.area, 0)
+  const totalL = S.colors.reduce((a, c) => a + c.liters, 0)
   body += `<line x1="${lx}" y1="${y - 3.5}" x2="${lx + 69}" y2="${y - 3.5}" stroke="#1d1f22" stroke-width="0.25"/>`
   body += `<text x="${lx}" y="${y + 1}" font-family="${FONT}" font-size="3.2" font-weight="bold">Total</text>`
   body += `<text x="${lx + 50}" y="${y + 1}" font-family="${FONT}" font-size="3.2" font-weight="bold" text-anchor="end">${(totalA / 10000).toFixed(2)} m²</text>`

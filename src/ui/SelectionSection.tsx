@@ -6,6 +6,7 @@ import { selectionCenter, toggleClosed } from '../geometry/edit'
 import { shapeLength, transformShape } from '../geometry/shapes'
 import { deleteSelection, duplicateSelection } from '../tools/select'
 import { Section } from './SidePanel'
+import { filletAll } from '../geometry/fillet'
 import { setPendingCarry } from '../store/fills'
 import { fmtLen } from '../tools/common'
 
@@ -27,6 +28,7 @@ export function SelectionSection() {
   const commit = useEditor((s) => s.commit)
   const [angle, setAngle] = useState('15')
   const [scale, setScale] = useState('110')
+  const [radius, setRadius] = useState('10')
   const sel = shapes.filter((s) => selection.includes(s.id))
   if (!sel.length) return null
   const single = sel.length === 1 ? sel[0] : null
@@ -63,6 +65,20 @@ export function SelectionSection() {
           if (Number.isFinite(k) && k > 0) transformSelection(`Échelle ${Math.round(k * 100)} %`, (c) => scaleMat(k, c))
         }}>Appliquer</button>
       </div>
+      <div className="row inline-action">
+        <label className="field">
+          <span>Rayon (cm)</span>
+          <input data-testid="fillet-radius" value={radius} onChange={(e) => setRadius(e.target.value)} />
+        </label>
+        <button data-testid="fillet-all" onClick={() => {
+          const r = parseFloat(radius.replace(',', '.'))
+          if (!Number.isFinite(r) || r <= 0) return
+          const ids = new Set(sel.map((s) => s.id))
+          commit(`Arrondir les angles (R ${r} cm)`, (d) => {
+            d.shapes = d.shapes.map((s) => (ids.has(s.id) ? filletAll(s as Shape, r) : s)) as typeof d.shapes
+          })
+        }}>Arrondir les angles</button>
+      </div>
       {single && single.pts.length >= 3 && (
         <button data-testid="toggle-closed" onClick={() => commit(single.closed ? 'Ouvrir la forme' : 'Fermer la forme', (d) => {
           const i = d.shapes.findIndex((s) => s.id === single.id)
@@ -72,7 +88,7 @@ export function SelectionSection() {
         </button>
       )}
       <p className="hint" style={{ margin: 0 }}>
-        Survole un trait pour voir ses points. Carré : déplacer le point · rond : courber le segment en arc de cercle (droit ou Bézier) · losange : courbe de Bézier · double-clic sur un rond : redresser
+        Survole un trait pour voir ses points. Carré : déplacer · double-clic sur un carré : arrondir l’angle en arc de cercle · rond : courber le segment en arc · losange : courbe de Bézier · double-clic sur un rond : redresser
       </p>
     </Section>
   )

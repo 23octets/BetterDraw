@@ -8,6 +8,7 @@ import { snapPoint, type SnapResult } from '../geometry/snap'
 import { snapFor, SnapMarker, useToolKeys } from './common'
 import type { ToolHandlers, ToolPointer } from './useActiveTool'
 import { setPendingCarry } from '../store/fills'
+import { filletVertex } from '../geometry/fillet'
 
 type Handle =
   | { kind: 'vertex'; shapeId: string; i: number }
@@ -259,6 +260,17 @@ export function useSelectTool(active: boolean): ToolHandlers {
       // double-clic sur une poignée de milieu d'arc : redevient droit
       const h = findHandle(p.world)
       const s0 = h && doc.shapes.find((x) => x.id === h.shapeId)
+      // double-clic sur un sommet : l'angle devient un arc de cercle tangent
+      if (h?.kind === 'vertex' && s0) {
+        const r = filletVertex(s0, h.i)
+        if (r) {
+          useEditor.getState().commit('Arrondir un angle', (d) => {
+            const i = d.shapes.findIndex((x) => x.id === h.shapeId)
+            if (i >= 0) d.shapes[i] = r
+          })
+        } else useEditor.getState().flash('Ce point ne forme pas d’angle (extrémité ou ligne droite)')
+        return
+      }
       if (h?.kind === 'mid' && s0 && s0.segs[h.i].t !== 'line') {
         useEditor.getState().commit('Redresser un segment', (d) => {
           const s = d.shapes.find((x) => x.id === h.shapeId)
