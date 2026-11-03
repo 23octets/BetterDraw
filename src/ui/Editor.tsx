@@ -6,6 +6,7 @@ import { navigate } from './router'
 import { GridSection, WallSection } from './SidePanel'
 import { Toolbar } from './Toolbar'
 import { SelectionSection } from './SelectionSection'
+import { PaletteSection, SurfacesSection } from './PaintSections'
 import { copySelection, duplicateSelection, pasteClipboard } from '../tools/select'
 import type { Project } from '../model/types'
 
@@ -50,6 +51,8 @@ export function Editor({ variantId }: { variantId: string }) {
       </main>
       <aside className="side-panel">
         <SelectionSection />
+        <PaletteSection />
+        <SurfacesSection />
         <WallSection />
         <GridSection />
       </aside>
@@ -110,6 +113,9 @@ const TOOL_HINTS: Record<string, React.ReactNode> = {
   polyline: <>Clic : poser un point · <kbd>A</kbd> arc tangent · tape une longueur puis <kbd>Entrée</kbd> · <kbd>⇧</kbd> 45° · <kbd>Alt</kbd> sans aimant · double-clic / <kbd>Entrée</kbd> : terminer</>,
   arc: <>Clic : départ, puis arrivée, puis point de passage · tape une longueur pour la corde</>,
   bezier: <>Clic : point anguleux · cliquer-glisser : point lisse · clic sur le 1er point : fermer · <kbd>Entrée</kbd> : terminer</>,
+  fill: <>Clic dans une zone fermée pour la peindre · <kbd>Alt</kbd>+clic : ignorer les trous</>,
+  erase: <>Clic sur une zone peinte pour retirer sa couleur</>,
+  pick: <>Clic sur une zone peinte pour reprendre sa couleur</>,
   measure: <>Clic sur deux points pour mesurer · <kbd>Échap</kbd> : effacer</>,
   consult: <>Clic sur une case pour zoomer</>,
 }

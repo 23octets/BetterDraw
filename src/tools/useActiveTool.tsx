@@ -6,6 +6,7 @@ import { useArcTool } from './arc'
 import { useBezierTool } from './bezier'
 import { useMeasureTool } from './measure'
 import { useSelectTool } from './select'
+import { useEraseTool, useFillTool, usePickTool } from './paint'
 
 export interface ToolPointer {
   screen: Vec
@@ -37,6 +38,9 @@ export function useActiveTool(): ToolHandlers {
     arc: useArcTool(edit && tool === 'arc'),
     bezier: useBezierTool(edit && tool === 'bezier'),
     measure: useMeasureTool(tool === 'measure'),
+    fill: useFillTool(),
+    erase: useEraseTool(),
+    pick: usePickTool(),
   }
   if (!edit && tool !== 'measure') return {}
   return tools[tool] ?? {}

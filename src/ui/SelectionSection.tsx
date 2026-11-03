@@ -6,6 +6,7 @@ import { selectionCenter, toggleClosed } from '../geometry/edit'
 import { shapeLength, transformShape } from '../geometry/shapes'
 import { deleteSelection, duplicateSelection } from '../tools/select'
 import { Section } from './SidePanel'
+import { setPendingCarry } from '../store/fills'
 import { fmtLen } from '../tools/common'
 
 export function transformSelection(label: string, make: (center: { x: number; y: number }) => Mat) {
@@ -14,6 +15,7 @@ export function transformSelection(label: string, make: (center: { x: number; y:
   const shapes = st.doc.shapes.filter((s) => ids.has(s.id))
   if (!shapes.length) return
   const m = make(selectionCenter(shapes))
+  setPendingCarry({ ids, m })
   st.commit(label, (d) => {
     d.shapes = d.shapes.map((s) => (ids.has(s.id) ? transformShape(s as Shape, m) : s)) as typeof d.shapes
   })

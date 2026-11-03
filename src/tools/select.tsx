@@ -7,6 +7,7 @@ import { bendSegment, cloneShapes, moveControl, moveVertex, shapesInRect, transl
 import { snapPoint, type SnapResult } from '../geometry/snap'
 import { snapFor, SnapMarker, useToolKeys } from './common'
 import type { ToolHandlers, ToolPointer } from './useActiveTool'
+import { setPendingCarry } from '../store/fills'
 
 type Handle =
   | { kind: 'vertex'; shapeId: string; i: number }
@@ -189,6 +190,13 @@ export function useSelectTool(active: boolean): ToolHandlers {
         st.setSelection(dr.add ? [...new Set([...st.selection, ...ids])] : ids)
       } else if (dr && dr.moved && st.overrides) {
         const ov = st.overrides
+        if (dr.kind === 'move') {
+          const first = st.doc.shapes.find((s) => ov[s.id])
+          if (first) {
+            const d = sub(ov[first.id].pts[0], first.pts[0])
+            setPendingCarry({ ids: new Set(Object.keys(ov)), m: [1, 0, 0, 1, d.x, d.y] })
+          }
+        }
         const label = dr.kind === 'move' ? `Déplacer (${Object.keys(ov).length})` : dr.handle.kind === 'vertex' ? 'Déplacer un point' : dr.handle.kind === 'mid' ? 'Courber un segment' : 'Modifier une courbe'
         st.commit(label, (d) => {
           d.shapes = d.shapes.map((s) => ov[s.id] ?? s) as typeof d.shapes
@@ -261,6 +269,7 @@ export function deleteSelection() {
 export function moveSelection(delta: Vec) {
   const st = useEditor.getState()
   const ids = new Set(st.selection)
+  setPendingCarry({ ids, m: [1, 0, 0, 1, delta.x, delta.y] })
   st.commit('Déplacer', (d) => {
     d.shapes = d.shapes.map((s) => (ids.has(s.id) ? translateShapes([s as Shape], delta)[0] : s)) as typeof d.shapes
   })

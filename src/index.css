@@ -164,3 +164,20 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .btn-grid button { padding: 6px 4px; font-size: 12px; }
 .inline-action { align-items: end; }
 .inline-action > button { flex: 0 0 auto; }
+
+/* ---------- Peinture ---------- */
+.fill { stroke-width: 0.6; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.region-hover { fill: rgba(42, 107, 209, 0.12); stroke: var(--sel); stroke-width: 1.5; stroke-dasharray: 5 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+.gap-marker { fill: rgba(179, 38, 30, 0.12); stroke: var(--danger); stroke-width: 2; animation: pulse 1s ease-in-out infinite alternate; }
+@keyframes pulse { from { opacity: 1; } to { opacity: 0.45; } }
+.palette { display: grid; gap: 4px; }
+.swatch-row { display: grid; grid-template-columns: 28px 1fr auto auto; gap: 6px; align-items: center; padding: 3px; border-radius: 6px; border: 1px solid transparent; }
+.swatch-row.on { border-color: var(--ink); background: #fff; }
+.swatch { width: 28px; height: 28px; border-radius: 5px; border: 1px solid rgba(0,0,0,0.15); padding: 0; cursor: pointer; }
+.swatch-row input[type=color] { width: 28px; height: 28px; padding: 0; border: 0; background: none; cursor: pointer; }
+.swatch-row .name { border: 0 !important; background: transparent !important; padding: 2px 4px !important; }
+.surf-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.surf-table td { padding: 4px 2px; border-bottom: 1px solid var(--line); }
+.surf-table td.num { text-align: right; }
+.surf-table .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; border: 1px solid rgba(0,0,0,0.15); }
+.surf-table tfoot td { font-weight: 600; border-bottom: 0; }
