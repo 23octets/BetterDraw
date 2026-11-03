@@ -7,6 +7,7 @@ import { useBezierTool } from './bezier'
 import { useMeasureTool } from './measure'
 import { useSelectTool } from './select'
 import { useEraseTool, useFillTool, usePickTool } from './paint'
+import { useImageTool } from './image'
 
 export interface ToolPointer {
   screen: Vec
@@ -32,6 +33,8 @@ export function useActiveTool(): ToolHandlers {
   const tool = useEditor((s) => s.tool)
   const mode = useEditor((s) => s.mode)
   const edit = mode === 'edit'
+  const selectedImageId = useEditor((s) => s.selectedImageId)
+  const setSelectedImage = useEditor((s) => s.setSelectedImage)
   const tools: Partial<Record<string, ToolHandlers>> = {
     select: useSelectTool(edit && tool === 'select'),
     polyline: usePolylineTool(edit && tool === 'polyline'),
@@ -41,6 +44,7 @@ export function useActiveTool(): ToolHandlers {
     fill: useFillTool(),
     erase: useEraseTool(),
     pick: usePickTool(),
+    image: useImageTool(selectedImageId, setSelectedImage),
   }
   if (!edit && tool !== 'measure') return {}
   return tools[tool] ?? {}

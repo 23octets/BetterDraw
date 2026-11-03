@@ -6,6 +6,7 @@ import { navigate } from './router'
 import { GridSection, WallSection } from './SidePanel'
 import { Toolbar } from './Toolbar'
 import { HistoryPanel } from './HistoryPanel'
+import { ImagesSection } from './ImagesSection'
 import { SelectionSection } from './SelectionSection'
 import { PaletteSection, SurfacesSection } from './PaintSections'
 import { copySelection, duplicateSelection, pasteClipboard } from '../tools/select'
@@ -70,6 +71,7 @@ function SideTabs() {
           <SelectionSection />
           <PaletteSection />
           <SurfacesSection />
+          <ImagesSection />
           <WallSection />
           <GridSection />
         </>
@@ -173,6 +175,7 @@ const TOOL_HINTS: Record<string, React.ReactNode> = {
   fill: <>Clic dans une zone fermée pour la peindre · <kbd>Alt</kbd>+clic : ignorer les trous</>,
   erase: <>Clic sur une zone peinte pour retirer sa couleur</>,
   pick: <>Clic sur une zone peinte pour reprendre sa couleur</>,
+  image: <>Clic sur une image pour la sélectionner · glisser : déplacer · flèches aux coins : agrandir (proportions conservées)</>,
   measure: <>Clic sur deux points pour mesurer · <kbd>Échap</kbd> : effacer</>,
   consult: <>Clic sur une case pour zoomer</>,
 }

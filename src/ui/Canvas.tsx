@@ -3,6 +3,7 @@ import { useEditor } from '../store/editor'
 import { GridLabels, GridLines } from './GridOverlay'
 import { useActiveTool, type ToolPointer } from '../tools/useActiveTool'
 import { DocLayers } from './DocLayers'
+import { importImageFiles } from './ImagesSection'
 
 export function fitView(wall: { w: number; h: number }, size: { w: number; h: number }) {
   const margin = 70
@@ -138,6 +139,11 @@ export function Canvas() {
       onPointerLeave={() => tool.onPointerLeave?.()}
       onDoubleClick={(e) => tool.onDoubleClick?.(toPointer(e))}
       onContextMenu={(e) => e.preventDefault()}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault()
+        if (e.dataTransfer.files.length) importImageFiles(e.dataTransfer.files)
+      }}
     >
       <g transform={t} data-testid="world">
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} className="wall-shadow" />

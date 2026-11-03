@@ -48,7 +48,11 @@ export interface EditorState {
   /** Formes modifiées temporairement (glisser en cours), non encore validées. */
   overrides: Record<string, Shape> | null
   clipboard: Shape[]
+  selectedImageId: string | null
+  imagePreview: { id: string; opacity: number } | null
 
+  setSelectedImage: (id: string | null) => void
+  setImagePreview: (p: { id: string; opacity: number } | null) => void
   setOverrides: (o: Record<string, Shape> | null) => void
   setClipboard: (c: Shape[]) => void
   load: (variantId: string) => Promise<boolean>
@@ -83,7 +87,15 @@ export const useEditor = create<EditorState>((set, get) => ({
   rev: 0,
   overrides: null,
   clipboard: [],
+  selectedImageId: null,
+  imagePreview: null,
 
+  setSelectedImage(selectedImageId) {
+    set({ selectedImageId })
+  },
+  setImagePreview(imagePreview) {
+    set({ imagePreview })
+  },
   setOverrides(overrides) {
     set({ overrides })
   },
