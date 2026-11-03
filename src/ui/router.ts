@@ -1,0 +1,30 @@
+import { useEffect, useState } from 'react'
+
+export type Route =
+  | { name: 'home' }
+  | { name: 'editor'; variantId: string }
+  | { name: 'project'; projectId: string }
+  | { name: 'compare'; ids: string[] }
+
+export function parseHash(hash: string): Route {
+  const h = hash.replace(/^#\/?/, '')
+  const [a, b] = h.split('/')
+  if (a === 'v' && b) return { name: 'editor', variantId: b }
+  if (a === 'p' && b) return { name: 'project', projectId: b }
+  if (a === 'compare' && b) return { name: 'compare', ids: b.split(',').filter(Boolean) }
+  return { name: 'home' }
+}
+
+export function navigate(path: string) {
+  window.location.hash = path
+}
+
+export function useRoute(): Route {
+  const [route, setRoute] = useState(() => parseHash(window.location.hash))
+  useEffect(() => {
+    const on = () => setRoute(parseHash(window.location.hash))
+    window.addEventListener('hashchange', on)
+    return () => window.removeEventListener('hashchange', on)
+  }, [])
+  return route
+}
