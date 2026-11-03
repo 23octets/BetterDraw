@@ -50,8 +50,8 @@ export function GridSection() {
   return (
     <Section title="Grille de carroyage" testId="grid-section">
       <div className="step-row">
-        <NumberField label={linked ? 'Pas' : 'Pas ↔'} suffix="cm" min={1} max={1000} value={g.step} testId="grid-step"
-          onCommit={(step) => commit(`Pas de grille : ${step} cm`, (d) => { d.grid.step = step })} />
+        <NumberField label="Pas ↔" suffix="cm" min={1} max={1000} value={g.step} testId="grid-step"
+          onCommit={(step) => commit(`Pas horizontal : ${step} cm`, (d) => { d.grid.step = step })} />
         <button
           className={`icon-btn small link-btn${linked ? ' on' : ''}`}
           aria-pressed={linked}
@@ -64,10 +64,12 @@ export function GridSection() {
         >
           <Icon name={linked ? 'link' : 'unlink'} size={15} />
         </button>
-        {!linked && (
-          <NumberField label="Pas ↕" suffix="cm" min={1} max={1000} value={sy} testId="grid-step-y"
-            onCommit={(v) => commit(`Pas vertical : ${v} cm`, (d) => { d.grid.stepY = v })} />
-        )}
+        {/* toujours affiché ; lié, il modifie aussi le pas horizontal */}
+        <NumberField label="Pas ↕" suffix="cm" min={1} max={1000} value={sy} testId="grid-step-y"
+          onCommit={(v) => commit(linked ? `Pas de grille : ${v} cm` : `Pas vertical : ${v} cm`, (d) => {
+            if (linked) d.grid.step = v
+            else d.grid.stepY = v
+          })} />
       </div>
       <NumberField label="Aimantage" suffix="cm" min={0.5} max={100} value={g.snapStep} testId="snap-step"
         onCommit={(v) => commit(`Aimantage : ${v} cm`, (d) => { d.grid.snapStep = v })} />
@@ -78,7 +80,10 @@ export function GridSection() {
         title={`${layout.cols} colonnes × ${layout.rows} lignes${restW ? ` · dernière colonne ${round(restW)} cm` : ''}${restH ? ` · dernière ligne ${round(restH)} cm` : ''}`}
       >
         {layout.cols} × {layout.rows} cases
-        {(restW || restH) ? <> · reste {restW ? <span>↔ {round(restW)}</span> : null}{restW && restH ? ' ' : null}{restH ? <span>↕ {round(restH)}</span> : null} cm</> : null}
+        {restW || restH ? ' + ' : null}
+        {restW ? <span>↔ {round(restW)} cm</span> : null}
+        {restW && restH ? ' et ' : null}
+        {restH ? <span>↕ {round(restH)} cm</span> : null}
       </p>
     </Section>
   )

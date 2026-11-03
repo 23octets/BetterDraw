@@ -20,6 +20,7 @@ test('snapshot, galerie de variantes et comparaison côte à côte', async ({ pa
   await clickWall(page, 250, 100)
 
   // snapshot → variante B, qu'on modifie
+  await page.getByTestId('variants-page').click()
   await page.getByTestId('snapshot').click()
   await expect(page.getByTestId('variant-name-input')).toHaveValue('Variante B')
   await expect(page.getByTestId('fills').locator('path')).toHaveCount(2)
@@ -33,6 +34,7 @@ test('snapshot, galerie de variantes et comparaison côte à côte', async ({ pa
   await clickWall(page, 50, 200)
 
   // une 3e variante
+  await page.getByTestId('variants-page').click()
   await page.getByTestId('snapshot').click()
   await expect(page.getByTestId('variant-name-input')).toHaveValue('Variante C')
   await page.getByTestId('swatch-Anthracite').click()

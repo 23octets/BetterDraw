@@ -14,7 +14,8 @@ test('accueil et page projet : les aperçus tiennent dans les cartes, quelle que
     await clickWall(page, w / 2, h * 0.9)
     await page.getByTestId('swatch-Bleu canard').click()
     await clickWall(page, w / 2, h * 0.1)
-    await page.getByTestId('snapshot').click()
+    await page.getByTestId('variants-page').click()
+  await page.getByTestId('snapshot').click()
     await page.getByTestId('swatch-Ocre').click()
     await clickWall(page, w / 2, h * 0.1)
   }

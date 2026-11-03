@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useEditor, flushPersistence } from '../store/editor'
+import { useEditor } from '../store/editor'
 import * as repo from '../store/repo'
 import { Canvas } from './Canvas'
 import { navigate } from './router'
@@ -124,6 +124,10 @@ function HistoryButton() {
 function VariantSwitcher() {
   const variant = useEditor((s) => s.variant)!
   const [open, setOpen] = useState(false)
+  const [count, setCount] = useState(1)
+  useEffect(() => {
+    repo.listVariants(variant.projectId).then((l) => setCount(l.length))
+  }, [variant.projectId, variant.id, open])
   return (
     <div className="variant-switcher">
       <span className="title-sep" aria-hidden>/</span>
@@ -136,21 +140,8 @@ function VariantSwitcher() {
           useEditor.setState((s) => (s.variant ? { variant: { ...s.variant, name } } : {}))
         }}
       />
-      <button
-        className="icon-btn"
-        data-testid="snapshot"
-        title="Snapshot : dupliquer ce dessin en une nouvelle variante indépendante"
-        onClick={async () => {
-          await flushPersistence()
-          const nv = await repo.snapshotVariant(variant.id)
-          navigate(`/v/${nv.id}`)
-          setTimeout(() => useEditor.getState().flash(`${nv.name} créée à partir de ${variant.name}`), 50)
-        }}
-      >
-        <Icon name="copy" /> Snapshot
-      </button>
-      <button className={`icon-btn${open ? ' on' : ''}`} data-testid="variants-page" onClick={() => setOpen(true)} title="Toutes les variantes du projet">
-        <Icon name="layers" /> Variantes
+      <button className={`icon-btn${open ? ' on' : ''}`} data-testid="variants-page" onClick={() => setOpen(true)} title="Variantes : créer une copie pour essayer une autre idée, passer de l'une à l'autre, comparer">
+        <Icon name="layers" /> Variantes{count > 1 ? <span className="btn-badge">{count}</span> : null}
       </button>
       {open && <VariantsOverlay onClose={() => setOpen(false)} />}
     </div>

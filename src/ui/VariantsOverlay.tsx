@@ -44,7 +44,7 @@ export function VariantsOverlay({ onClose }: { onClose: () => void }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal variants-overlay" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Variantes" data-testid="variants-overlay">
         <header className="modal-head">
-          <strong>Variantes</strong>
+          <strong>Variantes du projet</strong>
           <span className="muted small" style={{ marginLeft: 10 }}>{list ? `${list.length} variante${list.length > 1 ? 's' : ''}` : ''}</span>
           <div className="spacer" />
           <span className="muted small">{picked.length ? `${picked.length} sélectionnée${picked.length > 1 ? 's' : ''}` : 'Coche 2 à 4 variantes pour les comparer'}</span>
@@ -55,6 +55,23 @@ export function VariantsOverlay({ onClose }: { onClose: () => void }) {
         </header>
         <div className="variants-body">
           <ul className="card-grid">
+            <li className="card new-variant">
+              <button
+                className="new-variant-btn"
+                data-testid="snapshot"
+                onClick={async () => {
+                  await flushPersistence()
+                  const nv = await repo.snapshotVariant(current.id)
+                  onClose()
+                  navigate(`/v/${nv.id}`)
+                  setTimeout(() => useEditor.getState().flash(`${nv.name} créée : copie de ${current.name}, à modifier librement`), 50)
+                }}
+              >
+                <span className="nv-icon"><Icon name="plus" size={26} /></span>
+                <strong>Nouvelle variante</strong>
+                <span>Copie de « {current.name} » dans son état actuel, pour essayer une autre idée sans toucher à l’original.</span>
+              </button>
+            </li>
             {(list ?? []).map((v) => {
               const state = v.id === current.id ? doc : v.state
               const parent = v.parentId ? byId.get(v.parentId) : undefined

@@ -7,9 +7,14 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('pas vertical différent du pas horizontal, résumé sur une ligne', async ({ page }) => {
+  // les deux pas sont toujours visibles ; liés, modifier l'un modifie l'autre
+  await expect(page.getByTestId('grid-step-y')).toHaveValue('50')
+  await setField(page, 'grid-step-y', 25)
+  await expect(page.getByTestId('grid-step')).toHaveValue('25')
+  await setField(page, 'grid-step', 50)
   await page.getByTestId('link-steps').click()
   await setField(page, 'grid-step-y', 40)
-  await expect(page.getByTestId('grid-summary')).toHaveText('6 × 7 cases · reste ↕ 10 cm')
+  await expect(page.getByTestId('grid-summary')).toHaveText('6 × 7 cases + ↕ 10 cm')
   const box = (await page.getByTestId('grid-summary').boundingBox())!
   expect(box.height).toBeLessThan(22) // une seule ligne
   await expect(page.getByTestId('grid-labels').getByText('7', { exact: true })).toHaveCount(1)
@@ -18,13 +23,14 @@ test('pas vertical différent du pas horizontal, résumé sur une ligne', async 
   await page.screenshot({ path: `${SHOTS}/step17-01-pas-vertical.png` })
   // re-lier : un seul pas
   await page.getByTestId('link-steps').click()
-  await expect(page.getByTestId('grid-step-y')).toHaveCount(0)
+  await expect(page.getByTestId('grid-step-y')).toHaveValue('50')
   await expect(page.getByTestId('grid-summary')).toHaveText('6 × 5 cases')
 })
 
 test('renommer la variante dans l’en-tête et liste des variantes par-dessus l’éditeur', async ({ page }) => {
   await page.getByTestId('variant-name-input').fill('Bleu nuit')
   await page.getByTestId('variant-name-input').press('Enter')
+  await page.getByTestId('variants-page').click()
   await page.getByTestId('snapshot').click()
   await expect(page.getByTestId('variant-name-input')).toHaveValue('Variante B')
   await page.getByTestId('tool-polyline').click()

@@ -29,7 +29,7 @@ test('redimensionner le mur et la grille, enregistré en continu', async ({ page
   await expect(page.getByTestId('settings-modal')).toHaveCount(0)
   await setField(page, 'grid-step', 40)
   await expect(page.getByTestId('grid-summary')).toContainText('11 × 7 cases')
-  await expect(page.getByTestId('grid-summary')).toHaveText('11 × 7 cases · reste ↔ 20 ↕ 10 cm')
+  await expect(page.getByTestId('grid-summary')).toHaveText("11 × 7 cases + ↔ 20 cm et ↕ 10 cm")
   await expect(page.getByTestId('grid-summary')).toHaveAttribute('title', /dernière colonne 20 cm · dernière ligne 10 cm/)
   await page.getByTestId('fit').click()
   await expect(page.getByTestId('save-state')).toHaveText('Enregistré')
