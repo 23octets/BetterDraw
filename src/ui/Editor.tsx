@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useEditor } from '../store/editor'
+import { useEditor, flushPersistence } from '../store/editor'
 import * as repo from '../store/repo'
 import { Canvas } from './Canvas'
 import { navigate } from './router'
@@ -9,7 +9,7 @@ import { HistoryPanel } from './HistoryPanel'
 import { SelectionSection } from './SelectionSection'
 import { PaletteSection, SurfacesSection } from './PaintSections'
 import { copySelection, duplicateSelection, pasteClipboard } from '../tools/select'
-import type { Project } from '../model/types'
+import type { Project, Variant } from '../model/types'
 
 export function Editor({ variantId }: { variantId: string }) {
   const load = useEditor((s) => s.load)
@@ -80,8 +80,45 @@ function SideTabs() {
   )
 }
 
-function TopBar({ projectName }: { projectName: string }) {
+function VariantSwitcher() {
   const variant = useEditor((s) => s.variant)!
+  const [list, setList] = useState<Variant[]>([])
+  useEffect(() => {
+    repo.listVariants(variant.projectId).then(setList)
+  }, [variant.projectId, variant.id])
+  return (
+    <div className="variant-switcher">
+      <select
+        value={variant.id}
+        data-testid="variant-select"
+        onChange={(e) => navigate(`/v/${e.target.value}`)}
+        title="Changer de variante"
+      >
+        {list.map((v) => (
+          <option key={v.id} value={v.id}>{v.name}</option>
+        ))}
+      </select>
+      <button
+        className="small"
+        data-testid="snapshot"
+        title="Snapshot : dupliquer ce dessin en une nouvelle variante indépendante"
+        onClick={async () => {
+          await flushPersistence()
+          const nv = await repo.snapshotVariant(variant.id)
+          navigate(`/v/${nv.id}`)
+          setTimeout(() => useEditor.getState().flash(`${nv.name} créée à partir de ${variant.name}`), 50)
+        }}
+      >
+        ⧉ Snapshot
+      </button>
+      <button className="ghost small" data-testid="variants-page" onClick={() => navigate(`/p/${variant.projectId}`)}>
+        Variantes & comparaison
+      </button>
+    </div>
+  )
+}
+
+function TopBar({ projectName }: { projectName: string }) {
   const saving = useEditor((s) => s.saving)
   const headSeq = useEditor((s) => s.headSeq)
   const maxSeq = useEditor((s) => s.maxSeq)
@@ -94,7 +131,7 @@ function TopBar({ projectName }: { projectName: string }) {
       <button className="ghost" onClick={() => navigate('/')} title="Retour aux projets">← Projets</button>
       <div className="title">
         <strong data-testid="project-name">{projectName}</strong>
-        <span className="muted">{variant.name}</span>
+        <VariantSwitcher />
       </div>
       <div className="seg" role="group" aria-label="Mode d'affichage">
         <button className={mode === 'edit' ? 'on' : ''} onClick={() => setMode('edit')} data-testid="mode-edit">Édition</button>

@@ -3,6 +3,7 @@ import * as repo from '../store/repo'
 import type { Project, Variant } from '../model/types'
 import { navigate } from './router'
 import { DEFAULT_WALL } from '../model/defaults'
+import { DocPreview } from './DocPreview'
 
 type Row = Project & { variants: Variant[] }
 
@@ -62,6 +63,11 @@ export function Home() {
           <ul className="project-list">
             {projects.map((p) => (
               <li key={p.id} className="project-card" data-testid="project-card">
+                {p.variants[0] && (
+                  <button className="thumb small-thumb" onClick={() => navigate(`/p/${p.id}`)}>
+                    <DocPreview doc={[...p.variants].sort((a, b) => b.updatedAt - a.updatedAt)[0].state} showGrid={false} className="thumb-svg" />
+                  </button>
+                )}
                 <div className="project-main">
                   <strong>{p.name}</strong>
                   <span className="muted">
@@ -72,10 +78,11 @@ export function Home() {
                 </div>
                 <div className="project-actions">
                   {p.variants[0] && (
-                    <button className="primary" onClick={() => navigate(`/v/${p.variants[p.variants.length - 1].id}`)}>
+                    <button className="primary" onClick={() => navigate(`/v/${[...p.variants].sort((a, b) => b.updatedAt - a.updatedAt)[0].id}`)}>
                       Ouvrir
                     </button>
                   )}
+                  <button onClick={() => navigate(`/p/${p.id}`)} data-testid="open-variants">Variantes</button>
                   <button
                     className="ghost danger"
                     onClick={async () => {

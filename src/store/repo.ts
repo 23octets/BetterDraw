@@ -50,6 +50,10 @@ export async function deleteProject(id: string) {
   })
 }
 
+export async function listVariants(projectId: string) {
+  return db.variants.where('projectId').equals(projectId).sortBy('createdAt')
+}
+
 export async function getVariant(id: string) {
   return db.variants.get(id)
 }
