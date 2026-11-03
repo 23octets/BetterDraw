@@ -56,6 +56,8 @@ export function shapeHandles(s: Shape, minGap = 0): { h: Handle; p: Vec }[] {
       const p1 = s.pts[(i + 1) % s.pts.length]
       out.push({ h: { kind: 'ctrl', shapeId: s.id, i, which: 'c1' }, p: away(g.c1, p0, p1) })
       out.push({ h: { kind: 'ctrl', shapeId: s.id, i, which: 'c2' }, p: away(g.c2, p1, p0) })
+      // milieu de la courbe : le glisser la transforme en arc de cercle
+      out.push({ h: { kind: 'mid', shapeId: s.id, i }, p: segPoint(s, i, 0.5) })
     } else {
       const p0 = s.pts[i]
       const p1 = s.pts[(i + 1) % s.pts.length]
@@ -69,6 +71,7 @@ export function shapeHandles(s: Shape, minGap = 0): { h: Handle; p: Vec }[] {
 export function useSelectTool(active: boolean): ToolHandlers {
   const drag = useRef<Drag | null>(null)
   const hover = useRef<SnapResult | null>(null)
+  const hoverId = useRef<string | null>(null)
   const [, render] = useReducer((x: number) => x + 1, 0)
   const selection = useEditor((s) => s.selection)
   const doc = useEditor((s) => s.doc)
@@ -102,22 +105,30 @@ export function useSelectTool(active: boolean): ToolHandlers {
 
   const selShapes = doc.shapes.filter((s) => selection.includes(s.id)).map((s) => overrides?.[s.id] ?? s)
   const single = selShapes.length === 1 ? selShapes[0] : null
+  // forme survolée : ses points apparaissent sans avoir à la sélectionner
+  const hovered = hoverId.current && hoverId.current !== single?.id ? doc.shapes.find((s) => s.id === hoverId.current) ?? null : null
+  const editable = [single, hovered].filter((s): s is Shape => !!s)
 
-  const findHandle = (p: Vec): Handle | null => {
-    if (!single) return null
+  const handleNear = (s: Shape, p: Vec): Handle | null => {
     const tol = HANDLE_PX / zoom
-    // sommets prioritaires
-    const hs = shapeHandles(single, HANDLE_GAP_PX / zoom).sort((a, b) => (a.h.kind === 'vertex' ? -1 : 1) - (b.h.kind === 'vertex' ? -1 : 1))
     let best: Handle | null = null
     let bd = tol
-    for (const { h, p: q } of hs) {
-      const d = dist(p, q)
-      if (d < bd - 1e-9) {
+    for (const { h, p: q } of shapeHandles(s, HANDLE_GAP_PX / zoom)) {
+      // les sommets passent en priorité à distance égale
+      const d = dist(p, q) - (h.kind === 'vertex' ? 1e-6 : 0)
+      if (d < bd) {
         bd = d
         best = h
       }
     }
     return best
+  }
+  const findHandle = (p: Vec): Handle | null => {
+    for (const s of editable) {
+      const h = handleNear(s, p)
+      if (h) return h
+    }
+    return null
   }
 
   const applyHandle = (s: Shape, h: Handle, p: ToolPointer): Shape => {
@@ -143,7 +154,10 @@ export function useSelectTool(active: boolean): ToolHandlers {
       const st = useEditor.getState()
       const h = findHandle(p.world)
       if (h) {
+        // poignée d'une forme seulement survolée : on la sélectionne au passage
+        if (!st.selection.includes(h.shapeId) || st.selection.length > 1) st.setSelection([h.shapeId])
         drag.current = { kind: 'handle', handle: h, moved: false }
+        render()
         return
       }
       const hit = hitShape(st.doc.shapes, p.world, HIT_PX / st.view.zoom)
@@ -166,6 +180,15 @@ export function useSelectTool(active: boolean): ToolHandlers {
       const dr = drag.current
       if (!dr) {
         hover.current = null
+        // garde la forme survolée tant qu'on est près d'une de ses poignées
+        const cur = hoverId.current ? st.doc.shapes.find((s) => s.id === hoverId.current) : null
+        const keep = cur && handleNear(cur, p.world)
+        const hit = keep ? cur : hitShape(st.doc.shapes, p.world, HIT_PX / st.view.zoom)
+        const id = hit?.id ?? null
+        if (id !== hoverId.current) {
+          hoverId.current = id
+          render()
+        }
         return
       }
       if (dr.kind === 'marquee') {
@@ -195,6 +218,12 @@ export function useSelectTool(active: boolean): ToolHandlers {
       drag.current = { ...dr, moved: true }
       render()
     },
+    onPointerLeave() {
+      if (hoverId.current && !drag.current) {
+        hoverId.current = null
+        render()
+      }
+    },
     onPointerUp() {
       const st = useEditor.getState()
       const dr = drag.current
@@ -223,9 +252,10 @@ export function useSelectTool(active: boolean): ToolHandlers {
     onDoubleClick(p) {
       // double-clic sur une poignée de milieu d'arc : redevient droit
       const h = findHandle(p.world)
-      if (h?.kind === 'mid' && single && single.segs[h.i].t === 'arc') {
+      const s0 = h && doc.shapes.find((x) => x.id === h.shapeId)
+      if (h?.kind === 'mid' && s0 && s0.segs[h.i].t !== 'line') {
         useEditor.getState().commit('Redresser un segment', (d) => {
-          const s = d.shapes.find((x) => x.id === single.id)
+          const s = d.shapes.find((x) => x.id === h.shapeId)
           if (s) s.segs[h.i] = { t: 'line' }
         })
       }
@@ -237,24 +267,30 @@ export function useSelectTool(active: boolean): ToolHandlers {
           {selShapes.map((s) => (
             <path key={s.id} d={shapeToD(s)} className="selected-shape" data-testid="selected-shape" />
           ))}
-          {single &&
-            shapeHandles(single, HANDLE_GAP_PX / zoom).map(({ h, p }, k) => {
-              const r = (h.kind === 'vertex' ? 6 : 5.5) / zoom
-              if (h.kind === 'ctrl') {
-                const anchor = h.which === 'c1' ? single.pts[h.i] : single.pts[(h.i + 1) % single.pts.length]
-                return (
-                  <g key={k}>
-                    <line x1={anchor.x} y1={anchor.y} x2={p.x} y2={p.y} className="handle-line" />
-                    <circle cx={p.x} cy={p.y} r={r} className="handle-dot" data-testid="handle-ctrl" />
-                  </g>
+          {hovered && <path d={shapeToD(hovered)} className="hovered-shape" />}
+          {editable.map((shape) => (
+            <g key={shape.id} className={shape === single ? 'handles' : 'handles hover'}>
+              {shapeHandles(shape, HANDLE_GAP_PX / zoom).map(({ h, p }, k) => {
+                const r = (h.kind === 'vertex' ? 6 : 5.5) / zoom
+                if (h.kind === 'ctrl') {
+                  const anchor = h.which === 'c1' ? shape.pts[h.i] : shape.pts[(h.i + 1) % shape.pts.length]
+                  const q = r * 0.85
+                  return (
+                    <g key={k}>
+                      <line x1={anchor.x} y1={anchor.y} x2={p.x} y2={p.y} className="handle-line" />
+                      {/* losange : poignée de courbe de Bézier */}
+                      <path d={`M${p.x} ${p.y - q * 1.2}L${p.x + q * 1.2} ${p.y}L${p.x} ${p.y + q * 1.2}L${p.x - q * 1.2} ${p.y}Z`} className="handle-dot" data-testid="handle-ctrl" />
+                    </g>
+                  )
+                }
+                return h.kind === 'vertex' ? (
+                  <rect key={k} x={p.x - r} y={p.y - r} width={2 * r} height={2 * r} className="handle-vertex" data-testid="handle-vertex" />
+                ) : (
+                  <circle key={k} cx={p.x} cy={p.y} r={r} className="handle-mid" data-testid="handle-mid" />
                 )
-              }
-              return h.kind === 'vertex' ? (
-                <rect key={k} x={p.x - r} y={p.y - r} width={2 * r} height={2 * r} className="handle-vertex" data-testid="handle-vertex" />
-              ) : (
-                <circle key={k} cx={p.x} cy={p.y} r={r} className="handle-mid" data-testid="handle-mid" />
-              )
-            })}
+              })}
+            </g>
+          ))}
           {dr?.kind === 'marquee' && (
             <rect
               x={Math.min(dr.start.x, dr.cur.x)}

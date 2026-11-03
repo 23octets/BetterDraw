@@ -223,6 +223,8 @@ input[type='checkbox'] { width: 15px; height: 15px; margin: 0; accent-color: var
 .handle-vertex { fill: #fff; stroke: var(--sel); stroke-width: 2; vector-effect: non-scaling-stroke; cursor: move; }
 .handle-mid { fill: var(--sel); stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .trim-preview { fill: none; stroke: var(--danger); stroke-width: 4; stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: 0.85; pointer-events: none; }
+.hovered-shape { fill: none; stroke: var(--sel); stroke-width: 2; vector-effect: non-scaling-stroke; opacity: 0.35; pointer-events: none; }
+.handles.hover { opacity: 0.75; }
 .marquee { fill: rgba(42, 107, 209, 0.08); stroke: var(--sel); stroke-width: 1; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
 .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .btn-grid button { padding: 0 4px; font-size: 12px; min-width: 0; }

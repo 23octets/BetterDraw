@@ -72,7 +72,7 @@ export function SelectionSection() {
         </button>
       )}
       <p className="hint" style={{ margin: 0 }}>
-        Glisser un carré : déplacer le point · glisser un rond : courber le segment en arc · double-clic sur le rond : redresser
+        Survole un trait pour voir ses points. Carré : déplacer le point · rond : courber le segment en arc de cercle (droit ou Bézier) · losange : courbe de Bézier · double-clic sur un rond : redresser
       </p>
     </Section>
   )

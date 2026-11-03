@@ -26,3 +26,12 @@ describe('retours d’usage', () => {
     expect(h2.p).toEqual({ x: 70, y: 30 })
   })
 })
+
+describe('poignées', () => {
+  it('a Bézier segment also has a mid handle to turn it into an arc', () => {
+    const s: Shape = { id: 'c', closed: false, pts: [{ x: 0, y: 0 }, { x: 100, y: 0 }], segs: [{ t: 'cubic', c1: { x: 30, y: -40 }, c2: { x: 70, y: -40 } }] }
+    const kinds = shapeHandles(s).map((h) => h.h.kind)
+    expect(kinds.filter((k) => k === 'mid')).toHaveLength(1)
+    expect(kinds.filter((k) => k === 'ctrl')).toHaveLength(2)
+  })
+})
