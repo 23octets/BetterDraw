@@ -181,3 +181,20 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .surf-table td.num { text-align: right; }
 .surf-table .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; border: 1px solid rgba(0,0,0,0.15); }
 .surf-table tfoot td { font-weight: 600; border-bottom: 0; }
+
+/* ---------- Onglets & historique ---------- */
+.side-panel { display: flex; flex-direction: column; }
+.side-tabs { display: flex; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); z-index: 1; }
+.side-tabs button { flex: 1; border: 0; border-radius: 0; background: transparent; padding: 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); border-bottom: 2px solid transparent; }
+.side-tabs button.on { color: var(--ink); border-bottom-color: var(--accent); background: transparent; }
+.history { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 1; }
+.history-head { display: flex; justify-content: space-between; align-items: baseline; }
+.history-slider { width: 100%; accent-color: var(--accent); }
+.history-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; overflow-y: auto; }
+.history-item { width: 100%; display: grid; grid-template-columns: 42px 1fr auto; gap: 6px; text-align: left; border: 0; background: transparent; padding: 5px 6px; font-size: 12px; border-radius: 5px; }
+.history-item:hover { background: rgba(0,0,0,0.04); }
+.history-item .seq { color: var(--muted); font-variant-numeric: tabular-nums; }
+.history-item .time { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11px; }
+.history-item.current { background: var(--ink); color: var(--paper-2); }
+.history-item.current .seq, .history-item.current .time { color: rgba(255,255,255,0.7); }
+.history-item.future { opacity: 0.45; }

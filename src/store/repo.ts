@@ -60,20 +60,27 @@ export async function getProject(id: string) {
 
 /**
  * Enregistre une modification : nouvelle entrée d'historique + état courant.
- * Les entrées « rétablir » au-delà de headSeq sont supprimées.
+ * Si on avait remonté le temps, rien n'est perdu : une entrée « Retour à l'état #k »
+ * est d'abord ajoutée (elle annule la suite), puis la nouvelle modification.
  */
 export async function recordChange(variantId: string, label: string, state: DocState, patches: Patch[], inverse: Patch[]) {
   return db.transaction('rw', db.variants, db.entries, db.projects, async () => {
     const v = await db.variants.get(variantId)
     if (!v) throw new Error('variante introuvable')
-    const seq = v.headSeq + 1
+    const ts = now()
+    let seq = v.maxSeq + 1
     if (v.maxSeq > v.headSeq) {
-      await db.entries.where('[variantId+seq]').between([variantId, seq], [variantId, Infinity], true, true).delete()
+      const future = await db.entries.where('[variantId+seq]').between([variantId, v.headSeq + 1], [variantId, v.maxSeq], true, true).toArray()
+      future.sort((a, b) => a.seq - b.seq)
+      const back = [...future].reverse().flatMap((e) => e.inverse)
+      const fwd = future.flatMap((e) => e.patches)
+      await db.entries.put({ variantId, seq, label: `Retour à l'état #${v.headSeq}`, ts, patches: back, inverse: fwd })
+      seq++
     }
-    const entry: HistoryEntry = { variantId, seq, label, ts: now(), patches, inverse }
+    const entry: HistoryEntry = { variantId, seq, label, ts, patches, inverse }
     await db.entries.put(entry)
-    await db.variants.update(variantId, { state, headSeq: seq, maxSeq: seq, updatedAt: entry.ts })
-    await db.projects.update(v.projectId, { updatedAt: entry.ts })
+    await db.variants.update(variantId, { state, headSeq: seq, maxSeq: seq, updatedAt: ts })
+    await db.projects.update(v.projectId, { updatedAt: ts })
     return seq
   })
 }

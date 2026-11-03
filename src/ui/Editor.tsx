@@ -5,6 +5,7 @@ import { Canvas } from './Canvas'
 import { navigate } from './router'
 import { GridSection, WallSection } from './SidePanel'
 import { Toolbar } from './Toolbar'
+import { HistoryPanel } from './HistoryPanel'
 import { SelectionSection } from './SelectionSection'
 import { PaletteSection, SurfacesSection } from './PaintSections'
 import { copySelection, duplicateSelection, pasteClipboard } from '../tools/select'
@@ -50,13 +51,32 @@ export function Editor({ variantId }: { variantId: string }) {
         <StatusBar />
       </main>
       <aside className="side-panel">
-        <SelectionSection />
-        <PaletteSection />
-        <SurfacesSection />
-        <WallSection />
-        <GridSection />
+        <SideTabs />
       </aside>
     </div>
+  )
+}
+
+function SideTabs() {
+  const [tab, setTab] = useState<'props' | 'history'>('props')
+  return (
+    <>
+      <div className="side-tabs" role="tablist">
+        <button role="tab" className={tab === 'props' ? 'on' : ''} aria-selected={tab === 'props'} onClick={() => setTab('props')} data-testid="tab-props">Propriétés</button>
+        <button role="tab" className={tab === 'history' ? 'on' : ''} aria-selected={tab === 'history'} onClick={() => setTab('history')} data-testid="tab-history">Historique</button>
+      </div>
+      {tab === 'props' ? (
+        <>
+          <SelectionSection />
+          <PaletteSection />
+          <SurfacesSection />
+          <WallSection />
+          <GridSection />
+        </>
+      ) : (
+        <HistoryPanel />
+      )}
+    </>
   )
 }
 

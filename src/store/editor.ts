@@ -107,14 +107,15 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
 
   commit(label, recipe) {
-    const { doc, variant, headSeq } = get()
+    const { doc, variant, headSeq, maxSeq } = get()
     if (!variant) return
     const [next, patches, inverse] = produceWithPatches(doc, (d) => {
       recipe(d)
       for (const h of afterChangeHooks) h(doc, d)
     })
     if (!patches.length) return
-    const seq = headSeq + 1
+    // après un retour en arrière, une entrée « Retour à l'état » est insérée avant (voir repo.recordChange)
+    const seq = maxSeq > headSeq ? maxSeq + 2 : headSeq + 1
     set((s) => ({ doc: next, headSeq: seq, maxSeq: seq, saving: s.saving + 1, rev: s.rev + 1 }))
     enqueue(() => repo.recordChange(variant.id, label, next, patches, inverse)).finally(() =>
       set((s) => ({ saving: s.saving - 1 })),
