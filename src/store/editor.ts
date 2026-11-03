@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { produceWithPatches, type Draft } from 'immer'
-import type { DocState, Variant, Vec } from '../model/types'
+import type { DocState, Shape, Variant, Vec } from '../model/types'
 import { defaultDoc } from '../model/defaults'
 import * as repo from './repo'
 
@@ -45,7 +45,12 @@ export interface EditorState {
   message: { text: string; kind: 'info' | 'error' } | null
   /** Révision incrémentée à chaque changement d'historique (pour rafraîchir la frise). */
   rev: number
+  /** Formes modifiées temporairement (glisser en cours), non encore validées. */
+  overrides: Record<string, Shape> | null
+  clipboard: Shape[]
 
+  setOverrides: (o: Record<string, Shape> | null) => void
+  setClipboard: (c: Shape[]) => void
   load: (variantId: string) => Promise<boolean>
   unload: () => void
   commit: (label: string, recipe: (d: Draft<DocState>) => void) => void
@@ -76,6 +81,15 @@ export const useEditor = create<EditorState>((set, get) => ({
   activeColorId: null,
   message: null,
   rev: 0,
+  overrides: null,
+  clipboard: [],
+
+  setOverrides(overrides) {
+    set({ overrides })
+  },
+  setClipboard(clipboard) {
+    set({ clipboard })
+  },
 
   async load(variantId) {
     await queue

@@ -154,3 +154,13 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .measure circle { fill: #e0007a; }
 .tool-hint { color: var(--ink-2); }
 .tool-hint kbd { font: inherit; font-size: 11px; padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; background: #fff; }
+
+/* ---------- Sélection ---------- */
+.selected-shape { fill: none; stroke: var(--sel); stroke-width: 3; vector-effect: non-scaling-stroke; opacity: 0.45; pointer-events: none; }
+.handle-vertex { fill: #fff; stroke: var(--sel); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.handle-mid { fill: var(--sel); stroke: #fff; stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.85; }
+.marquee { fill: rgba(42, 107, 209, 0.08); stroke: var(--sel); stroke-width: 1; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
+.btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.btn-grid button { padding: 6px 4px; font-size: 12px; }
+.inline-action { align-items: end; }
+.inline-action > button { flex: 0 0 auto; }

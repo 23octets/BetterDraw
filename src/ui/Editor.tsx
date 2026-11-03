@@ -5,6 +5,8 @@ import { Canvas } from './Canvas'
 import { navigate } from './router'
 import { GridSection, WallSection } from './SidePanel'
 import { Toolbar } from './Toolbar'
+import { SelectionSection } from './SelectionSection'
+import { copySelection, duplicateSelection, pasteClipboard } from '../tools/select'
 import type { Project } from '../model/types'
 
 export function Editor({ variantId }: { variantId: string }) {
@@ -47,6 +49,7 @@ export function Editor({ variantId }: { variantId: string }) {
         <StatusBar />
       </main>
       <aside className="side-panel">
+        <SelectionSection />
         <WallSection />
         <GridSection />
       </aside>
@@ -124,6 +127,19 @@ function useShortcuts() {
       } else if (mod && e.key.toLowerCase() === 'y') {
         e.preventDefault()
         s.redo()
+      } else if (mod && e.key.toLowerCase() === 'c' && s.mode === 'edit') {
+        if (copySelection()) e.preventDefault()
+      } else if (mod && e.key.toLowerCase() === 'v' && s.mode === 'edit') {
+        e.preventDefault()
+        s.setTool('select')
+        pasteClipboard()
+      } else if (mod && e.key.toLowerCase() === 'd' && s.mode === 'edit') {
+        e.preventDefault()
+        duplicateSelection()
+      } else if (mod && e.key.toLowerCase() === 'a' && s.mode === 'edit') {
+        e.preventDefault()
+        s.setTool('select')
+        s.setSelection(s.doc.shapes.map((x) => x.id))
       }
     }
     window.addEventListener('keydown', onKey)

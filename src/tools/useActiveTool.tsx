@@ -5,6 +5,7 @@ import { usePolylineTool } from './polyline'
 import { useArcTool } from './arc'
 import { useBezierTool } from './bezier'
 import { useMeasureTool } from './measure'
+import { useSelectTool } from './select'
 
 export interface ToolPointer {
   screen: Vec
@@ -31,6 +32,7 @@ export function useActiveTool(): ToolHandlers {
   const mode = useEditor((s) => s.mode)
   const edit = mode === 'edit'
   const tools: Partial<Record<string, ToolHandlers>> = {
+    select: useSelectTool(edit && tool === 'select'),
     polyline: usePolylineTool(edit && tool === 'polyline'),
     arc: useArcTool(edit && tool === 'arc'),
     bezier: useBezierTool(edit && tool === 'bezier'),
