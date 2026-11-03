@@ -4,6 +4,7 @@ import { NumberField } from './fields'
 import { ORIGINS } from './SidePanel'
 import { gridLayout } from '../geometry/grid'
 import { Icon } from './icons'
+import { GridStyleControls } from './GridStyleControls'
 
 /** Réglages de l'espace de travail : taille du mur et origine des cotes. */
 export function SettingsModal({ onClose }: { onClose: () => void }) {
@@ -89,6 +90,10 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                 ))}
               </div>
             </div>
+          </section>
+          <section className="settings-block">
+            <h4>Lignes de la grille</h4>
+            <GridStyleControls />
           </section>
         </div>
       </div>

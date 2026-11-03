@@ -35,3 +35,26 @@ describe('poignées', () => {
     expect(kinds.filter((k) => k === 'ctrl')).toHaveLength(2)
   })
 })
+
+describe('pas de grille et style de trait', () => {
+  it('suggests the nearest steps giving whole columns', async () => {
+    const { stepSuggestions, commonStepSuggestions, dashArray } = await import('./grid')
+    expect(stepSuggestions(300, 50)).toEqual({ below: null, above: null })
+    expect(stepSuggestions(320, 50)).toEqual({ below: { step: 40, count: 8 }, above: { step: 64, count: 5 } })
+    expect(stepSuggestions(250, 40)).toEqual({ below: { step: 25, count: 10 }, above: { step: 50, count: 5 } })
+    // dimension non entière : longueur / n
+    expect(stepSuggestions(312.5, 50).below).toEqual({ step: 44.64, count: 7 })
+    expect(commonStepSuggestions(320, 250, 40)).toEqual({ below: 10, above: 0 || null })
+    expect(commonStepSuggestions(300, 240, 50)).toEqual({ below: 30, above: 60 })
+    expect(dashArray('solid', 2)).toBeUndefined()
+    expect(dashArray('dashed', 1)).toBe('4 3')
+    expect(dashArray('longdash', 2)).toBe('20 10')
+  })
+  it('converts colours between HSL and hex', async () => {
+    const { hslToHex, rgbToHsl } = await import('../ui/ColorPicker')
+    expect(hslToHex(0, 100, 50)).toBe('#ff0000')
+    expect(hslToHex(120, 100, 25)).toBe('#008000')
+    const [h, s, l] = rgbToHsl(200, 100, 59)
+    expect(hslToHex(h, s, l)).toBe('#c8643b')
+  })
+})

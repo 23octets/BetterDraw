@@ -1,6 +1,6 @@
 import type { DocState } from '../model/types'
 import { shapeToD } from '../geometry/shapes'
-import { gridLayout, gridStrokeFor, type GridCell } from '../geometry/grid'
+import { dashPattern, gridLayout, gridStrokeFor, type GridCell } from '../geometry/grid'
 import { resolveFills, surfaces } from '../store/fills'
 
 /** Pages A4 paysage, en millimètres. */
@@ -40,7 +40,8 @@ function gridLines(doc: DocState, strokeCm0: number, _color?: string, dash = tru
   const L = gridLayout(doc.wall, doc.grid)
   const strokeCm = strokeCm0 * (doc.grid.lineWidth ?? 1)
   const op = doc.grid.lineOpacity ?? 1
-  const da = dash ? ` stroke-dasharray="${n(strokeCm * 4)} ${n(strokeCm * 3)}"` : ''
+  const pat = dash ? dashPattern(doc.grid.lineStyle) : null
+  const da = pat ? ` stroke-dasharray="${pat.map((x) => n(x * strokeCm)).join(' ')}" stroke-linecap="round"` : ''
   let lines = ''
   for (const l of L.vLines) lines += `<line x1="${n(l.pos)}" y1="0" x2="${n(l.pos)}" y2="${n(doc.wall.h)}"/>`
   for (const l of L.hLines) lines += `<line x1="0" y1="${n(l.pos)}" x2="${n(doc.wall.w)}" y2="${n(l.pos)}"/>`

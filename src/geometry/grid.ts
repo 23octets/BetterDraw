@@ -1,4 +1,4 @@
-import type { GridSettings, Vec } from '../model/types'
+import type { GridLineStyle, GridSettings, Vec } from '../model/types'
 
 export function colLabel(i: number): string {
   let s = ''
@@ -123,4 +123,70 @@ export function gridStrokeFor(hex: string): string {
   const L = luminance(hex)
   if (L > 0.45 && d > 140) return 'rgba(200,100,59,0.75)'
   return L > 0.3 ? 'rgba(20,20,22,0.6)' : 'rgba(255,255,255,0.8)'
+}
+
+
+export const LINE_STYLES: { id: GridLineStyle; label: string }[] = [
+  { id: 'solid', label: 'Continu' },
+  { id: 'dashed', label: 'Tirets' },
+  { id: 'longdash', label: 'Tirets longs' },
+  { id: 'dotted', label: 'Pointillés' },
+  { id: 'dashdot', label: 'Mixte' },
+]
+
+/** Motif de tirets (en unités de l'épaisseur du trait), ou null pour un trait continu. */
+export function dashPattern(style: GridLineStyle | undefined): number[] | null {
+  switch (style ?? 'dashed') {
+    case 'solid': return null
+    case 'dotted': return [0.01, 3]
+    case 'longdash': return [10, 5]
+    case 'dashdot': return [8, 3, 0.01, 3]
+    default: return [4, 3]
+  }
+}
+
+/** stroke-dasharray pour une épaisseur donnée (le motif grossit avec le trait, minimum 1). */
+export function dashArray(style: GridLineStyle | undefined, width: number): string | undefined {
+  const p = dashPattern(style)
+  if (!p) return undefined
+  const k = Math.max(1, width)
+  return p.map((x) => +(x * k).toFixed(3)).join(' ')
+}
+
+/** Le pas donne-t-il un nombre entier de cases sur cette longueur ? */
+export function divides(size: number, step: number): boolean {
+  if (step <= 0) return false
+  const n = size / step
+  return Math.abs(n - Math.round(n)) < 1e-6
+}
+
+/**
+ * Pas le plus proche en dessous et au-dessus de `step` donnant un nombre entier de cases :
+ * on privilégie des valeurs entières en cm (plus simples à tracer au mur), sinon longueur / n.
+ */
+export function stepSuggestions(size: number, step: number): { below: { step: number; count: number } | null; above: { step: number; count: number } | null } {
+  if (divides(size, step) || step <= 0) return { below: null, above: null }
+  const cands: { step: number; count: number }[] = []
+  const isInt = Math.abs(size - Math.round(size)) < 1e-9
+  if (isInt) {
+    const S = Math.round(size)
+    for (let d = 1; d <= S; d++) if (S % d === 0) cands.push({ step: d, count: S / d })
+  }
+  const fallback = (n: number) => (n >= 1 ? { step: +(size / n).toFixed(2), count: n } : null)
+  const below = cands.filter((c) => c.step < step).at(-1) ?? fallback(Math.ceil(size / step))
+  const above = cands.find((c) => c.step > step) ?? fallback(Math.floor(size / step))
+  return { below: below && below.step < step ? below : null, above: above && above.step > step ? above : null }
+}
+
+/** Pas commun aux deux dimensions (colonnes et lignes entières), au plus proche du pas actuel. */
+export function commonStepSuggestions(w: number, h: number, step: number) {
+  if ((divides(w, step) && divides(h, step)) || step <= 0) return { below: null, above: null }
+  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b))
+  if (Math.abs(w - Math.round(w)) > 1e-9 || Math.abs(h - Math.round(h)) > 1e-9) return { below: null, above: null }
+  const g = gcd(Math.round(w), Math.round(h))
+  const ds: number[] = []
+  for (let d = 1; d <= g; d++) if (g % d === 0) ds.push(d)
+  const below = ds.filter((d) => d < step).at(-1)
+  const above = ds.find((d) => d > step)
+  return { below: below ?? null, above: above ?? null }
 }

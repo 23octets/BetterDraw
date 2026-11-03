@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useEditor, flushPersistence } from '../store/editor'
 import * as repo from '../store/repo'
 import { Canvas } from './Canvas'
@@ -63,33 +63,59 @@ export function Editor({ variantId }: { variantId: string }) {
         {(shortcuts || metaHeld) && <ShortcutsPanel />}
       </main>
       <aside className="side-panel">
-        {mode === 'consult' ? <ConsultPanel onExport={() => setExporting(true)} /> : <SideTabs />}
+        {mode === 'consult' ? <ConsultPanel onExport={() => setExporting(true)} /> : <SidePanelContent />}
       </aside>
       {exporting && <ExportDialog meta={{ project: project?.name ?? 'Projet', variant: variant.name, date: new Date().toLocaleDateString('fr-FR') }} onClose={() => setExporting(false)} />}
     </div>
   )
 }
 
-function SideTabs() {
-  const [tab, setTab] = useState<'props' | 'history'>('props')
+function SidePanelContent() {
   return (
     <>
-      <div className="side-tabs" role="tablist">
-        <button role="tab" className={tab === 'props' ? 'on' : ''} aria-selected={tab === 'props'} onClick={() => setTab('props')} data-testid="tab-props">Propriétés</button>
-        <button role="tab" className={tab === 'history' ? 'on' : ''} aria-selected={tab === 'history'} onClick={() => setTab('history')} data-testid="tab-history">Historique</button>
-      </div>
-      {tab === 'props' ? (
-        <>
-          <SelectionSection />
-          <PaletteSection />
-          <BackgroundSection />
-          <ImagesSection />
-          <GridSection />
-        </>
-      ) : (
-        <HistoryPanel />
-      )}
+      <SelectionSection />
+      <PaletteSection />
+      <BackgroundSection />
+      <ImagesSection />
+      <GridSection />
     </>
+  )
+}
+
+/** Bouton Historique (à côté d'annuler / rétablir) : la frise s'ouvre dans un panneau déroulant. */
+function HistoryButton() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const maxSeq = useEditor((s) => s.maxSeq)
+  useEffect(() => {
+    if (!open) return
+    const close = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopImmediatePropagation()
+        setOpen(false)
+      }
+    }
+    window.addEventListener('pointerdown', close)
+    window.addEventListener('keydown', esc, true)
+    return () => {
+      window.removeEventListener('pointerdown', close)
+      window.removeEventListener('keydown', esc, true)
+    }
+  }, [open])
+  return (
+    <div className="history-anchor" ref={ref}>
+      <button className={`icon-btn${open ? ' on' : ''}`} onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid="tab-history" title="Historique des modifications">
+        <Icon name="clock" /> {maxSeq}
+      </button>
+      {open && (
+        <div className="history-popover" data-testid="history-popover">
+          <HistoryPanel />
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -155,14 +181,15 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
       <GridMenu />
       <div className="spacer" />
       <span className={`save-state${saving ? ' busy' : ''}`} data-testid="save-state">{saving ? 'Enregistrement…' : 'Enregistré'}</span>
-      <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier (maintenir ⌘)">
-        <Icon name="keyboard" /> Raccourcis
+      <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier (maintenir ⌘)" aria-label="Raccourcis clavier">
+        <Icon name="keyboard" />
       </button>
-      <button className="icon-btn" onClick={() => setSettings(true)} data-testid="open-settings" title="Réglages : taille du mur, origine">
-        <Icon name="settings" /> Réglages
+      <button className="icon-btn" onClick={() => setSettings(true)} data-testid="open-settings" title="Réglages : taille du mur, origine, lignes de la grille" aria-label="Réglages">
+        <Icon name="settings" />
       </button>
       {settings && <SettingsModal onClose={() => setSettings(false)} />}
       <div className="btn-group">
+        <HistoryButton />
         <button className="icon-btn" onClick={() => undo()} disabled={headSeq <= 0} title="Annuler (⌘Z)" aria-label="Annuler" data-testid="undo"><Icon name="undo" /></button>
         <button className="icon-btn" onClick={() => redo()} disabled={headSeq >= maxSeq} title="Rétablir (⇧⌘Z)" aria-label="Rétablir" data-testid="redo"><Icon name="redo" /></button>
       </div>

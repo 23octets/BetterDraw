@@ -100,7 +100,7 @@ test('variante depuis l’historique et image qui suit le déplacement', async (
   await expect(page.getByTestId('variant-select').locator('option:checked')).toHaveText('Variante B')
   await expect(shapes(page)).toHaveCount(1)
 
-  await page.getByTestId('tab-props').click()
+  await page.keyboard.press('Escape')
   await page.getByTestId('image-input').setInputFiles('e2e/fixtures/croquis.png')
   const img = page.getByTestId('ref-image')
   const x0 = +(await img.getAttribute('x'))!

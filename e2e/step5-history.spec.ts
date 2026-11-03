@@ -39,6 +39,7 @@ test('frise d’historique : revenir à n’importe quel état, persistant', asy
   await clickWall(page, 280, 40)
   await clickWall(page, 280, 210)
   await page.keyboard.press('Enter')
+  await page.getByTestId('tab-history').click()
   await expect(page.getByTestId('history-count')).toHaveText('7 modifications')
   await expect(page.getByTestId('history-item').nth(1)).toContainText("Retour à l'état #3")
   await page.screenshot({ path: `${SHOTS}/step5-02-historique-sans-perte.png` })

@@ -47,7 +47,7 @@ export function NumberField(props: {
   )
 }
 
-export function TextField(props: { label?: string; value: string; onCommit: (v: string) => void; testId?: string; className?: string }) {
+export function TextField(props: { label?: string; value: string; onCommit: (v: string) => void; testId?: string; className?: string; autoFocus?: boolean; onDone?: () => void }) {
   const [txt, setTxt] = useState(props.value)
   useEffect(() => setTxt(props.value), [props.value])
   const input = (
@@ -56,9 +56,19 @@ export function TextField(props: { label?: string; value: string; onCommit: (v: 
       data-testid={props.testId}
       value={txt}
       onChange={(e) => setTxt(e.target.value)}
-      onBlur={() => txt.trim() && txt !== props.value ? props.onCommit(txt.trim()) : setTxt(props.value)}
+      autoFocus={props.autoFocus}
+      onFocus={(e) => props.autoFocus && e.target.select()}
+      onBlur={() => {
+        if (txt.trim() && txt !== props.value) props.onCommit(txt.trim())
+        else setTxt(props.value)
+        props.onDone?.()
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+        if (e.key === 'Escape') {
+          setTxt(props.value)
+          props.onDone?.()
+        }
       }}
     />
   )

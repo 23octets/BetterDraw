@@ -74,6 +74,7 @@ export interface RefImage {
 }
 
 export type GridOrigin = 'bl' | 'tl' | 'br' | 'tr'
+export type GridLineStyle = 'solid' | 'dashed' | 'dotted' | 'longdash' | 'dashdot'
 
 export interface GridSettings {
   step: number
@@ -85,6 +86,8 @@ export interface GridSettings {
   lineWidth?: number
   /** Opacité des lignes de grille (0–1). */
   lineOpacity?: number
+  /** Type de trait des lignes de grille. */
+  lineStyle?: GridLineStyle
   show: boolean
 }
 

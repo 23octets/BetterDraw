@@ -1,7 +1,7 @@
 import { useEditor } from '../store/editor'
 import { NumberField } from './fields'
 import type { GridOrigin } from '../model/types'
-import { gridLayout } from '../geometry/grid'
+import { commonStepSuggestions, gridLayout, stepSuggestions } from '../geometry/grid'
 
 export function Section({ title, children, testId }: { title: string; children: React.ReactNode; testId?: string }) {
   return (
@@ -50,6 +50,7 @@ export function GridSection() {
         <NumberField label="Aimantage" suffix="cm" min={0.5} max={100} value={g.snapStep} testId="snap-step"
           onCommit={(v) => commit(`Aimantage : ${v} cm`, (d) => { d.grid.snapStep = v })} />
       </div>
+      <StepSuggestions />
       <p className="hint" data-testid="grid-summary">
         {layout.cols} × {layout.rows} cases
         {lastW && lastW !== g.step ? ` · dernière colonne ${round(lastW)} cm` : ''}
@@ -60,3 +61,39 @@ export function GridSection() {
 }
 
 const round = (n: number) => Math.round(n * 10) / 10
+
+/** Sous le pas : valeurs proches qui donnent un nombre entier de colonnes / lignes (à titre indicatif). */
+function StepSuggestions() {
+  const wall = useEditor((s) => s.doc.wall)
+  const step = useEditor((s) => s.doc.grid.step)
+  const commit = useEditor((s) => s.commit)
+  const cols = stepSuggestions(wall.w, step)
+  const rows = stepSuggestions(wall.h, step)
+  const both = commonStepSuggestions(wall.w, wall.h, step)
+  if (!cols.below && !cols.above && !rows.below && !rows.above) return null
+  const chip = (v: { step: number; count: number } | null, unit: string) =>
+    v && (
+      <button key={`${unit}${v.step}`} className="step-chip" data-testid="step-chip" title={`Appliquer un pas de ${v.step} cm`}
+        onClick={() => commit(`Pas de grille : ${v.step} cm`, (d) => { d.grid.step = v.step })}>
+        {fmt(v.step)} cm <em>{v.count} {unit}</em>
+      </button>
+    )
+  return (
+    <div className="step-suggestions" data-testid="step-suggestions">
+      {(cols.below || cols.above) && (
+        <div><span>Colonnes entières</span>{chip(cols.below, 'col.')}{chip(cols.above, 'col.')}</div>
+      )}
+      {(rows.below || rows.above) && (
+        <div><span>Lignes entières</span>{chip(rows.below, 'lignes')}{chip(rows.above, 'lignes')}</div>
+      )}
+      {(both.below || both.above) && (
+        <div><span>Les deux</span>
+          {both.below && chip({ step: both.below, count: wall.w / both.below }, 'col.')}
+          {both.above && chip({ step: both.above, count: wall.w / both.above }, 'col.')}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))

@@ -1,16 +1,18 @@
 import { useMemo } from 'react'
-import type { DocState } from '../model/types'
-import { gridLayout, gridStrokeFor } from '../geometry/grid'
+import type { DocState, GridLineStyle } from '../model/types'
+import { dashArray, gridLayout, gridStrokeFor } from '../geometry/grid'
 import { resolveFills } from '../store/fills'
 
 /**
  * Lignes de grille dont la couleur s'adapte à chaque aplat : on redessine la grille
  * découpée sur chaque zone peinte avec une couleur contrastée.
  */
-export function GridLinesAdaptive({ doc, strong, idPrefix = 'g', style }: { doc: DocState; strong?: boolean; idPrefix?: string; style?: { lineWidth: number; lineOpacity: number } | null }) {
+export function GridLinesAdaptive({ doc, strong, idPrefix = 'g', style }: { doc: DocState; strong?: boolean; idPrefix?: string; style?: { lineWidth: number; lineOpacity: number; lineStyle?: GridLineStyle } | null }) {
   const layout = useMemo(() => gridLayout(doc.wall, doc.grid), [doc.wall, doc.grid])
   const gw = style?.lineWidth ?? doc.grid.lineWidth ?? 1
   const go = style?.lineOpacity ?? doc.grid.lineOpacity ?? 1
+  const ls = style?.lineStyle ?? doc.grid.lineStyle ?? 'dashed'
+  const gd = dashArray(ls, gw * (strong ? 1.4 : 1)) ?? 'none'
   const fills = resolveFills(doc)
   if (!doc.grid.show) return null
   const lines = (
@@ -20,7 +22,7 @@ export function GridLinesAdaptive({ doc, strong, idPrefix = 'g', style }: { doc:
     </>
   )
   return (
-    <g className={`grid-lines${strong ? ' strong' : ''}`} data-testid="grid-lines" opacity={go} style={{ ['--gw' as string]: gw }}>
+    <g className={`grid-lines${strong ? ' strong' : ''}`} data-testid="grid-lines" opacity={go} data-line-style={ls} style={{ ['--gw' as string]: gw, ['--gd' as string]: gd }}>
       <defs>
         {fills.map((f) => (
           <clipPath key={f.fill.id} id={`${idPrefix}-clip-${f.fill.id}`}>

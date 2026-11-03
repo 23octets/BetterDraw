@@ -18,6 +18,7 @@ export function useFillTool(): ToolHandlers {
   const hover = useRef<string | null>(null)
   const [, render] = useReducer((x: number) => x + 1, 0)
   useEditor((s) => s.view)
+  const activeHex = useEditor((s) => s.doc.palette.find((c) => c.id === s.activeColorId)?.hex ?? null)
   return {
     cursor: 'cell',
     onPointerDown(p) {
@@ -68,7 +69,14 @@ export function useFillTool(): ToolHandlers {
     },
     renderWorld: () => (
       <>
-        {hover.current && <path d={hover.current} className="region-hover" data-testid="region-hover" />}
+        {hover.current && (
+          <g className="region-hover" data-testid="region-hover">
+            {/* aperçu de la couleur + contour du même trait (continu), plus épais et coloré */}
+            <path d={hover.current} className="rh-fill" style={{ fill: activeHex ?? undefined }} />
+            <path d={hover.current} className="rh-halo" />
+            <path d={hover.current} className="rh-line" />
+          </g>
+        )}
       </>
     ),
     renderScreen: () => (

@@ -5,6 +5,7 @@ import { surfaces } from '../store/fills'
 import { Section } from './SidePanel'
 import { NumberField, TextField } from './fields'
 import { Icon } from './icons'
+import { ColorPicker } from './ColorPicker'
 
 const m2 = (cm2: number) => (cm2 / 10000).toFixed(2)
 const L = (l: number) => (l < 10 ? l.toFixed(2) : l.toFixed(1))
@@ -16,10 +17,13 @@ export function PaletteSection() {
   const setActive = useEditor((s) => s.setActiveColor)
   const setTool = useEditor((s) => s.setTool)
   const commit = useEditor((s) => s.commit)
+  const [picker, setPicker] = useState<{ id: string; anchor: HTMLElement } | null>(null)
+  const [renaming, setRenaming] = useState<string | null>(null)
   const pick = (id: string) => {
     setActive(id)
     setTool('fill')
   }
+  const pickerColor = picker ? palette.find((p) => p.id === picker.id) : null
   return (
     <Section title="Palette" testId="palette-section">
       <div className="palette">
@@ -28,30 +32,47 @@ export function PaletteSection() {
             key={c.id}
             className={`swatch-row${active === c.id ? ' on' : ''}`}
             data-testid={`swatch-${c.name}`}
-            onClick={() => pick(c.id)}
+            onClick={() => renaming !== c.id && pick(c.id)}
             title={`Peindre avec ${c.name}`}
           >
-            {/* le carré de couleur EST le sélecteur de teinte */}
-            <label className="swatch" style={{ background: c.hex }} title="Modifier la teinte" onClick={(e) => e.stopPropagation()}>
-              <input
-                type="color"
-                value={c.hex}
-                data-testid="color-input"
-                onChange={(e) => {
-                  const hex = e.target.value
-                  commit(`Teinte de ${c.name}`, (d) => {
-                    const x = d.palette.find((p) => p.id === c.id)
-                    if (x) x.hex = hex
-                  })
-                }}
-              />
-            </label>
-            <TextField className="name" value={c.name} onCommit={(name) => commit('Renommer une couleur', (d) => {
-              const x = d.palette.find((p) => p.id === c.id)
-              if (x) x.name = name
-            })} />
             <button
-              className="icon-btn ghost small"
+              className="swatch"
+              style={{ background: c.hex }}
+              title="Modifier la teinte"
+              aria-label={`Modifier la teinte de ${c.name}`}
+              data-testid="color-input"
+              onClick={(e) => {
+                e.stopPropagation()
+                setPicker(picker?.id === c.id ? null : { id: c.id, anchor: e.currentTarget })
+              }}
+            />
+            {renaming === c.id ? (
+              <span onClick={(e) => e.stopPropagation()} className="name-edit">
+                <TextField className="name" value={c.name} testId="rename-input" autoFocus onDone={() => setRenaming(null)} onCommit={(name) => {
+                  commit('Renommer une couleur', (d) => {
+                    const x = d.palette.find((p) => p.id === c.id)
+                    if (x) x.name = name
+                  })
+                  setRenaming(null)
+                }} />
+              </span>
+            ) : (
+              <span className="swatch-name">{c.name}</span>
+            )}
+            <button
+              className="icon-btn ghost small row-tool"
+              title="Renommer"
+              aria-label={`Renommer ${c.name}`}
+              data-testid="rename-color"
+              onClick={(e) => {
+                e.stopPropagation()
+                setRenaming(c.id)
+              }}
+            >
+              <Icon name="pencil" size={14} />
+            </button>
+            <button
+              className="icon-btn ghost small row-tool"
               title="Supprimer la couleur"
               aria-label={`Supprimer ${c.name}`}
               onClick={(e) => {
@@ -70,6 +91,18 @@ export function PaletteSection() {
           </div>
         ))}
       </div>
+      {picker && pickerColor && (
+        <ColorPicker
+          value={pickerColor.hex}
+          anchor={picker.anchor}
+          onPreview={(hex) => useEditor.setState({ palettePreview: hex ? { id: pickerColor.id, hex } : null })}
+          onChange={(hex) => commit(`Teinte de ${pickerColor.name}`, (d) => {
+            const x = d.palette.find((p) => p.id === pickerColor.id)
+            if (x) x.hex = hex
+          })}
+          onClose={() => setPicker(null)}
+        />
+      )}
       <button
         className="wide"
         data-testid="add-color"

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { produceWithPatches, type Draft } from 'immer'
-import type { DocState, RefImage, Shape, Variant, Vec } from '../model/types'
+import type { DocState, GridLineStyle, RefImage, Shape, Variant, Vec } from '../model/types'
 import { defaultDoc } from '../model/defaults'
 import * as repo from './repo'
 
@@ -50,7 +50,9 @@ export interface EditorState {
   clipboard: Shape[]
   selectedImageId: string | null
   /** Aperçu du style de grille pendant le réglage (avant enregistrement). */
-  gridPreview: { lineWidth: number; lineOpacity: number } | null
+  gridPreview: { lineWidth: number; lineOpacity: number; lineStyle?: GridLineStyle } | null
+  /** Aperçu d'une teinte pendant le choix de couleur. */
+  palettePreview: { id: string; hex: string } | null
   /** Mesure en cours (affichée dans le footer de mesure). */
   measure: { a: Vec; b: Vec; fixed: boolean } | null
   /** Case zoomée en mode consultation. */
@@ -103,6 +105,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   selectedImageId: null,
   consultCell: null,
   measure: null,
+  palettePreview: null,
   gridPreview: null,
   pickPrint: false,
   setConsultCell(consultCell) {

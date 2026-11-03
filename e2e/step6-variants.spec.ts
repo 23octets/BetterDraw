@@ -26,7 +26,7 @@ test('snapshot, galerie de variantes et comparaison côte à côte', async ({ pa
   await expect(page.getByTestId('fills').locator('path')).toHaveCount(2)
   await page.getByTestId('tab-history').click()
   await expect(page.getByTestId('history-count')).toHaveText('0 modification')
-  await page.getByTestId('tab-props').click()
+  await page.keyboard.press('Escape')
   await page.getByTestId('swatch-Terracotta').click()
   await clickWall(page, 150, 100)
   await poly(page, [[0, 125], [100, 125]])

@@ -6,10 +6,11 @@ import { resolveFills } from '../store/fills'
 
 export function FillsLayer({ doc }: { doc: DocState }) {
   const fills = resolveFills(doc)
+  const preview = useEditor((s) => s.palettePreview)
   return (
     <g className="fills" data-testid="fills">
       {fills.map((f) => (
-        <path key={f.fill.id} d={f.region.d} fill={f.hex} stroke={f.hex} className="fill" data-color-id={f.fill.colorId} data-area={Math.round(f.region.area)} />
+        <path key={f.fill.id} d={f.region.d} fill={preview?.id === f.fill.colorId ? preview.hex : f.hex} stroke={preview?.id === f.fill.colorId ? preview.hex : f.hex} className="fill" data-color-id={f.fill.colorId} data-area={Math.round(f.region.area)} />
       ))}
     </g>
   )
