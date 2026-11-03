@@ -30,6 +30,7 @@ test('redimensionner le mur et la grille, enregistré en continu', async ({ page
   await page.getByTestId('fit').click()
   await expect(page.getByTestId('save-state')).toHaveText('Enregistré')
   await page.screenshot({ path: `${SHOTS}/step1-03-mur-420-grille-40.png` })
+  await expect(page.getByTestId('save-state')).toHaveText('Enregistré')
   await page.reload()
   await expect(page.getByTestId('wall')).toHaveAttribute('width', '420')
   await expect(page.getByTestId('grid-step')).toHaveValue('40')

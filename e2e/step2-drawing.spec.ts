@@ -74,6 +74,7 @@ test('arc 3 points, courbe de Bézier et mesure', async ({ page }) => {
   await page.screenshot({ path: `${SHOTS}/step2-02-arc-bezier-mesure.png` })
 
   // persistance après rechargement
+  await expect(page.getByTestId('save-state')).toHaveText('Enregistré')
   await page.reload()
   await expect(shapes(page)).toHaveCount(2)
 })

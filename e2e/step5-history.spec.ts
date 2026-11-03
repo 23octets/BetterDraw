@@ -22,6 +22,7 @@ test('frise d’historique : revenir à n’importe quel état, persistant', asy
   await expect(page.getByTestId('fills').locator('path')).toHaveCount(0)
   await page.screenshot({ path: `${SHOTS}/step5-01-frise-historique.png` })
   // persistant après rechargement
+  await expect(page.getByTestId('save-state')).toHaveText('Enregistré')
   await page.reload()
   await expect(page.getByTestId('shapes').locator('path')).toHaveCount(2)
   await page.getByTestId('tab-history').click()

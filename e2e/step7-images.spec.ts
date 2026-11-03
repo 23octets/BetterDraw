@@ -51,6 +51,7 @@ test('images en filigrane : importer, déplacer, agrandir, opacité, non export�
   // invisible en mode rendu, persistée après rechargement
   await page.getByTestId('mode-render').click()
   await expect(page.getByTestId('ref-image')).toHaveCount(0)
+  await expect(page.getByTestId('save-state')).toHaveText('Enregistré')
   await page.reload()
   await expect(page.getByTestId('ref-image')).toHaveCount(1)
   await expect(page.getByTestId('ref-image')).toHaveAttribute('opacity', '0.3')

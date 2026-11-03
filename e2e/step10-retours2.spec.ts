@@ -27,6 +27,7 @@ test('menu de la grille : épaisseur et opacité', async ({ page }) => {
   await expect(g).toHaveAttribute('opacity', '0.7')
   await expect(g).toHaveAttribute('style', /--gw: ?2/)
   await page.screenshot({ path: `${SHOTS}/step10-01-menu-grille.png` })
+  await expect(page.getByTestId('save-state')).toHaveText('Enregistré')
   await page.reload()
   await expect(page.getByTestId('grid-lines')).toHaveAttribute('opacity', '0.7')
 })
