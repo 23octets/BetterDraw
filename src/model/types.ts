@@ -105,17 +105,76 @@ export interface DocState {
   printCells: string[]
 }
 
+export type OpeningKind = 'door' | 'window'
+
+/** Porte ou fenêtre percée dans un mur de la pièce. Coordonnées du mur vu de l'intérieur (cm). */
+export interface Opening {
+  id: string
+  kind: OpeningKind
+  /** Bord gauche, depuis le coin gauche du mur (vu de l'intérieur). */
+  x: number
+  w: number
+  h: number
+  /** Allège : hauteur du bas de l'ouverture au-dessus du sol (0 pour une porte). */
+  sill: number
+  /** Fenêtre : carreaux en colonnes × lignes (par défaut 1 ou 2 colonnes selon la largeur, 1 ligne). */
+  cols?: number
+  rows?: number
+  /** Fenêtre : hauteur du soubassement vitré (cm, compris dans h, en bas de la fenêtre) ; 0 ou absent = aucun. */
+  base?: number
+}
+
+export interface RoomWall {
+  /** Identifiant du mur (table walls) : ses variantes portent la peinture. */
+  id: string
+  openings: Opening[]
+  /** Longueur verrouillée : les modifications du plan se reportent sur les autres murs. */
+  locked?: boolean
+}
+
+/**
+ * Murs liés, peints ensemble sur un seul dessin « déroulé » (peinture continue).
+ * `id` est celui du mur (table walls) qui porte les variantes de ce dessin.
+ */
+export interface RoomGroup {
+  id: string
+  /** Identifiants des murs liés (RoomWall.id). */
+  walls: string[]
+}
+
+/**
+ * Plan d'une pièce : polygone des coins intérieurs (cm, vue de dessus, y vers le bas),
+ * parcouru dans le sens horaire à l'écran. walls[i] va de pts[i] à pts[i + 1].
+ */
+export interface RoomPlan {
+  pts: Vec[]
+  walls: RoomWall[]
+  /** Hauteur sous plafond (cm). */
+  height: number
+  /** Épaisseur des murs (cm), vers l'extérieur. */
+  thickness: number
+  floor: string
+  /** Murs liés (un mur appartient au plus à un groupe). */
+  groups?: RoomGroup[]
+}
+
 export interface Project {
   id: string
   name: string
   createdAt: number
   updatedAt: number
+  /** Présent si le projet est une pièce (plusieurs murs). */
+  room?: RoomPlan
 }
 
 export interface Wall {
   id: string
   projectId: string
   name: string
+  /** Variante affichée dans la vue 3D de la pièce. */
+  variantId?: string
+  /** Dessin d'un groupe de murs liés (pas un mur du plan). */
+  group?: boolean
 }
 
 export interface Variant {

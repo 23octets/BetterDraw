@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useEditor } from '../store/editor'
+import { useEditor, flushPersistence } from '../store/editor'
 import * as repo from '../store/repo'
 import { Canvas } from './Canvas'
 import { navigate } from './router'
@@ -19,6 +19,8 @@ import { SelectionSection } from './SelectionSection'
 import { BackgroundSection, PaletteSection } from './PaintSections'
 import { copySelection, duplicateSelection, pasteClipboard } from '../tools/select'
 import type { Project } from '../model/types'
+import { roomContext, setDisplayVariant } from '../store/rooms'
+import { seamLineIds } from '../room/merge'
 
 export function Editor({ variantId }: { variantId: string }) {
   const load = useEditor((s) => s.load)
@@ -32,7 +34,31 @@ export function Editor({ variantId }: { variantId: string }) {
       if (!alive) return
       setStatus(ok ? 'ok' : 'missing')
       const v = useEditor.getState().variant
-      if (v) setProject((await repo.getProject(v.projectId)) ?? null)
+      if (!v) return
+      setProject((await repo.getProject(v.projectId)) ?? null)
+      const ctx = await roomContext(v)
+      if (!alive || !ctx) return
+      // la variante ouverte devient celle affichée dans la vue 3D de la pièce
+      await setDisplayVariant(v.wallId, v.id)
+      useEditor.getState().setRoom({
+        projectId: ctx.project.id,
+        index: ctx.index,
+        walls: ctx.walls.map((w) => (w.id === v.wallId ? { ...w, variantId: v.id } : w)),
+        openings: ctx.openings,
+        height: ctx.room.height,
+        masks: ctx.masks,
+        seams: ctx.seams,
+      })
+      // dessin de murs liés : les jonctions ne doivent pas couper les zones à peindre
+      const cleanedKey = `bd:seams-cleaned:${v.id}`
+      if (ctx.seams.length > 1 && !localStorage.getItem(cleanedKey)) {
+        localStorage.setItem(cleanedKey, '1')
+        const edges = [...ctx.seams.map((s) => s.x), ...ctx.masks.flatMap((m) => [m.x, m.x + m.w])].filter((x) => x > 0)
+        const ids = new Set(seamLineIds(useEditor.getState().doc, edges))
+        if (ids.size) useEditor.getState().commit('Jonctions des murs liés retirées (peinture continue)', (d) => {
+          d.shapes = d.shapes.filter((s) => !ids.has(s.id))
+        })
+      }
     })
     return () => {
       alive = false
@@ -120,13 +146,31 @@ function HistoryButton() {
   )
 }
 
+/** Mur courant de la pièce, avec passage au mur précédent / suivant. */
+function WallSwitcher() {
+  const room = useEditor((s) => s.room)!
+  const k = room.walls.length
+  const go = (d: number) => {
+    const w = room.walls[(room.index + d + k) % k]
+    if (w.variantId) flushPersistence().then(() => navigate(`/v/${w.variantId}`))
+  }
+  return (
+    <div className="wall-switcher">
+      <span className="title-sep" aria-hidden>/</span>
+      <button className="icon-btn ghost small" onClick={() => go(-1)} title="Mur précédent (à gauche)" aria-label="Mur précédent" data-testid="prev-wall"><Icon name="chevronLeft" size={15} /></button>
+      <span className="wall-switcher-name" data-testid="wall-title" title={room.walls[room.index]?.name}>{room.walls[room.index]?.name}</span>
+      <button className="icon-btn ghost small" onClick={() => go(1)} title="Mur suivant (à droite)" aria-label="Mur suivant" data-testid="next-wall"><Icon name="chevronRight" size={15} /></button>
+    </div>
+  )
+}
+
 function VariantSwitcher() {
   const variant = useEditor((s) => s.variant)!
   const [open, setOpen] = useState(false)
   const [count, setCount] = useState(1)
   useEffect(() => {
-    repo.listVariants(variant.projectId).then((l) => setCount(l.length))
-  }, [variant.projectId, variant.id, open])
+    repo.listVariants(variant.projectId).then((l) => setCount(l.filter((x) => x.wallId === variant.wallId).length))
+  }, [variant.projectId, variant.id, variant.wallId, open])
   return (
     <div className="variant-switcher">
       <span className="title-sep" aria-hidden>/</span>
@@ -156,11 +200,17 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
   const mode = useEditor((s) => s.mode)
   const setMode = useEditor((s) => s.setMode)
   const [settings, setSettings] = useState(false)
+  const room = useEditor((s) => s.room)
   return (
     <header className="topbar">
-      <button className="icon-btn ghost" onClick={() => navigate('/')} title="Retour aux projets"><Icon name="arrowLeft" size={16} /> Projets</button>
+      {room ? (
+        <button className="icon-btn ghost" onClick={() => flushPersistence().then(() => navigate(`/r/${room.projectId}`))} title="Retour au plan et à la vue 3D de la pièce" data-testid="back-to-room"><Icon name="cube" size={16} /> Pièce</button>
+      ) : (
+        <button className="icon-btn ghost" onClick={() => navigate('/')} title="Retour aux projets"><Icon name="arrowLeft" size={16} /> Projets</button>
+      )}
       <div className="title">
         <strong data-testid="project-name">{projectName}</strong>
+        {room && <WallSwitcher />}
         <VariantSwitcher />
       </div>
       <div className="seg" role="group" aria-label="Mode d'affichage">

@@ -6,6 +6,9 @@ import { DEFAULT_WALL } from '../model/defaults'
 import { Thumb } from './DocPreview'
 import { importProject } from '../export/project'
 import { Icon } from './icons'
+import { createRoomProject, convertToRoom, type RoomShape } from '../store/rooms'
+import { RoomThumb } from '../room/RoomThumb'
+import { DEFAULT_ROOM, roomArea } from '../room/geometry'
 
 type Row = Project & { variants: Variant[] }
 
@@ -18,6 +21,11 @@ export function Home() {
   const [w, setW] = useState(DEFAULT_WALL.w)
   const [h, setH] = useState(DEFAULT_WALL.h)
   const [importMsg, setImportMsg] = useState<string | null>(null)
+  const [kind, setKind] = useState<'wall' | 'room'>('wall')
+  const [rw, setRw] = useState(DEFAULT_ROOM.w)
+  const [rd, setRd] = useState(DEFAULT_ROOM.d)
+  const [rh, setRh] = useState(DEFAULT_ROOM.h)
+  const [shape, setShape] = useState<RoomShape>('rect')
 
   const refresh = () => repo.listProjects().then(setProjects)
   useEffect(() => {
@@ -26,6 +34,11 @@ export function Home() {
 
   async function create(e: React.FormEvent) {
     e.preventDefault()
+    if (kind === 'room') {
+      const p = await createRoomProject(name.trim() || 'Nouvelle pièce', { w: Math.max(50, rw), d: Math.max(50, rd), h: Math.max(100, rh) }, shape)
+      navigate(`/r/${p.id}`)
+      return
+    }
     const { variant } = await repo.createProject(name.trim() || 'Nouveau mur', { w: Math.max(10, w), h: Math.max(10, h) })
     navigate(`/v/${variant.id}`)
   }
@@ -43,12 +56,47 @@ export function Home() {
       </header>
 
       <form className="new-project" onSubmit={create} data-testid="new-project-form">
-        <h2>Nouveau projet</h2>
+        <div className="new-project-top">
+          <h2>Nouveau projet</h2>
+          <div className="seg" role="group" aria-label="Type de projet">
+            <button type="button" className={kind === 'wall' ? 'on' : ''} onClick={() => setKind('wall')} data-testid="kind-wall">Un mur</button>
+            <button type="button" className={kind === 'room' ? 'on' : ''} onClick={() => setKind('room')} data-testid="kind-room">Une pièce (3D)</button>
+          </div>
+        </div>
         <div className="new-project-fields">
           <label className="field grow">
             <span>Nom</span>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Chambre de Léa" name="name" />
           </label>
+          {kind === 'room' ? (
+            <>
+              <div className="field">
+                <span>Forme</span>
+                <div className="seg shape-seg" role="group" aria-label="Forme de la pièce">
+                  <button type="button" className={shape === 'rect' ? 'on' : ''} onClick={() => setShape('rect')} data-testid="shape-rect" title="Pièce rectangulaire">
+                    <svg viewBox="0 0 20 16" width="20" height="16" aria-hidden><rect x="2" y="2" width="16" height="12" /></svg> Rectangle
+                  </button>
+                  <button type="button" className={shape === 'L' ? 'on' : ''} onClick={() => setShape('L')} data-testid="shape-L" title="Pièce en L (modifiable ensuite sur le plan)">
+                    <svg viewBox="0 0 20 16" width="20" height="16" aria-hidden><path d="M2 2H18V8H10V14H2Z" /></svg> En L
+                  </button>
+                </div>
+              </div>
+              <label className="field">
+                <span>{shape === 'L' ? 'Largeur totale' : 'Largeur (cm)'}</span>
+                <input type="number" min={50} value={rw} onChange={(e) => setRw(+e.target.value)} name="room-w" />
+              </label>
+              <span className="times" aria-hidden>×</span>
+              <label className="field">
+                <span>{shape === 'L' ? 'Profondeur totale' : 'Profondeur (cm)'}</span>
+                <input type="number" min={50} value={rd} onChange={(e) => setRd(+e.target.value)} name="room-d" />
+              </label>
+              <label className="field">
+                <span>Hauteur s/ plafond</span>
+                <input type="number" min={100} value={rh} onChange={(e) => setRh(+e.target.value)} name="room-h" />
+              </label>
+            </>
+          ) : (
+          <>
           <label className="field">
             <span>Largeur (cm)</span>
             <input type="number" min={10} value={w} onChange={(e) => setW(+e.target.value)} name="width" />
@@ -58,6 +106,8 @@ export function Home() {
             <span>Hauteur (cm)</span>
             <input type="number" min={10} value={h} onChange={(e) => setH(+e.target.value)} name="height" />
           </label>
+          </>
+          )}
           <button type="submit" className="primary"><Icon name="plus" size={15} /> Créer le projet</button>
         </div>
       </form>
@@ -89,6 +139,26 @@ export function Home() {
           <ul className="card-grid">
             {projects.map((p) => {
               const last = p.variants.length ? latest(p.variants) : null
+              if (p.room) {
+                const open = () => navigate(`/r/${p.id}`)
+                return (
+                  <li key={p.id} className="card" data-testid="project-card">
+                    <RoomThumb room={p.room} variants={p.variants} onOpen={open} label={`Ouvrir ${p.name}`} />
+                    <div className="card-body">
+                      <strong className="card-title" title={p.name}>{p.name}</strong>
+                      <span className="card-meta">Pièce · {p.room.walls.length} murs · {(roomArea(p.room) / 10000).toFixed(1).replace('.', ',')} m²</span>
+                      <span className="card-meta">
+                        <Icon name="layers" size={13} /> {p.variants.length} variante{p.variants.length > 1 ? 's' : ''} · {fmtDate(p.updatedAt)}
+                      </span>
+                    </div>
+                    <div className="card-actions">
+                      <button className="primary small" onClick={open} data-testid="open-room">Ouvrir la pièce</button>
+                      <div className="spacer" />
+                      <DeleteProject p={p} onDone={refresh} />
+                    </div>
+                  </li>
+                )
+              }
               return (
                 <li key={p.id} className="card" data-testid="project-card">
                   {last && <Thumb doc={last.state} onOpen={() => navigate(`/v/${last.id}`)} label={`Ouvrir ${p.name}`} />}
@@ -106,6 +176,10 @@ export function Home() {
                     <button className="small" onClick={() => navigate(`/p/${p.id}`)} data-testid="open-variants">
                       <Icon name="layers" size={14} /> Variantes
                     </button>
+                    <button className="icon-btn small" title="Transformer en pièce : ce mur devient le premier des quatre murs d’une pièce visible en 3D" aria-label={`Transformer ${p.name} en pièce`} data-testid="convert-room" onClick={async () => {
+                      await convertToRoom(p.id)
+                      navigate(`/r/${p.id}`)
+                    }}><Icon name="cube" size={14} /></button>
                     <div className="spacer" />
                     <button
                       className="icon-btn ghost small danger"
@@ -128,5 +202,23 @@ export function Home() {
         )}
       </section>
     </div>
+  )
+}
+
+function DeleteProject({ p, onDone }: { p: Project; onDone: () => void }) {
+  return (
+    <button
+      className="icon-btn ghost small danger"
+      title="Supprimer le projet"
+      aria-label={`Supprimer ${p.name}`}
+      onClick={async () => {
+        if (confirm(`Supprimer le projet « ${p.name} » et toutes ses variantes ?`)) {
+          await repo.deleteProject(p.id)
+          onDone()
+        }
+      }}
+    >
+      <Icon name="trash" size={15} />
+    </button>
   )
 }

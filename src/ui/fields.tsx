@@ -10,6 +10,7 @@ export function NumberField(props: {
   step?: number
   suffix?: string
   testId?: string
+  disabled?: boolean
 }) {
   const [txt, setTxt] = useState(String(props.value))
   useEffect(() => setTxt(String(props.value)), [props.value])
@@ -29,6 +30,7 @@ export function NumberField(props: {
         <input
           data-testid={props.testId}
           inputMode="decimal"
+          disabled={props.disabled}
           value={txt}
           step={props.step}
           onChange={(e) => setTxt(e.target.value)}
