@@ -1,6 +1,6 @@
 import { storageError } from '../store/storage'
 import { useEffect, useState } from 'react'
-import { useEditor, flushPersistence } from '../store/editor'
+import { useEditor, flushPersistence, requireSaved } from '../store/editor'
 import * as repo from '../store/repo'
 import type { Variant } from '../model/types'
 import { navigate } from './router'
@@ -11,6 +11,7 @@ import { surfaces } from '../store/fills'
 /** Liste des variantes du projet, affichée par-dessus l'éditeur. */
 export function VariantsOverlay({ onClose }: { onClose: () => void }) {
   const current = useEditor((s) => s.variant)!
+  const blocked = useEditor((s) => !!s.saveError || !!s.saving)
   const doc = useEditor((s) => s.doc)
   const [list, setList] = useState<Variant[] | null>(null)
   const [picked, setPicked] = useState<string[]>([])
@@ -59,9 +60,9 @@ export function VariantsOverlay({ onClose }: { onClose: () => void }) {
             <li className="card new-variant">
               <button
                 className="new-variant-btn"
-                data-testid="snapshot"
+                disabled={blocked} data-testid="snapshot"
                 onClick={async () => {
-                  await flushPersistence()
+                  if (!await requireSaved()) return
                   const nv = await repo.snapshotVariant(current.id).catch((e) => { alert(storageError(e)); return null })
                   if (!nv) return
                   onClose()
@@ -96,6 +97,7 @@ export function VariantsOverlay({ onClose }: { onClose: () => void }) {
                   </div>
                   <div className="card-actions">
                     <button className="primary small" onClick={() => open(v.id)} disabled={v.id === current.id}>{v.id === current.id ? 'Ouverte' : 'Ouvrir'}</button>
+                  if (!await requireSaved()) return
                     <button className="small" onClick={async () => { await repo.snapshotVariant(v.id).catch((e) => { alert(storageError(e)); return null }); refresh() }} data-testid="snapshot-from-card">
                       <Icon name="copy" size={14} /> Dupliquer
                     </button>

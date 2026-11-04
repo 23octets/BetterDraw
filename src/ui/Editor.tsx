@@ -1,6 +1,7 @@
 import { storageError } from '../store/storage'
+import { downloadRecovery } from '../export/recovery'
 import { useEffect, useRef, useState } from 'react'
-import { useEditor, flushPersistence } from '../store/editor'
+import { useEditor, flushPersistence, hasUnsavedWork } from '../store/editor'
 import * as repo from '../store/repo'
 import { Canvas } from './Canvas'
 import { navigate } from './router'
@@ -24,7 +25,7 @@ import { roomContext, setDisplayVariant } from '../store/rooms'
 import { seamLineIds } from '../room/merge'
 
 export function Editor({ variantId }: { variantId: string }) {
-  const persistenceError = useEditor((s) => s.persistenceError)
+  const saveError = useEditor((s) => s.saveError)
   const load = useEditor((s) => s.load)
   const variant = useEditor((s) => s.variant)
   const [status, setStatus] = useState<'loading' | 'ok' | 'missing'>('loading')
@@ -71,10 +72,10 @@ export function Editor({ variantId }: { variantId: string }) {
 
   useEffect(() => {
     const guard = (e: BeforeUnloadEvent) => {
-      if (useEditor.getState().persistenceError) { e.preventDefault(); e.returnValue = '' }
+      if (hasUnsavedWork()) { e.preventDefault(); e.returnValue = '' }
     }
     window.addEventListener('beforeunload', guard)
-    return () => { window.removeEventListener('beforeunload', guard); useEditor.setState({ persistenceError: null }) }
+    return () => window.removeEventListener('beforeunload', guard)
   }, [])
 
   useShortcuts()
@@ -96,7 +97,7 @@ export function Editor({ variantId }: { variantId: string }) {
   return (
     <div className="editor">
       <TopBar projectName={project?.name ?? ''} onExport={() => setExporting(true)} onShortcuts={() => setShortcuts((x) => !x)} shortcutsOpen={shortcuts} />
-      {persistenceError && <div className="storage-failure" role="alert">{rescueMessage && <p>{rescueMessage}</p>}<p>{persistenceError} Les dernières modifications ne sont pas enregistrées.</p><button onClick={async () => {
+      {saveError && <div className="storage-failure" role="alert"><button onClick={() => useEditor.getState().retry()}>Réessayer</button><button onClick={() => { void downloadRecovery().catch((e) => useEditor.getState().flash(storageError(e), 'error')) }}>Exporter le secours</button>{rescueMessage && <p>{rescueMessage}</p>}<p>{saveError} Les dernières modifications ne sont pas enregistrées.</p><button onClick={async () => {
         try {
           const { rescueProject } = await import('../store/rescue')
           const { data, warning } = await rescueProject(variant, useEditor.getState().doc, project)
@@ -215,7 +216,7 @@ function VariantSwitcher() {
 
 function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { projectName: string; onExport: () => void; onShortcuts: () => void; shortcutsOpen: boolean }) {
   const saving = useEditor((s) => s.saving)
-  const failed = useEditor((s) => s.persistenceError)
+  const failed = useEditor((s) => s.saveError)
   const headSeq = useEditor((s) => s.headSeq)
   const maxSeq = useEditor((s) => s.maxSeq)
   const undo = useEditor((s) => s.undo)
@@ -242,7 +243,7 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
       </div>
       <GridMenu />
       <div className="spacer" />
-      <span className={`save-state${failed ? ' error' : saving ? ' busy' : ''}`} data-testid="save-state">{failed ? 'Échec de l’enregistrement' : saving ? 'Enregistrement…' : 'Enregistré'}</span>
+      <span className={`save-state${failed ? ' error' : saving ? ' busy' : ''}`} data-testid="save-state">{failed ? 'Non enregistré' : saving ? 'Enregistrement…' : 'Enregistré'}</span>
       <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier" aria-label="Raccourcis clavier">
         <Icon name="keyboard" /> Raccourcis
       </button>

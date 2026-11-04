@@ -127,7 +127,7 @@ export async function saveRoom(projectId: string, room: RoomPlan) {
         d.wall.w = w
         d.wall.h = h
       })
-      await recordChange(v.id, `Taille du mur (plan de la pièce) : ${w} × ${h} cm`, next, patches, inverse)
+      await recordChange(v.id, `Taille du mur (plan de la pièce) : ${w} × ${h} cm`, next, patches, inverse, cur)
     }
   }
 }

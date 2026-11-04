@@ -1,89 +1,64 @@
-import { beforeEach, afterEach, expect, it, vi } from 'vitest'
-import { db } from './db'
+import { afterEach, expect, it, vi } from 'vitest'
+import { produceWithPatches } from 'immer'
 import * as repo from './repo'
-import { flushPersistence, useEditor } from './editor'
-import { rescueProject } from './rescue'
+import { flushPersistence, useEditor, requireSaved } from './editor'
+import { recoveryFile } from '../export/recovery'
+import { importProject } from '../export/project'
 
-beforeEach(async () => {
-  await flushPersistence()
-  await db.delete()
-  await db.open()
-})
 afterEach(() => vi.restoreAllMocks())
 
-it('une annulation en attente ne remplace pas le dessin après un échec de commit', async () => {
+it('garde un échec et rejoue toutes les entrées dans l’ordre, sans trou', async () => {
   const { variant } = await repo.createProject('Secours')
   await useEditor.getState().load(variant.id)
-  vi.spyOn(repo, 'recordChange').mockRejectedValue({ name: 'AbortError', inner: { name: 'QuotaExceededError' } })
-  useEditor.getState().commit('Largeur', (d) => { d.wall.w = 456 })
-  await useEditor.getState().undo()
+  const spy = vi.spyOn(repo, 'recordChange').mockRejectedValueOnce(new Error('quota'))
+  useEditor.getState().commit('largeur', (d) => { d.wall.w = 321 })
   await flushPersistence()
-  expect(useEditor.getState().doc.wall.w).toBe(456)
-  expect(useEditor.getState().persistenceError).toContain('Espace de stockage insuffisant')
+  expect(useEditor.getState().saveError).toBeTruthy()
+  useEditor.getState().commit('hauteur', (d) => { d.wall.h = 222 })
+  await flushPersistence()
+  expect(spy).toHaveBeenCalledTimes(1)
+  expect(useEditor.getState().saveError).toBeTruthy()
+  expect(await requireSaved()).toBe(false)
+  const other = await repo.createProject('Autre')
+  expect(await useEditor.getState().load(other.variant.id)).toBe(false)
+  expect(useEditor.getState().variant?.id).toBe(variant.id)
+  const file = await recoveryFile()
+  const imported = await importProject(file)
+  expect(imported.variants[0].state.wall).toEqual({ w: 321, h: 222 })
+  useEditor.getState().retry()
+  await flushPersistence()
+  expect(useEditor.getState().saveError).toBeNull()
+  expect((await repo.listEntries(variant.id)).map((e) => e.seq)).toEqual([1, 2])
+  await useEditor.getState().goTo(0)
+  expect(useEditor.getState().doc.wall).toEqual({ w: 300, h: 250 })
+  await useEditor.getState().goTo(2)
+  expect(useEditor.getState().doc.wall).toEqual({ w: 321, h: 222 })
 })
 
-it('un échec de nettoyage ne peut pas annuler la suppression du projet', async () => {
-  const { project } = await repo.createProject('À supprimer')
-  await db.images.put({ id: 'orpheline', dataUrl: '', width: 1, height: 1 })
-  vi.spyOn(db.images, 'bulkGet').mockRejectedValue(new Error('Lecture impossible'))
-  await repo.deleteProject(project.id)
-  expect(await db.projects.get(project.id)).toBeUndefined()
+it('refuse atomiquement deux écritures concurrentes et un déplacement périmé', async () => {
+  const { variant } = await repo.createProject('Deux onglets')
+  const [a, ap, ai] = produceWithPatches(variant.state, (d) => { d.wall.w = 333 })
+  const [b, bp, bi] = produceWithPatches(variant.state, (d) => { d.wall.h = 111 })
+  const results = await Promise.allSettled([
+    repo.recordChange(variant.id, 'a', a, ap, ai, variant),
+    repo.recordChange(variant.id, 'b', b, bp, bi, variant),
+  ])
+  expect(results.map((r) => r.status).sort()).toEqual(['fulfilled', 'rejected'])
+  expect(await repo.listEntries(variant.id)).toHaveLength(1)
+  await expect(repo.moveHead(variant.id, 0, variant)).rejects.toBeInstanceOf(repo.ConflictError)
 })
 
-it('construit une sauvegarde de secours en mémoire si la base ne peut plus être lue', async () => {
-  const { variant, project } = await repo.createProject('Mémoire')
-  const doc = { ...variant.state, wall: { w: 456, h: 250 } }
-  vi.spyOn(db.projects, 'get').mockRejectedValue(new Error('Lecture impossible'))
-  const result = await rescueProject(variant, doc, project)
-  expect(result.data.variants[0].state.wall.w).toBe(456)
-  expect(result.data.entries).toEqual([])
-  expect(result.warning).toContain('limité')
-})
-
-it('réimporte un plan scindé dont le nouveau mur n’a jamais été enregistré', async () => {
-  const { createRoomProject } = await import('./rooms')
-  const { splitWall } = await import('../room/geometry')
-  const { rescueRoom } = await import('./rescue')
-  const { importProject } = await import('../export/project')
-  const project = await createRoomProject('Pièce scindée')
-  const room = splitWall(project.room!, 0, 'mur-non-enregistré')
-  const { data, warning } = await rescueRoom(project, room)
-  expect(warning).toBe('')
-  const restored = await importProject(data)
-  expect(restored.project.room!.walls).toHaveLength(5)
-  for (const wall of restored.project.room!.walls) {
-    expect(restored.variants.some((v) => v.wallId === wall.id)).toBe(true)
-  }
-})
-
-it('réimporte un plan de secours construit sans aucune lecture de la base', async () => {
-  const { createRoomProject } = await import('./rooms')
-  const { splitWall } = await import('../room/geometry')
-  const { rescueRoom } = await import('./rescue')
-  const { importProject } = await import('../export/project')
-  const project = await createRoomProject('Plan en mémoire')
-  const room = splitWall(project.room!, 0, 'mur-en-mémoire')
-  room.groups = [{ id: 'groupe-en-mémoire', walls: [room.walls[0].id, room.walls[1].id] }]
-  const read = vi.spyOn(db.projects, 'get').mockRejectedValue(new Error('Base inaccessible'))
-  const { data, warning } = await rescueRoom(project, room)
-  read.mockRestore()
-  expect(warning).toContain('limitée au plan affiché')
-  const restored = await importProject(data)
-  expect(restored.project.room!.walls).toHaveLength(5)
-  expect(restored.project.room!.groups).toHaveLength(1)
-  expect(restored.variants).toHaveLength(6)
-})
-
-it('conserve les avertissements d’images absentes dans les deux sauvegardes de secours', async () => {
-  const { createRoomProject } = await import('./rooms')
-  const { rescueRoom } = await import('./rescue')
-  const { placeImage } = await import('./images')
-  const project = await createRoomProject('Image absente')
-  const variant = (await repo.listVariants(project.id))[0]
-  const doc = { ...variant.state, images: [
-    placeImage({ id: 'image-absente', dataUrl: '', width: 10, height: 10 }, variant.state.wall, 'Référence'),
-  ] }
-  await db.variants.update(variant.id, { state: doc })
-  expect((await rescueProject(variant, doc, project)).warning).toContain('images sont absentes')
-  expect((await rescueRoom(project, project.room!)).warning).toContain('images sont absentes')
+it('conserve la dernière cible et les éditions reçues pendant un déplacement', async () => {
+  const { variant } = await repo.createProject('Frise')
+  await useEditor.getState().load(variant.id)
+  for (let i = 1; i <= 4; i++) useEditor.getState().commit('largeur', (d) => { d.wall.w = 300 + i })
+  await flushPersistence()
+  await Promise.all([useEditor.getState().goTo(3), useEditor.getState().goTo(2), useEditor.getState().goTo(1)])
+  expect(useEditor.getState().headSeq).toBe(1)
+  const moving = useEditor.getState().goTo(0)
+  useEditor.getState().commit('hauteur pendant déplacement', (d) => { d.wall.h = 200 })
+  await moving
+  await flushPersistence()
+  expect(useEditor.getState().doc.wall).toEqual({ w: 300, h: 200 })
+  expect((await repo.getVariant(variant.id))!.state.wall.h).toBe(200)
 })

@@ -144,7 +144,7 @@ export function ImageEditModal({ imageId, onClose }: { imageId: string; onClose:
   const handleR = Math.max(source.width, source.height) / 70
 
   const apply = async () => {
-    if (useEditor.getState().persistenceError) return setError('Sauvegardez le dessin affiché puis rechargez avant de poursuivre.')
+    if (useEditor.getState().saveError) return setError('Sauvegardez le dessin affiché puis rechargez avant de poursuivre.')
     if (!valid) return setError('Les 4 coins doivent former un quadrilatère sans croisement.')
     setBusy(true)
     try {

@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
-import { useEditor } from '../store/editor'
+import { useEditor, flushPersistence, hasUnsavedWork } from '../store/editor'
 import { exportPages, type ExportMeta } from '../export/svg'
+import { recoveryFile } from '../export/recovery'
 import { serializeProject } from '../export/project'
 import { gridLayout } from '../geometry/grid'
 import { togglePrintCell } from '../tools/consult'
 import { DocPreview } from './DocPreview'
 
 export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () => void }) {
-  const persistenceError = useEditor((s) => s.persistenceError)
+  const saveError = useEditor((s) => s.saveError)
   const doc = useEditor((s) => s.doc)
   const variant = useEditor((s) => s.variant)!
   const [busy, setBusy] = useState<string | null>(null)
@@ -52,14 +53,15 @@ export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () 
               </button>
               <button disabled={!!busy} data-testid="export-png" onClick={() => run('PNG', async () => (await import('../export/pdf')).exportPng(doc, meta))}>Image PNG</button>
               <button disabled={!!busy} data-testid="export-svg" onClick={() => run('SVG', async () => (await import('../export/pdf')).exportSvg(doc, meta))}>Vectoriel SVG</button>
-              <button disabled={!!busy || !!persistenceError} title={persistenceError ? "Utilisez la sauvegarde de secours du dessin affiché dans l’alerte d’enregistrement." : undefined} data-testid="export-json" onClick={() => run('Sauvegarde du projet', async () => {
-                const data = await serializeProject(variant.projectId)
+              <button disabled={!!busy} data-testid="export-json" onClick={() => run('Sauvegarde du projet', async () => {
+                await flushPersistence()
+                const data = hasUnsavedWork() ? await recoveryFile() : await serializeProject(variant.projectId)
                 if (data.warnings?.length && !window.confirm(data.warnings.join('\n') + '\nTélécharger cette sauvegarde incomplète ?')) return false
                 const { download, safeName } = await import('../export/pdf')
                 download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(meta.project)}.betterdraw.json`)
               })}>Sauvegarde du projet (.json)</button>
             </div>
-            {persistenceError && <p className="hint">Pour conserver les modifications non enregistrées, fermez cette fenêtre et utilisez la sauvegarde de secours dans l’alerte.</p>}
+            {saveError && <p className="hint">Pour conserver les modifications non enregistrées, utilisez la sauvegarde JSON de secours ou celle proposée dans l’alerte.</p>}
             <p className="hint">Les images de référence ne sont jamais incluses dans le PDF, le PNG ni le SVG.</p>
           </div>
           <div className="export-pages" data-testid="export-pages">

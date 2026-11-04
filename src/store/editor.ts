@@ -1,6 +1,6 @@
 import { storageError } from './storage'
 import { create } from 'zustand'
-import { produceWithPatches, type Draft } from 'immer'
+import { produceWithPatches, type Draft, type Patch } from 'immer'
 import type { DocState, GridLineStyle, Opening, RefImage, Shape, Variant, Vec, Rect } from '../model/types'
 import { defaultDoc } from '../model/defaults'
 import * as repo from './repo'
@@ -29,8 +29,17 @@ function enqueue<T>(fn: () => Promise<T>): Promise<T> {
 }
 /** Attend que toutes les écritures soient terminées (tests). */
 export async function flushPersistence() {
-  let pending: Promise<unknown>
-  do { pending = queue; await pending } while (pending !== queue)
+  let current
+  do { current = queue; await current } while (current !== queue)
+}
+export function hasUnsavedWork() {
+  return pending.length > 0 || !!useEditor.getState().saveError
+}
+export async function requireSaved() {
+  await flushPersistence()
+  if (!hasUnsavedWork()) return true
+  useEditor.getState().flash('Réessayez l’enregistrement ou exportez le secours avant de continuer.', 'error')
+  return false
 }
 
 /** Le mur appartient à une pièce : ouvertures et murs voisins. */
@@ -53,7 +62,9 @@ export interface EditorState {
   doc: DocState
   headSeq: number
   maxSeq: number
-  persistenceError: string | null
+  saveError: string | null
+  retry: () => void
+  historyBusy: boolean
   saving: number
   view: View
   tool: Tool
@@ -103,6 +114,42 @@ export interface EditorState {
   screenToWorld: (p: Vec) => Vec
 }
 
+type Pending = { variantId: string; label: string; next: DocState; patches: Patch[]; inverse: Patch[] }
+const pending: Pending[] = []
+let durable: Variant | null = null
+let loading = 0
+let loadingCount = 0
+let historyTarget: number | null = null
+let historyRun: Promise<void> | null = null
+const deferred: { label: string; recipe: (d: Draft<DocState>) => void }[] = []
+let scheduled = false
+function persist(verify = false) {
+  if (scheduled) return queue
+  scheduled = true
+  return enqueue(async () => {
+    useEditor.setState({ saving: 1 })
+    try {
+      if (useEditor.getState().saveError) return
+      if (verify && !pending.length && durable) {
+        const current = await repo.getVariant(durable.id)
+        if (!current || current.headSeq !== durable.headSeq || current.maxSeq !== durable.maxSeq) throw new repo.ConflictError()
+      }
+      while (pending.length && durable) {
+        const item = pending[0]
+        if (item.variantId !== durable.id) throw new Error('Variante différente')
+        const seq = await repo.recordChange(durable.id, item.label, item.next, item.patches, item.inverse, durable)
+        durable = { ...durable, state: item.next, headSeq: seq, maxSeq: seq }
+        pending.shift()
+      }
+    } catch (e) {
+      useEditor.setState({ saveError: e instanceof repo.ConflictError ? e.message : storageError(e) })
+    } finally {
+      scheduled = false
+      useEditor.setState({ saving: 0 })
+    }
+  })
+}
+
 let flashTimer: ReturnType<typeof setTimeout> | undefined
 
 export const useEditor = create<EditorState>((set, get) => ({
@@ -114,8 +161,10 @@ export const useEditor = create<EditorState>((set, get) => ({
   doc: defaultDoc(),
   headSeq: 0,
   maxSeq: 0,
-  persistenceError: null,
+  historyBusy: false,
   saving: 0,
+  saveError: null,
+  retry() { set({ saveError: null }); void persist(true) },
   view: { zoom: 2, panX: 60, panY: 60 },
   tool: 'select',
   mode: 'edit',
@@ -157,24 +206,32 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
 
   async load(variantId) {
-    await queue
-    const v = await repo.getVariant(variantId)
-    if (!v) return false
-    set({
-      persistenceError: null, variant: v, room: null, doc: v.state, headSeq: v.headSeq, maxSeq: v.maxSeq, selection: [],
-      activeColorId: v.state.palette[0]?.id ?? null, rev: get().rev + 1, mode: 'edit', tool: 'select',
-    })
-    return true
+    const request = ++loading
+    loadingCount++
+    try {
+      await flushPersistence()
+      if (pending.length) return get().variant?.id === variantId
+      const v = await repo.getVariant(variantId)
+      if (request !== loading || pending.length) return get().variant?.id === variantId
+      if (!v) return false
+      durable = v
+      set({
+        saveError: null, variant: v, room: null, doc: v.state, headSeq: v.headSeq, maxSeq: v.maxSeq, selection: [],
+        activeColorId: v.state.palette[0]?.id ?? null, rev: get().rev + 1, mode: 'edit', tool: 'select',
+      })
+      return true
+    } finally { loadingCount-- }
   },
 
   unload() {
-    set({ variant: null, selection: [] })
+    if (!pending.length) set({ variant: null, selection: [] })
   },
 
   commit(label, recipe) {
-    if (get().persistenceError) { get().flash('Sauvegardez l’état affiché puis rechargez avant de poursuivre.', 'error'); return }
     const { doc, variant, headSeq, maxSeq } = get()
     if (!variant) return
+    if (loadingCount) { get().flash('Chargement du dessin en cours. Réessayez cette modification après le chargement.', 'error'); return }
+    if (get().historyBusy) { deferred.push({ label, recipe }); return }
     const [next, patches, inverse] = produceWithPatches(doc, (d) => {
       recipe(d)
       for (const h of afterChangeHooks) h(doc, d)
@@ -182,13 +239,10 @@ export const useEditor = create<EditorState>((set, get) => ({
     if (!patches.length) return
     // après un retour en arrière, une entrée « Retour à l'état » est insérée avant (voir repo.recordChange)
     const seq = maxSeq > headSeq ? maxSeq + 2 : headSeq + 1
-    set((s) => ({ doc: next, headSeq: seq, maxSeq: seq, saving: s.saving + 1, rev: s.rev + 1 }))
-    enqueue(() => {
-      if (get().persistenceError) throw new Error('Enregistrement suspendu après un échec')
-      return repo.recordChange(variant.id, label, next, patches, inverse)
-    })
-      .catch((e) => { set({ persistenceError: get().persistenceError ?? storageError(e) }); get().flash(get().persistenceError ?? storageError(e), 'error') })
-      .finally(() => set((s) => ({ saving: s.saving - 1 })))
+    set((s) => ({ doc: next, headSeq: seq, maxSeq: seq, rev: s.rev + 1 }))
+    set({ saving: 1 })
+    pending.push({ variantId: variant.id, label, next, patches, inverse })
+    void persist()
   },
 
   async undo() {
@@ -204,21 +258,32 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
 
   async goTo(seq) {
-    if (get().persistenceError) { get().flash('Sauvegardez l’état affiché puis rechargez avant de poursuivre.', 'error'); return }
     const { variant } = get()
     if (!variant) return
-    try {
-      const v = await enqueue(async () => {
-        if (get().persistenceError) return null
-        return repo.moveHead(variant.id, seq)
-      })
-      if (!v || get().persistenceError) return
-      const sel = new Set(v.state.shapes.map((s) => s.id))
-      set((s) => ({ doc: v.state, headSeq: v.headSeq, rev: s.rev + 1, selection: s.selection.filter((id) => sel.has(id)) }))
-    } catch (e) {
-      set({ persistenceError: get().persistenceError ?? storageError(e) })
-      get().flash(get().persistenceError!, 'error')
-    }
+    historyTarget = seq
+    if (historyRun) return historyRun
+    set({ historyBusy: true })
+    historyRun = enqueue(async () => {
+      try {
+        while (historyTarget !== null) {
+          const target = historyTarget
+          historyTarget = null
+          if (get().saveError || pending.length || !durable) break
+          const v = await repo.moveHead(variant.id, target, durable)
+          durable = v
+          const sel = new Set(v.state.shapes.map((s) => s.id))
+          set((s) => ({ doc: v.state, headSeq: v.headSeq, rev: s.rev + 1, selection: s.selection.filter((id) => sel.has(id)) }))
+        }
+      } catch (e) {
+        set({ saveError: e instanceof repo.ConflictError ? e.message : storageError(e) })
+      } finally {
+        historyTarget = null
+        historyRun = null
+        set({ historyBusy: false })
+        for (const item of deferred.splice(0)) get().commit(item.label, item.recipe)
+      }
+    })
+    return historyRun
   },
 
   setView(v) {
@@ -246,3 +311,13 @@ export const useEditor = create<EditorState>((set, get) => ({
     return { x: (p.x - view.panX) / view.zoom, y: (p.y - view.panY) / view.zoom }
   },
 }))
+
+// Le navigateur protège aussi la mémoire lors d’un rechargement ou d’une fermeture.
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', (event) => {
+    if (pending.length || useEditor.getState().saveError) {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+  })
+}

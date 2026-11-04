@@ -70,7 +70,7 @@ test('un quota atteint laisse une alerte durable et une sauvegarde de secours', 
     useEditor.getState().commit('Modification sans espace', (d: { wall: { w: number } }) => { d.wall.w = 456 })
   })
   await expect(page.getByRole('alert')).toContainText('Espace de stockage insuffisant')
-  await expect(page.getByTestId('save-state')).toHaveText('Échec de l’enregistrement')
+  await expect(page.getByTestId('save-state')).toHaveText('Non enregistré')
   const banner = await page.getByRole('alert').boundingBox()
   expect(banner!.width).toBeGreaterThan(800)
   expect(banner!.y).toBeGreaterThanOrEqual(0)
@@ -79,17 +79,17 @@ test('un quota atteint laisse une alerte durable et une sauvegarde de secours', 
   await page.getByRole('button', { name: 'Sauvegarder l’état affiché', exact: false }).click()
   const file = await downloaded
   expect(file.suggestedFilename()).toContain('secours.betterdraw.json')
-  page.once('dialog', (dialog) => dialog.dismiss())
   await page.goBack()
   await expect(page.getByTestId('canvas')).toBeVisible()
   await expect(page.getByRole('alert')).toContainText('Espace de stockage insuffisant')
-  let prompts = 0
-  page.on('dialog', async (dialog) => { prompts++; await dialog.accept() })
   await page.getByRole('button', { name: 'Gérer l’espace depuis l’accueil' }).click()
+  await expect(page.getByTestId('canvas')).toBeVisible()
+  await page.getByRole('button', { name: 'Réessayer', exact: true }).click()
+  await expect(page.getByTestId('save-state')).toHaveText('Enregistré')
+  await page.getByRole('button', { name: 'Projets', exact: true }).click()
   await expect(page.getByTestId('new-project-form')).toBeVisible()
   await page.getByRole('button', { name: 'Ouvrir', exact: true }).click()
   await expect(page.getByTestId('canvas')).toBeVisible()
-  expect(prompts).toBe(1)
 })
 
 test('un nettoyage défaillant laisse l’accueil et les sauvegardes accessibles', async ({ page }) => {

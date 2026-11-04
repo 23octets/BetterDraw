@@ -8,12 +8,12 @@ import { Icon } from './icons'
 
 export async function importImageFiles(files: FileList | File[]) {
   const st = useEditor.getState()
-  if (st.persistenceError) throw new Error('Enregistrement suspendu')
+  if (st.saveError) throw new Error('Enregistrement suspendu')
   for (const file of Array.from(files)) {
     if (!file.type.startsWith('image/')) continue
     const dataUrl = await readFileAsDataUrl(file)
     const size = await imageSize(dataUrl)
-    if (useEditor.getState().persistenceError) throw new Error('Enregistrement suspendu')
+    if (useEditor.getState().saveError) throw new Error('Enregistrement suspendu')
     const stored = await storeImage(dataUrl, size, true)
     const ref = placeImage(stored, useEditor.getState().doc.wall, file.name)
     st.commit(`Importer l'image ${file.name}`, (d) => {
