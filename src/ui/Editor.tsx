@@ -1,3 +1,4 @@
+import { storageError } from '../store/storage'
 import { useEffect, useRef, useState } from 'react'
 import { useEditor, flushPersistence } from '../store/editor'
 import * as repo from '../store/repo'
@@ -23,9 +24,12 @@ import { roomContext, setDisplayVariant } from '../store/rooms'
 import { seamLineIds } from '../room/merge'
 
 export function Editor({ variantId }: { variantId: string }) {
+  const persistenceError = useEditor((s) => s.persistenceError)
   const load = useEditor((s) => s.load)
   const variant = useEditor((s) => s.variant)
   const [status, setStatus] = useState<'loading' | 'ok' | 'missing'>('loading')
+  const [error, setError] = useState('')
+  const [rescueMessage, setRescueMessage] = useState('')
   const [project, setProject] = useState<Project | null>(null)
 
   useEffect(() => {
@@ -59,17 +63,26 @@ export function Editor({ variantId }: { variantId: string }) {
           d.shapes = d.shapes.filter((s) => !ids.has(s.id))
         })
       }
-    })
+    }).catch((e) => { if (alive) setError(storageError(e)) })
     return () => {
       alive = false
     }
   }, [variantId, load])
+
+  useEffect(() => {
+    const guard = (e: BeforeUnloadEvent) => {
+      if (useEditor.getState().persistenceError) { e.preventDefault(); e.returnValue = '' }
+    }
+    window.addEventListener('beforeunload', guard)
+    return () => { window.removeEventListener('beforeunload', guard); useEditor.setState({ persistenceError: null }) }
+  }, [])
 
   useShortcuts()
   const mode = useEditor((s) => s.mode)
   const [exporting, setExporting] = useState(false)
   const [shortcuts, setShortcuts] = useState(false)
 
+  if (error) return <div role="alert" className="missing"><p>{error}</p><button onClick={() => navigate('/')}>Retour aux projets et sauvegardes</button><button onClick={() => location.reload()}>Réessayer</button></div>
   if (status === 'missing') {
     return (
       <div className="missing">
@@ -83,6 +96,15 @@ export function Editor({ variantId }: { variantId: string }) {
   return (
     <div className="editor">
       <TopBar projectName={project?.name ?? ''} onExport={() => setExporting(true)} onShortcuts={() => setShortcuts((x) => !x)} shortcutsOpen={shortcuts} />
+      {persistenceError && <div className="storage-failure" role="alert">{rescueMessage && <p>{rescueMessage}</p>}<p>{persistenceError} Les dernières modifications ne sont pas enregistrées.</p><button onClick={async () => {
+        try {
+          const { rescueProject } = await import('../store/rescue')
+          const { data, warning } = await rescueProject(variant, useEditor.getState().doc, project)
+          setRescueMessage(warning || 'Sauvegarde de secours téléchargée. Conservez ce fichier hors du navigateur.')
+          const { download, safeName } = await import('../export/pdf')
+          download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(project?.name ?? 'Projet')}.secours.betterdraw.json`)
+        } catch (e) { useEditor.getState().flash(storageError(e), 'error') }
+      }}>Sauvegarder l’état affiché (historique de cette variante exclu)</button><button onClick={() => navigate('/')}>Gérer l’espace depuis l’accueil</button><button onClick={() => { if (confirm('Recharger abandonne les modifications non enregistrées. Avez-vous téléchargé la sauvegarde de secours ?')) location.reload() }}>Recharger</button></div>}
       <Toolbar />
       <main className="stage">
         <Canvas />
@@ -193,6 +215,7 @@ function VariantSwitcher() {
 
 function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { projectName: string; onExport: () => void; onShortcuts: () => void; shortcutsOpen: boolean }) {
   const saving = useEditor((s) => s.saving)
+  const failed = useEditor((s) => s.persistenceError)
   const headSeq = useEditor((s) => s.headSeq)
   const maxSeq = useEditor((s) => s.maxSeq)
   const undo = useEditor((s) => s.undo)
@@ -219,7 +242,7 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
       </div>
       <GridMenu />
       <div className="spacer" />
-      <span className={`save-state${saving ? ' busy' : ''}`} data-testid="save-state">{saving ? 'Enregistrement…' : 'Enregistré'}</span>
+      <span className={`save-state${failed ? ' error' : saving ? ' busy' : ''}`} data-testid="save-state">{failed ? 'Échec de l’enregistrement' : saving ? 'Enregistrement…' : 'Enregistré'}</span>
       <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier" aria-label="Raccourcis clavier">
         <Icon name="keyboard" /> Raccourcis
       </button>

@@ -59,3 +59,22 @@ gh run download <id-du-run> -n captures -D /tmp/captures
 Relire les images, les copier dans `e2e/__screenshots__`, puis les committer (`gh run download` refuse d'écraser des fichiers existants). En cas d'échec, l'artefact `playwright-report` de la CI contient les différences.
 
 Les tests e2e génèrent des captures dans `docs/screenshots/` et un exemple de PDF chantier dans `docs/exemple-chantier.pdf` (non versionnés).
+
+## Données locales et sauvegardes
+
+L’accueil permet de télécharger chaque projet en JSON avec ses variantes, son
+historique et ses images, puis de le réimporter. Garder ces fichiers en dehors du
+navigateur : vider ses données efface les projets. La protection de stockage
+persistant, si le navigateur l’accorde, ne protège pas d’un effacement manuel.
+
+L’espace affiché est l’estimation du navigateur pour ce site. Les nouvelles images
+de référence sont réduites à 2 048 pixels sur leur plus grand côté. Les images
+sans référence sont nettoyées à l’ouverture, à la suppression d’un projet ou
+d’une variante, et par le bouton de nettoyage. Les ajouts de moins de 24 heures
+restent conservés pour protéger les enregistrements en cours dans un autre onglet.
+Les états courants et les deux sens de l’historique de toutes les variantes
+protègent leurs images, y compris les sources des retouches et les images partagées.
+
+Si un enregistrement échoue, l’éditeur le signale durablement et permet de
+sauvegarder l’état affiché en JSON de secours ; cette sauvegarde exclut l’historique
+de la variante courante, dont les dernières écritures ne sont pas garanties.

@@ -1,3 +1,4 @@
+import { storageError } from '../store/storage'
 import { useRef, useState } from 'react'
 import { ImageEditModal } from './ImageEditModal'
 import { useEditor } from '../store/editor'
@@ -7,11 +8,13 @@ import { Icon } from './icons'
 
 export async function importImageFiles(files: FileList | File[]) {
   const st = useEditor.getState()
+  if (st.persistenceError) throw new Error('Enregistrement suspendu')
   for (const file of Array.from(files)) {
     if (!file.type.startsWith('image/')) continue
     const dataUrl = await readFileAsDataUrl(file)
     const size = await imageSize(dataUrl)
-    const stored = await storeImage(dataUrl, size)
+    if (useEditor.getState().persistenceError) throw new Error('Enregistrement suspendu')
+    const stored = await storeImage(dataUrl, size, true)
     const ref = placeImage(stored, useEditor.getState().doc.wall, file.name)
     st.commit(`Importer l'image ${file.name}`, (d) => {
       d.images.push(ref)
@@ -49,7 +52,7 @@ export function ImagesSection() {
     <Section title="Images de référence" testId="images-section">
       <input ref={input} type="file" accept="image/*" multiple hidden data-testid="image-input"
         onChange={(e) => {
-          if (e.target.files?.length) importImageFiles(e.target.files)
+          if (e.target.files?.length) importImageFiles(e.target.files).catch((err) => useEditor.getState().flash(storageError(err), 'error'))
           e.target.value = ''
         }} />
       <button className="wide" onClick={() => input.current?.click()} data-testid="import-image"><Icon name="plus" size={14} /> Importer une image</button>

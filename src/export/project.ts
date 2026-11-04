@@ -1,3 +1,4 @@
+import { imageReferences } from '../store/storage'
 import { nanoid } from 'nanoid'
 import { db } from '../store/db'
 import type { DocState, GridSettings, HistoryEntry, ImageEdit, Opening, Project, Rect, RoomPlan, Segment, Shape, StoredImage, Variant, Vec, Wall } from '../model/types'
@@ -15,6 +16,7 @@ export interface ProjectFile {
 
 /** Exporte un projet complet : variantes, historique et images. */
 export async function serializeProject(projectId: string): Promise<ProjectFile> {
+  return db.transaction('r', [db.projects, db.walls, db.variants, db.entries, db.images], async () => {
   const project = await db.projects.get(projectId)
   if (!project) throw new Error('projet introuvable')
   const walls = await db.walls.where('projectId').equals(projectId).toArray()
@@ -22,14 +24,16 @@ export async function serializeProject(projectId: string): Promise<ProjectFile> 
   const entries: HistoryEntry[] = []
   for (const v of variants) entries.push(...(await db.entries.where('variantId').equals(v.id).toArray()))
   // images affichées + images d'origine des images retouchées
-  const blobIds = new Set(variants.flatMap((v) => v.state.images.flatMap((i) => (i.edit ? [i.blobId, i.edit.sourceBlobId] : [i.blobId]))))
-  const images = (await db.images.bulkGet([...blobIds])).filter((x): x is StoredImage => !!x)
-  return { format: 'betterdraw-project', version: 1, exportedAt: Date.now(), project, walls, variants, entries, images }
+  const blobIds = imageReferences(variants, entries)
+  const keys = (await db.images.toCollection().primaryKeys()).filter((id) => blobIds.has(id))
+  const images = (await db.images.bulkGet(keys)).filter((x): x is StoredImage => !!x)
+  return { format: 'betterdraw-project' as const, version: 1 as const, exportedAt: Date.now(), project, walls, variants, entries, images }
+  })
 }
 
 // ---------- Validation stricte de l'import (le fichier vient de l'extérieur) ----------
 
-class ImportError extends Error {}
+export class ImportError extends Error {}
 const fail = (what: string): never => {
   throw new ImportError(`Fichier invalide (${what})`)
 }
@@ -178,7 +182,7 @@ function sanitizePatches(x: unknown): unknown[] {
 /** Importe un fichier projet comme nouveau projet (nouveaux identifiants, rien n'est écrasé). */
 export async function importProject(data: unknown): Promise<{ project: Project; variants: Variant[] }> {
   const root = data && typeof data === 'object' ? (data as Record<string, unknown>) : null
-  if (!root || root.format !== 'betterdraw-project' || !root.project || !Array.isArray(root.variants)) throw new Error('Ce fichier n’est pas un projet BetterDraw')
+  if (!root || root.format !== 'betterdraw-project' || !root.project || !Array.isArray(root.variants)) throw new ImportError('Ce fichier n’est pas un projet BetterDraw')
   const p0 = obj(root.project, 'projet')
   const now = Date.now()
   const pid = nanoid(10)

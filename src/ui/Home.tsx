@@ -1,10 +1,13 @@
+import { StorageNotice } from './StorageNotice'
+import { storageError } from '../store/storage'
+import { serializeProject } from '../export/project'
 import { useEffect, useState } from 'react'
 import * as repo from '../store/repo'
 import type { Project, Variant } from '../model/types'
 import { navigate } from './router'
 import { DEFAULT_WALL } from '../model/defaults'
 import { Thumb } from './DocPreview'
-import { importProject } from '../export/project'
+import { importProject, ImportError } from '../export/project'
 import { Icon } from './icons'
 import { createRoomProject, convertToRoom, type RoomShape } from '../store/rooms'
 import { RoomThumb } from '../room/RoomThumb'
@@ -27,7 +30,16 @@ export function Home() {
   const [rh, setRh] = useState(DEFAULT_ROOM.h)
   const [shape, setShape] = useState<RoomShape>('rect')
 
-  const refresh = () => repo.listProjects().then(setProjects)
+  const [error, setError] = useState('')
+  const refresh = () => repo.listProjects().then((rows) => { setProjects(rows); setError('') }).catch((e) => setError(storageError(e)))
+  const backup = async (p: Project) => {
+    try {
+      const data = await serializeProject(p.id)
+      const { download, safeName } = await import('../export/pdf')
+      download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(p.name)}.betterdraw.json`)
+      setImportMsg('Sauvegarde téléchargée. Conservez ce fichier hors du navigateur.')
+    } catch (e) { setError(storageError(e)) }
+  }
   useEffect(() => {
     refresh()
   }, [])
@@ -55,7 +67,9 @@ export function Home() {
         </div>
       </header>
 
-      <form className="new-project" onSubmit={create} data-testid="new-project-form">
+      <StorageNotice revision={projects?.map((p) => p.id).join()} />
+      {error && <div role="alert"><p>{error}</p><button onClick={refresh}>Réessayer</button></div>}
+      <form className="new-project" onSubmit={(e) => { void create(e).catch((err) => setError(storageError(err))) }} data-testid="new-project-form">
         <div className="new-project-top">
           <h2>Nouveau projet</h2>
           <div className="seg" role="group" aria-label="Type de projet">
@@ -122,11 +136,15 @@ export function Home() {
                 e.target.value = ''
                 if (!f) return
                 try {
-                  const { project } = await importProject(JSON.parse(await f.text()))
+                  const content = await f.text()
+                  let parsed: unknown
+                  try { parsed = JSON.parse(content) }
+                  catch { throw new ImportError('Fichier illisible : ce n’est pas une sauvegarde JSON valide') }
+                  const { project } = await importProject(parsed)
                   setImportMsg(`« ${project.name} » importé`)
                   refresh()
                 } catch (err) {
-                  setImportMsg(`Import impossible : ${(err as Error).message}`)
+                  setImportMsg(err instanceof ImportError ? err.message : storageError(err))
                 }
               }} />
             <Icon name="export" size={15} /> Importer une sauvegarde
@@ -151,7 +169,7 @@ export function Home() {
                         <Icon name="layers" size={13} /> {p.variants.length} variante{p.variants.length > 1 ? 's' : ''} · {fmtDate(p.updatedAt)}
                       </span>
                     </div>
-                    <div className="card-actions">
+                    <div className="card-actions"><button className="small" aria-label={`Sauvegarder ${p.name} (.json)`} onClick={() => backup(p)}>Sauvegarder (.json)</button>
                       <button className="primary small" onClick={open} data-testid="open-room">Ouvrir la pièce</button>
                       <div className="spacer" />
                       <DeleteProject p={p} onDone={refresh} />
@@ -171,13 +189,13 @@ export function Home() {
                       <Icon name="layers" size={13} /> {p.variants.length} variante{p.variants.length > 1 ? 's' : ''} · {fmtDate(p.updatedAt)}
                     </span>
                   </div>
-                  <div className="card-actions">
+                  <div className="card-actions"><button className="small" aria-label={`Sauvegarder ${p.name} (.json)`} onClick={() => backup(p)}>Sauvegarder (.json)</button>
                     {last && <button className="primary small" onClick={() => navigate(`/v/${last.id}`)}>Ouvrir</button>}
                     <button className="small" onClick={() => navigate(`/p/${p.id}`)} data-testid="open-variants">
                       <Icon name="layers" size={14} /> Variantes
                     </button>
                     <button className="icon-btn small" title="Transformer en pièce : ce mur devient le premier des quatre murs d’une pièce visible en 3D" aria-label={`Transformer ${p.name} en pièce`} data-testid="convert-room" onClick={async () => {
-                      await convertToRoom(p.id)
+                      try { await convertToRoom(p.id) } catch (e) { setError(storageError(e)); return }
                       navigate(`/r/${p.id}`)
                     }}><Icon name="cube" size={14} /></button>
                     <div className="spacer" />
@@ -187,7 +205,7 @@ export function Home() {
                       aria-label={`Supprimer ${p.name}`}
                       onClick={async () => {
                         if (confirm(`Supprimer le projet « ${p.name} » et toutes ses variantes ?`)) {
-                          await repo.deleteProject(p.id)
+                          try { await repo.deleteProject(p.id) } catch (e) { alert(storageError(e)); return }
                           refresh()
                         }
                       }}
@@ -213,7 +231,7 @@ function DeleteProject({ p, onDone }: { p: Project; onDone: () => void }) {
       aria-label={`Supprimer ${p.name}`}
       onClick={async () => {
         if (confirm(`Supprimer le projet « ${p.name} » et toutes ses variantes ?`)) {
-          await repo.deleteProject(p.id)
+          try { await repo.deleteProject(p.id) } catch (e) { alert(storageError(e)); return }
           onDone()
         }
       }}

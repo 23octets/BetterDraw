@@ -1,3 +1,4 @@
+import { useEditor } from '../store/editor'
 import { useEffect, useState } from 'react'
 
 export type Route =
@@ -17,6 +18,12 @@ export function parseHash(hash: string): Route {
   return { name: 'home' }
 }
 
+const guards = new Set<() => boolean>()
+export function registerNavigationGuard(guard: () => boolean) {
+  guards.add(guard)
+  return () => { guards.delete(guard) }
+}
+
 export function navigate(path: string) {
   window.location.hash = path
 }
@@ -24,7 +31,18 @@ export function navigate(path: string) {
 export function useRoute(): Route {
   const [route, setRoute] = useState(() => parseHash(window.location.hash))
   useEffect(() => {
-    const on = () => setRoute(parseHash(window.location.hash))
+    let previous = window.location.hash
+    const on = () => {
+      const next = window.location.hash
+      if (next === previous) return
+      if ((useEditor.getState().persistenceError || [...guards].some((guard) => guard())) &&
+        !confirm('Quitter abandonne les modifications non enregistrées. Avez-vous téléchargé la sauvegarde de secours ?')) {
+        window.history.pushState(null, '', window.location.pathname + window.location.search + previous)
+        return
+      }
+      previous = next
+      setRoute(parseHash(next))
+    }
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
   }, [])

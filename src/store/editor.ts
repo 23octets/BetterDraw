@@ -1,3 +1,4 @@
+import { storageError } from './storage'
 import { create } from 'zustand'
 import { produceWithPatches, type Draft } from 'immer'
 import type { DocState, GridLineStyle, Opening, RefImage, Shape, Variant, Vec, Rect } from '../model/types'
@@ -51,6 +52,7 @@ export interface EditorState {
   doc: DocState
   headSeq: number
   maxSeq: number
+  persistenceError: string | null
   saving: number
   view: View
   tool: Tool
@@ -111,6 +113,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   doc: defaultDoc(),
   headSeq: 0,
   maxSeq: 0,
+  persistenceError: null,
   saving: 0,
   view: { zoom: 2, panX: 60, panY: 60 },
   tool: 'select',
@@ -157,7 +160,7 @@ export const useEditor = create<EditorState>((set, get) => ({
     const v = await repo.getVariant(variantId)
     if (!v) return false
     set({
-      variant: v, room: null, doc: v.state, headSeq: v.headSeq, maxSeq: v.maxSeq, selection: [],
+      persistenceError: null, variant: v, room: null, doc: v.state, headSeq: v.headSeq, maxSeq: v.maxSeq, selection: [],
       activeColorId: v.state.palette[0]?.id ?? null, rev: get().rev + 1, mode: 'edit', tool: 'select',
     })
     return true
@@ -168,6 +171,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
 
   commit(label, recipe) {
+    if (get().persistenceError) { get().flash('Sauvegardez l’état affiché puis rechargez avant de poursuivre.', 'error'); return }
     const { doc, variant, headSeq, maxSeq } = get()
     if (!variant) return
     const [next, patches, inverse] = produceWithPatches(doc, (d) => {
@@ -178,8 +182,11 @@ export const useEditor = create<EditorState>((set, get) => ({
     // après un retour en arrière, une entrée « Retour à l'état » est insérée avant (voir repo.recordChange)
     const seq = maxSeq > headSeq ? maxSeq + 2 : headSeq + 1
     set((s) => ({ doc: next, headSeq: seq, maxSeq: seq, saving: s.saving + 1, rev: s.rev + 1 }))
-    enqueue(() => repo.recordChange(variant.id, label, next, patches, inverse))
-      .catch(() => get().flash('Enregistrement impossible (voir la console)', 'error'))
+    enqueue(() => {
+      if (get().persistenceError) throw new Error('Enregistrement suspendu après un échec')
+      return repo.recordChange(variant.id, label, next, patches, inverse)
+    })
+      .catch((e) => { set({ persistenceError: get().persistenceError ?? storageError(e) }); get().flash(get().persistenceError ?? storageError(e), 'error') })
       .finally(() => set((s) => ({ saving: s.saving - 1 })))
   },
 
@@ -196,11 +203,21 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
 
   async goTo(seq) {
+    if (get().persistenceError) { get().flash('Sauvegardez l’état affiché puis rechargez avant de poursuivre.', 'error'); return }
     const { variant } = get()
     if (!variant) return
-    const v = await enqueue(() => repo.moveHead(variant.id, seq))
-    const sel = new Set(v.state.shapes.map((s) => s.id))
-    set((s) => ({ doc: v.state, headSeq: v.headSeq, rev: s.rev + 1, selection: s.selection.filter((id) => sel.has(id)) }))
+    try {
+      const v = await enqueue(async () => {
+        if (get().persistenceError) return null
+        return repo.moveHead(variant.id, seq)
+      })
+      if (!v || get().persistenceError) return
+      const sel = new Set(v.state.shapes.map((s) => s.id))
+      set((s) => ({ doc: v.state, headSeq: v.headSeq, rev: s.rev + 1, selection: s.selection.filter((id) => sel.has(id)) }))
+    } catch (e) {
+      set({ persistenceError: get().persistenceError ?? storageError(e) })
+      get().flash(get().persistenceError!, 'error')
+    }
   },
 
   setView(v) {
