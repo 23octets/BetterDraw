@@ -35,7 +35,7 @@ npm run dev          # http://localhost:5199
 - **Variantes** : snapshot → variante indépendante, galerie, comparaison côte à côte (2 à 4, zoom synchronisé).
 - **Images en filigrane** : plusieurs images, déplacement, agrandissement proportionnel, opacité, verrouillage ;
   jamais exportées.
-- **Consultation** : zoom case par case avec les cotes de la case, choix des cases à imprimer.
+- **Consultation** : le rendu sans les traits ni les images, avec réglage des teintes ; zoom case par case avec les cotes de la case, choix des cases à imprimer.
 - **Exports** : PDF chantier (vue d'ensemble cotée + cases choisies en grand), PNG, SVG,
   sauvegarde du projet en JSON (réimportable depuis l'accueil).
 

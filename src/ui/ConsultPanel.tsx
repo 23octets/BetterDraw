@@ -1,6 +1,7 @@
 import { useEditor } from '../store/editor'
 import { gridLayout } from '../geometry/grid'
 import { neighborCell, togglePrintCell, zoomToCell } from '../tools/consult'
+import { BackgroundSection, PaletteSection } from './PaintSections'
 import { Section } from './SidePanel'
 import { NumberField } from './fields'
 
@@ -39,7 +40,7 @@ export function ConsultPanel({ onExport }: { onExport: () => void }) {
         </div>
         <p className="hint" style={{ margin: 0 }}>Clic sur une case pour zoomer, nouveau clic pour revenir à la vue d’ensemble. Flèches du clavier : case voisine.</p>
         <label className="check">
-          <input type="checkbox" checked={tool === 'measure'} onChange={(e) => setTool(e.target.checked ? 'measure' : 'select')} data-testid="consult-measure" />
+          <input type="checkbox" checked={tool === 'measure'} onChange={(e) => { setTool(e.target.checked ? 'measure' : 'select'); if (e.target.checked) setPickPrint(false) }} data-testid="consult-measure" />
           Outil mesure
         </label>
       </Section>
@@ -48,6 +49,7 @@ export function ConsultPanel({ onExport }: { onExport: () => void }) {
           <input type="checkbox" checked={pickPrint} onChange={(e) => { setPickPrint(e.target.checked); if (e.target.checked) setTool('select') }} data-testid="pick-print" />
           Choisir en cliquant sur la grille
         </label>
+        <p className="hint" style={{ margin: 0 }}>Sans cocher : ⌥ + clic sur une case pour l’ajouter ou la retirer.</p>
         {c && (
           <button onClick={() => togglePrintCell(c.id)} data-testid="toggle-current-print">
             {doc.printCells.includes(c.id) ? `Retirer ${c.id} de l’impression` : `Imprimer ${c.id} en grand`}
@@ -64,6 +66,8 @@ export function ConsultPanel({ onExport }: { onExport: () => void }) {
         )}
         <button className="primary" onClick={onExport} data-testid="open-export">Exporter le PDF chantier…</button>
       </Section>
+      <PaletteSection />
+      <BackgroundSection />
     </div>
   )
 }

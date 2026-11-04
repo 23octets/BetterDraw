@@ -51,7 +51,6 @@ export function Toolbar() {
             aria-label={t.label}
             aria-pressed={tool === t.id}
             data-testid={`tool-${t.id}`}
-            disabled={mode !== 'edit'}
             onClick={() => setTool(t.id)}
             onMouseEnter={enter}
           >

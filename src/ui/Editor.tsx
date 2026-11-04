@@ -215,8 +215,7 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
       </div>
       <div className="seg" role="group" aria-label="Mode d'affichage">
         <button className={mode === 'edit' ? 'on' : ''} onClick={() => setMode('edit')} data-testid="mode-edit">Édition</button>
-        <button className={mode === 'render' ? 'on' : ''} onClick={() => setMode('render')} data-testid="mode-render">Rendu</button>
-        <button className={mode === 'consult' ? 'on' : ''} onClick={() => setMode('consult')} data-testid="mode-consult">Consultation</button>
+        <button className={mode === 'consult' ? 'on' : ''} onClick={() => setMode('consult')} data-testid="mode-consult" title="Voir le résultat sans les traits, et lire la grille case par case">Consultation</button>
       </div>
       <GridMenu />
       <div className="spacer" />
@@ -316,6 +315,7 @@ export function ShortcutsPanel() {
       <ul>
         {row(<K>Clic</K>, 'zoomer / dézoomer une case', 'cc')}
         {row(<><K>←</K><K>→</K><K>↑</K><K>↓</K></>, 'case voisine', 'arr')}
+        {row(<><K>⌥</K><K>Clic</K></>, 'ajouter / retirer une case à imprimer', 'cp')}
       </ul>
     </aside>
   )

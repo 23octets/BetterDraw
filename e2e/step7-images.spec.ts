@@ -48,8 +48,8 @@ test('images en filigrane : importer, déplacer, agrandir, opacité, non export�
   await clickWall(page, 40, 200)
   await page.getByTestId('tool-image').click()
   await page.screenshot({ path: `${SHOTS}/step7-01-image-filigrane.png` })
-  // invisible en mode rendu, persistée après rechargement
-  await page.getByTestId('mode-render').click()
+  // invisible en consultation, persistée après rechargement
+  await page.getByTestId('mode-consult').click()
   await expect(page.getByTestId('ref-image')).toHaveCount(0)
   await expect(page.getByTestId('save-state')).toHaveText('Enregistré')
   await page.reload()

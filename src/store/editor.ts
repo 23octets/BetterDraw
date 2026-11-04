@@ -5,7 +5,7 @@ import { defaultDoc } from '../model/defaults'
 import * as repo from './repo'
 
 export type Tool = 'select' | 'polyline' | 'arc' | 'bezier' | 'trim' | 'fill' | 'erase' | 'pick' | 'measure' | 'image'
-export type Mode = 'edit' | 'render' | 'consult'
+export type Mode = 'edit' | 'consult'
 
 export interface View {
   zoom: number // px par cm
@@ -210,7 +210,7 @@ export const useEditor = create<EditorState>((set, get) => ({
     set({ tool })
   },
   setMode(mode) {
-    set({ mode, selection: mode === 'edit' ? get().selection : [], consultCell: null, pickPrint: false, tool: mode === 'consult' ? 'select' : get().tool })
+    set({ mode, selection: mode === 'edit' ? get().selection : [], consultCell: null, pickPrint: false })
   },
   setSelection(selection) {
     set({ selection })
