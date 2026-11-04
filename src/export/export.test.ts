@@ -190,7 +190,7 @@ describe('import : sécurité', () => {
     await db.delete()
     await db.open()
     const { variants } = await importProject(JSON.parse(JSON.stringify(file)))
-    const restored = await repo.moveHead(variants[0].id, 1)
+    const restored = await repo.moveHead(variants[0].id, 1, variants[0])
     expect(await db.images.get(restored.state.images[0].blobId)).toBeDefined()
     expect(await db.images.get(restored.state.images[0].edit!.sourceBlobId)).toBeDefined()
     const damaged = await serializeProject(variants[0].projectId)

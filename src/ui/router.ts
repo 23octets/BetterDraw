@@ -1,3 +1,4 @@
+import { requireSaved } from '../store/editor'
 import { useEffect, useState } from 'react'
 
 export type Route =
@@ -17,7 +18,8 @@ export function parseHash(hash: string): Route {
   return { name: 'home' }
 }
 
-export function navigate(path: string) {
+export async function navigate(path: string) {
+  if (!await requireSaved()) return
   window.location.hash = path
 }
 
