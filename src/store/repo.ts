@@ -18,11 +18,11 @@ export async function listProjects(): Promise<(Project & { variants: Variant[] }
   return out
 }
 
-export async function createProject(name: string, wall?: { w: number; h: number }) {
+export async function createProject(name: string, wall?: { w: number; h: number }, initialState?: DocState) {
   const t = now()
   const project: Project = { id: nanoid(10), name, createdAt: t, updatedAt: t }
   const wallId = nanoid(10)
-  const state = defaultDoc()
+  const state = initialState ?? defaultDoc()
   if (wall) state.wall = { ...wall }
   const variant: Variant = {
     id: nanoid(10), projectId: project.id, wallId, name: 'Variante A',

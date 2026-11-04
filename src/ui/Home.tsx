@@ -1,3 +1,5 @@
+import { Guide } from './Guide'
+import { exampleDoc } from '../model/example'
 import { useEffect, useState } from 'react'
 import * as repo from '../store/repo'
 import type { Project, Variant } from '../model/types'
@@ -18,6 +20,7 @@ const fmtDate = (t: number) => new Date(t).toLocaleDateString('fr-FR', { day: 'n
 export function Home() {
   const [projects, setProjects] = useState<Row[] | null>(null)
   const [name, setName] = useState('')
+  const [exampleBusy, setExampleBusy] = useState(false)
   const [w, setW] = useState(DEFAULT_WALL.w)
   const [h, setH] = useState(DEFAULT_WALL.h)
   const [importMsg, setImportMsg] = useState<string | null>(null)
@@ -54,6 +57,19 @@ export function Home() {
           </div>
         </div>
       </header>
+      <div className="welcome-actions">
+        <button disabled={exampleBusy} onClick={async () => {
+          setExampleBusy(true)
+          try {
+            const { variant } = await repo.createProject('Exemple — Paysage géométrique', undefined, exampleDoc())
+            navigate(`/v/${variant.id}`)
+          } catch {
+            setImportMsg("Impossible de créer l’exemple. Réessaie.")
+            setExampleBusy(false)
+          }
+        }}>Ouvrir un projet exemple</button>
+        <Guide />
+      </div>
 
       <form className="new-project" onSubmit={create} data-testid="new-project-form">
         <div className="new-project-top">

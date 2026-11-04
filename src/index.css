@@ -667,3 +667,12 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .room-splitter::after { content: ''; position: absolute; top: 50%; left: 2px; width: 6px; height: 44px; transform: translateY(-50%); border-radius: 3px; background: var(--line); transition: background 0.15s; }
 .room-splitter:hover::after, .room-splitter.dragging::after, .room-splitter:focus-visible::after { background: var(--primary); }
 .room-splitter.dragging::before { content: ''; position: absolute; top: 0; bottom: 0; left: -2000px; width: 4000px; }
+
+.welcome-actions { display: flex; align-items: center; gap: 20px; margin: 20px 0; }
+.guide summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+.guide-content { position: fixed; right: 24px; top: 90px; width: min(480px, calc(100vw - 48px)); max-height: calc(100vh - 120px); overflow: auto; z-index: 45; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 40px #0003; }
+.guide-content ol { padding: 0 24px 0 40px; font-size: 14px; line-height: 1.5; }
+.guide-content li { margin: 12px 0; }
+.guide-content > p { margin: 16px 24px; }
+.editor-guide { position: absolute; bottom: 16px; left: 76px; z-index: 20; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.paint-help { padding: 12px; line-height: 1.5; }

@@ -34,7 +34,7 @@ export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () 
         <div className="modal-body">
           <div className="export-left">
             <h3>Cases à détailler</h3>
-            <p className="hint">Clique sur les cases complexes pour les imprimer en grand.</p>
+            <p className="hint">Clique sur les cases complexes pour les imprimer en grand. Ces pages sont des références agrandies, pas des patrons à l’échelle 1:1. Reporte le dessin avec les cotes et la grille.</p>
             <div className="cell-picker" style={{ aspectRatio: `${doc.wall.w} / ${doc.wall.h}` }}>
               <DocPreview doc={doc} showGrid className="cell-picker-svg" />
               <svg className="cell-picker-hit" viewBox={`0 0 ${doc.wall.w} ${doc.wall.h}`} preserveAspectRatio="none">
