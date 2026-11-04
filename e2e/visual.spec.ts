@@ -15,6 +15,20 @@ async function poly(page: Page, pts: [number, number][]) {
 /** Éloigne la souris pour ne pas capturer d'état de survol. */
 const parkMouse = (page: Page) => page.mouse.move(0, 0)
 
+/** Les textures sont produites en arrière-plan : tous les murs peints doivent avoir la leur. */
+const paintedWallsReady = (page: Page) =>
+  page.evaluate(() => {
+    const s = (window as unknown as {
+      __roomScene?: {
+        lastPaints: ({ doc?: unknown } | undefined)[]
+        walls: { seg: { index: number }; innerMat: { map: unknown } }[]
+      }
+    }).__roomScene
+    if (!s) return false
+    const painted = s.walls.filter((w) => s.lastPaints[w.seg.index]?.doc)
+    return painted.length > 0 && painted.every((w) => w.innerMat.map)
+  })
+
 test.beforeEach(async ({ page }) => {
   await resetDb(page)
 })
@@ -78,6 +92,7 @@ test('pièce : plan et vue 3D avec murs peints', async ({ page }) => {
   await expect(page.getByTestId('plan')).toHaveScreenshot('piece-plan.png')
 
   await page.getByTestId('layout-3d').click()
+  await expect.poll(() => paintedWallsReady(page)).toBe(true)
   await parkMouse(page)
   await expect(page.getByTestId('room-3d')).toHaveScreenshot('piece-3d.png', { timeout: 30_000 })
 })
