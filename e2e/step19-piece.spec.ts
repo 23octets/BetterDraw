@@ -122,6 +122,8 @@ test('pièce : plan, portes et fenêtres, peinture des murs, vue 3D', async ({ p
   // visite : on peut passer en mode première personne
   await page.getByTestId('mode-walk').click()
   await expect(page.getByTestId('mode-walk')).toHaveClass(/on/)
+  // comme Échap pour un utilisateur : tant que le pointeur est verrouillé, un clic n'atteint pas les boutons
+  await page.evaluate(() => document.exitPointerLock())
   await page.getByTestId('mode-orbit').click()
 
   // l'accueil affiche la pièce

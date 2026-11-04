@@ -4,7 +4,9 @@ const isCI = !!process.env.CI
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 60_000,
+  // en CI, le rendu WebGL est logiciel : la 3D et les enregistrements sont bien plus lents
+  timeout: isCI ? 120_000 : 60_000,
+  expect: { timeout: isCI ? 15_000 : 5_000 },
   fullyParallel: false,
   workers: 1,
   forbidOnly: isCI,
