@@ -239,6 +239,10 @@ describe('mur de pièce', () => {
       expect(svg).toContain('stroke-dasharray="4 3"')
     }
     expect(coverPageSvg(doc, { project: 'P', variant: 'V' }, room)).toContain('Ouvertures et zones sans mur déduites')
+    const cover = coverPageSvg(doc, { project: 'P', variant: 'V' }, room)
+    expect(cover.indexOf('data-room-overlay')).toBeLessThan(cover.indexOf('<g opacity='))
+    expect(cover.indexOf('data-room-overlay')).toBeLessThan(cover.indexOf('fill="#2a6bd1"'))
+
     expect(drawingSvg(doc).replace(/gc\d+/g, 'gc')).toBe(drawingSvg(doc, { room: null }).replace(/gc\d+/g, 'gc'))
   })
 })

@@ -12,6 +12,7 @@ export function VariantsOverlay({ onClose }: { onClose: () => void }) {
   const current = useEditor((s) => s.variant)!
   const blocked = useEditor((s) => !!s.saveError || !!s.saving)
   const doc = useEditor((s) => s.doc)
+  const room = useEditor((s) => s.room)
   const [list, setList] = useState<Variant[] | null>(null)
   const [picked, setPicked] = useState<string[]>([])
 
@@ -77,7 +78,7 @@ export function VariantsOverlay({ onClose }: { onClose: () => void }) {
               const state = v.id === current.id ? doc : v.state
               const parent = v.parentId ? byId.get(v.parentId) : undefined
               const on = picked.includes(v.id)
-              const colors = surfaces(state).colors
+              const colors = surfaces(state, room).colors
               return (
                 <li key={v.id} className={`card variant-card${on ? ' picked' : ''}${v.id === current.id ? ' current' : ''}`} data-testid="variant-card">
                   <Thumb doc={state} onOpen={() => open(v.id)} label={`Ouvrir ${v.name}`}>
@@ -90,7 +91,7 @@ export function VariantsOverlay({ onClose }: { onClose: () => void }) {
                     <strong className="card-title">{v.id === current.id ? current.name : v.name}</strong>
                     <span className="card-meta">{v.parentId ? `Issue de ${parent?.name ?? 'une variante supprimée'} (état #${v.parentSeq})` : 'Dessin d’origine'}</span>
                     <span className="swatches">
-                      {colors.map((c) => <span key={c.colorId} className="mini-swatch" style={{ background: c.hex }} title={c.name} />)}
+                      {colors.map((c) => <span key={c.colorId} className="mini-swatch" style={{ background: c.hex }} title={`${c.name} · ${(c.area / 10000).toFixed(2)} m²`} />)}
                     </span>
                   </div>
                   <div className="card-actions">
