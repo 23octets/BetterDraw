@@ -11,6 +11,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const doc = useEditor((s) => s.doc)
   const commit = useEditor((s) => s.commit)
   const { wall, grid } = doc
+  const room = useEditor((s) => s.room)
   const layout = gridLayout(wall, grid)
 
   useEffect(() => {
@@ -39,6 +40,12 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           <button className="icon-btn ghost" onClick={onClose} aria-label="Fermer" data-testid="close-settings"><Icon name="close" /></button>
         </header>
         <div className="modal-pad">
+          {room ? (
+            <section className="settings-block">
+              <h4>Taille du mur</h4>
+              <p className="hint" data-testid="wall-size-locked">{wall.w} × {wall.h} cm · {((wall.w * wall.h) / 10000).toFixed(2)} m². La taille de ce mur vient du plan de la pièce : change-la depuis la pièce (longueur du mur, hauteur sous plafond).</p>
+            </section>
+          ) : (
           <section className="settings-block">
             <h4>Taille du mur</h4>
             <div className="row">
@@ -49,6 +56,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
             <p className="hint">Surface : {((wall.w * wall.h) / 10000).toFixed(2)} m² · grille de {layout.cols} × {layout.rows} cases</p>
           </section>
+          )}
           <section className="settings-block">
             <h4>Origine des cotes et des repères</h4>
             <p className="hint">Le coin d’où partent les mesures (0 cm) et où commence la case A1. Au mur, choisis un coin fiable, en général le bas, côté sol.</p>

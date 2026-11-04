@@ -15,6 +15,11 @@ npm run dev          # http://localhost:5199
 ## Fonctionnalités
 
 - **Projets et mur** : mur rectangulaire en cm (300 × 250 cm par défaut), redimensionnable.
+- **Pièces en 3D** : un projet peut être une pièce (« Une pièce (3D) » à la création, ou bouton cube pour transformer un mur seul).
+  - Plan 2D : angles déplaçables, aimantés sur une grille de 5 cm et sur l'alignement des autres angles (`⌥` = libre). Double-clic sur un mur pour ajouter un angle. Longueurs, hauteur sous plafond et épaisseur se règlent au clavier. Annuler / rétablir.
+  - Portes et fenêtres : position depuis la gauche, largeur, hauteur, allège. On les glisse le long du mur sur le plan.
+  - Chaque mur se peint dans l'éditeur habituel (vu de l'intérieur, ouvertures hachurées, taille fixée par le plan), avec passage au mur voisin ‹ ›. Les variantes sont propres à chaque mur ; la dernière ouverte est celle montrée en 3D.
+  - Vue 3D (Three.js) : orbite « maison de poupée » (murs côté caméra coupés), double-clic sur un mur pour le peindre, visite à la première personne (ZQSD, souris).
 - **Grille de carroyage** : pas réglable, repères A1, B2… et cotes depuis le coin choisi (bas-gauche par défaut),
   dernière case partielle si besoin.
 - **Tracé vectoriel** : polyligne (touche `A` pour les arcs tangents), arc 3 points, courbes de Bézier (plume).

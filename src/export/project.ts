@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid'
 import { db } from '../store/db'
-import type { DocState, GridSettings, HistoryEntry, ImageEdit, Project, Rect, Segment, Shape, StoredImage, Variant, Vec, Wall } from '../model/types'
+import type { DocState, GridSettings, HistoryEntry, ImageEdit, Opening, Project, Rect, RoomPlan, Segment, Shape, StoredImage, Variant, Vec, Wall } from '../model/types'
 
 export interface ProjectFile {
   format: 'betterdraw-project'
@@ -124,6 +124,39 @@ export function sanitizeDoc(x: unknown): DocState {
   }
 }
 
+/** Plan de pièce importé ; les murs sont renommés via `wallId`. */
+export function sanitizeRoom(x: unknown, wallId: (id: string) => string | undefined): RoomPlan {
+  const o = obj(x, 'pièce')
+  const pts = arr(o.pts, 'pièce', 500).map(vec)
+  const walls = arr(o.walls, 'pièce', 500).map((wx) => {
+    const w = obj(wx, 'mur')
+    const id = wallId(str(w.id, 'id', 40)) ?? fail('mur')
+    const openings = arr(w.openings, 'ouvertures', 200).map((ox): Opening => {
+      const op = obj(ox, 'ouverture')
+      if (op.kind !== 'door' && op.kind !== 'window') fail('ouverture')
+      const out: Opening = { id: str(op.id, 'id', 40), kind: op.kind as Opening['kind'], x: num(op.x, 'ouverture'), w: num(op.w, 'ouverture', 0, 1e5), h: num(op.h, 'ouverture', 0, 1e5), sill: num(op.sill, 'ouverture', 0, 1e5) }
+      if (op.cols !== undefined) out.cols = Math.round(num(op.cols, 'ouverture', 1, 12))
+      if (op.rows !== undefined) out.rows = Math.round(num(op.rows, 'ouverture', 1, 12))
+      if (op.base !== undefined) out.base = num(op.base, 'ouverture', 0, 1e5)
+      return out
+    })
+    return w.locked === true ? { id, openings, locked: true } : { id, openings }
+  })
+  if (pts.length < 3 || walls.length !== pts.length) fail('pièce')
+  const room: RoomPlan = { pts, walls, height: num(o.height, 'pièce', 10, 10000), thickness: num(o.thickness, 'pièce', 0.5, 1000), floor: hex(o.floor, 'sol') }
+  if (o.groups !== undefined) {
+    const members = new Set(walls.map((w) => w.id))
+    room.groups = arr(o.groups, 'murs liés', 500).map((gx) => {
+      const g = obj(gx, 'murs liés')
+      const id = wallId(str(g.id, 'id', 40)) ?? fail('murs liés')
+      const ids = arr(g.walls, 'murs liés', 500).map((x) => wallId(str(x, 'id', 40)) ?? fail('murs liés'))
+      if (ids.some((x) => !members.has(x))) fail('murs liés')
+      return { id, walls: ids }
+    })
+  }
+  return room
+}
+
 const IMAGE_DATA_URL = /^data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/
 
 function sanitizePatches(x: unknown): unknown[] {
@@ -150,11 +183,16 @@ export async function importProject(data: unknown): Promise<{ project: Project; 
   const now = Date.now()
   const pid = nanoid(10)
   const project: Project = { id: pid, name: str(p0.name, 'nom'), createdAt: num(p0.createdAt, 'date', 0, 1e14), updatedAt: now }
-  const wallsIn = arr(root.walls ?? [], 'murs', 100).map((w) => obj(w, 'mur'))
+  const wallsIn = arr(root.walls ?? [], 'murs', 500).map((w) => obj(w, 'mur'))
   const wallIds = new Map(wallsIn.map((w) => [str(w.id, 'id', 40), nanoid(10)]))
-  const walls: Wall[] = wallsIn.map((w) => ({ id: wallIds.get(w.id as string)!, projectId: pid, name: str(w.name, 'nom') }))
-  const variantsIn = arr(root.variants, 'variantes', 1000).map((v) => obj(v, 'variante'))
+  const variantsIn = arr(root.variants, 'variantes', 5000).map((v) => obj(v, 'variante'))
   const varIds = new Map(variantsIn.map((v) => [str(v.id, 'id', 40), nanoid(10)]))
+  const walls: Wall[] = wallsIn.map((w) => ({
+    id: wallIds.get(w.id as string)!, projectId: pid, name: str(w.name, 'nom'),
+    ...(w.group === true ? { group: true } : {}),
+    ...(typeof w.variantId === 'string' && varIds.has(w.variantId) ? { variantId: varIds.get(w.variantId) } : {}),
+  }))
+  if (p0.room !== undefined) project.room = sanitizeRoom(p0.room, (id) => wallIds.get(id))
   const fallbackWall = walls[0]?.id ?? nanoid(10)
   if (!walls.length) walls.push({ id: fallbackWall, projectId: pid, name: 'Mur 1' })
   const variants: Variant[] = variantsIn.map((v) => {

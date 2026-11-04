@@ -41,6 +41,9 @@ const P: Record<string, React.ReactNode> = {
   fit: <path d="M4 8V4h4M14 4h4v4M18 14v4h-4M8 18H4v-4" />,
   plus: <path d="M11 5v12M5 11h12" />,
   minus: <path d="M5 11h12" />,
+  cube: <><path d="M11 2.5l7.5 4.2v8.6L11 19.5l-7.5-4.2V6.7z" /><path d="M3.5 6.7L11 11l7.5-4.3M11 11v8.5" /></>,
+  chevronLeft: <path d="M13 6l-5 5 5 5" />,
+  chevronRight: <path d="M9 6l5 5-5 5" />,
   export: <path d="M11 3v11M6 9l5 5 5-5M4 18h14" />,
 }
 

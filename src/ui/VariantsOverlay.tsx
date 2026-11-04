@@ -16,7 +16,7 @@ export function VariantsOverlay({ onClose }: { onClose: () => void }) {
 
   const refresh = async () => {
     await flushPersistence()
-    setList(await repo.listVariants(current.projectId))
+    setList((await repo.listVariants(current.projectId)).filter((v) => v.wallId === current.wallId))
   }
   useEffect(() => {
     refresh()

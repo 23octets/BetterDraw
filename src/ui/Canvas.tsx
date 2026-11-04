@@ -5,6 +5,7 @@ import { GridLinesAdaptive } from './GridLinesAdaptive'
 import { useActiveTool, type ToolPointer } from '../tools/useActiveTool'
 import { DocLayers } from './DocLayers'
 import { importImageFiles } from './ImagesSection'
+import { openingRect, windowBars } from '../room/geometry'
 
 export function fitView(wall: { w: number; h: number; x?: number; y?: number }, size: { w: number; h: number }, margin = 70) {
   const ox = wall.x ?? 0
@@ -166,6 +167,7 @@ export function Canvas() {
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} className="wall-shadow" />
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} fill={doc.background.hex} className="wall" data-testid="wall" />
         <DocLayers doc={doc} mode={mode} />
+        <OpeningsLayer wallH={doc.wall.h} />
         <GridLinesAdaptive doc={doc} strong={mode === 'consult'} idPrefix="cv" style={gridPreview} />
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} className="wall-outline" />
         {tool.renderWorld?.()}
@@ -173,5 +175,45 @@ export function Canvas() {
       <GridLabels doc={doc} view={view} />
       {tool.renderScreen?.()}
     </svg>
+  )
+}
+
+/** Portes et fenêtres de la pièce, en surimpression (on ne peint pas dedans en 3D). */
+function OpeningsLayer({ wallH }: { wallH: number }) {
+  const room = useEditor((s) => s.room)
+  if (!room || (!room.openings.length && !room.masks?.length && !room.seams?.length)) return null
+  return (
+    <g className="openings-layer" data-testid="openings-layer">
+      <defs>
+        <pattern id="opening-hatch" className="opening-hatch-pattern" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="8" />
+        </pattern>
+      </defs>
+      {room.masks?.map((m, k) => (
+        <g key={`m${k}`} className="opening-overlay gap" data-testid="group-gap">
+          <rect x={m.x} y={m.y} width={m.w} height={m.h} className="opening-fill" />
+          <rect x={m.x} y={m.y} width={m.w} height={m.h} fill="url(#opening-hatch)" className="opening-hatch" />
+          <text x={m.x + m.w / 2} y={Math.min(m.h / 2, 40)} textAnchor="middle" className="opening-label" fontSize={Math.max(6, Math.min(14, m.w / 5))}>Pas de mur</text>
+        </g>
+      ))}
+      {room.seams?.map((s, k) => (
+        <g key={`s${k}`} className="group-seam" data-testid="group-seam">
+          {s.x > 0 && <line x1={s.x} y1={0} x2={s.x} y2={wallH} />}
+        </g>
+      ))}
+      {room.openings.map((o) => {
+        const r = openingRect(o, wallH)
+        return (
+          <g key={o.id} className={`opening-overlay ${o.kind}`}>
+            <rect x={r.x} y={r.y} width={r.w} height={r.h} className="opening-fill" />
+            <rect x={r.x} y={r.y} width={r.w} height={r.h} fill="url(#opening-hatch)" className="opening-hatch" />
+            {windowBars(o, wallH).map(([x1, y1, x2, y2], k) => <line key={k} x1={x1} y1={y1} x2={x2} y2={y2} className="opening-bar" />)}
+            <text x={r.x + r.w / 2} y={r.y + Math.min(r.h / 2, 30)} textAnchor="middle" className="opening-label" fontSize={Math.max(6, Math.min(14, r.w / 6))}>
+              {o.kind === 'door' ? 'Porte' : 'Fenêtre'}
+            </text>
+          </g>
+        )
+      })}
+    </g>
   )
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { produceWithPatches, type Draft } from 'immer'
-import type { DocState, GridLineStyle, RefImage, Shape, Variant, Vec } from '../model/types'
+import type { DocState, GridLineStyle, Opening, RefImage, Shape, Variant, Vec, Rect } from '../model/types'
 import { defaultDoc } from '../model/defaults'
 import * as repo from './repo'
 
@@ -31,8 +31,23 @@ export function flushPersistence() {
   return queue
 }
 
+/** Le mur appartient à une pièce : ouvertures et murs voisins. */
+export interface RoomCtx {
+  projectId: string
+  index: number
+  walls: { id: string; name: string; variantId: string | null }[]
+  openings: Opening[]
+  height: number
+  /** Zones sans mur d'un dessin de murs liés (écart réel entre deux murs). */
+  masks?: Rect[]
+  /** Jonctions entre murs liés. */
+  seams?: { x: number; name: string }[]
+}
+
 export interface EditorState {
   variant: Variant | null
+  room: RoomCtx | null
+  setRoom: (r: RoomCtx | null) => void
   doc: DocState
   headSeq: number
   maxSeq: number
@@ -89,6 +104,10 @@ let flashTimer: ReturnType<typeof setTimeout> | undefined
 
 export const useEditor = create<EditorState>((set, get) => ({
   variant: null,
+  room: null,
+  setRoom(room) {
+    set({ room })
+  },
   doc: defaultDoc(),
   headSeq: 0,
   maxSeq: 0,
@@ -138,7 +157,7 @@ export const useEditor = create<EditorState>((set, get) => ({
     const v = await repo.getVariant(variantId)
     if (!v) return false
     set({
-      variant: v, doc: v.state, headSeq: v.headSeq, maxSeq: v.maxSeq, selection: [],
+      variant: v, room: null, doc: v.state, headSeq: v.headSeq, maxSeq: v.maxSeq, selection: [],
       activeColorId: v.state.palette[0]?.id ?? null, rev: get().rev + 1, mode: 'edit', tool: 'select',
     })
     return true
