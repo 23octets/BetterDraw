@@ -39,6 +39,24 @@ npm run dev          # http://localhost:5199
 - **Exports** : PDF chantier (vue d'ensemble cotée + cases choisies en grand), PNG, SVG,
   sauvegarde du projet en JSON (réimportable depuis l'accueil).
 
+## Enregistrement et récupération
+
+Après un échec d’enregistrement, le dessin reste en mémoire et affiche « Non enregistré ».
+Réessayer rejoue les modifications dans leur ordre, sans sauter d’entrée d’historique.
+Avant de fermer ou recharger la page, « Exporter le secours » produit un JSON réimportable
+depuis l’accueil comme nouveau projet. Le dessin en mémoire y remplace sa version enregistrée,
+avec un historique remis à zéro ; les autres variantes gardent leur historique.
+Si le stockage est inaccessible, seul le dessin sans images peut être récupéré.
+
+Deux onglets peuvent ouvrir une variante, mais une écriture vérifie dans la même transaction
+la position et la dernière séquence de son historique. Un onglet périmé ne peut pas écraser
+les modifications de l’autre : il faut exporter son secours, puis recharger.
+Les déplacements dans l’historique sont également contrôlés. La navigation et la création
+de copies restent bloquées tant qu’un échec n’est pas résolu.
+
+Une erreur de rendu affiche un écran de récupération proposant le secours du dessin ouvert,
+le rechargement et le retour à l’accueil.
+
 ## Tests
 
 ```bash

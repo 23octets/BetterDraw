@@ -1,3 +1,4 @@
+import { downloadRecovery } from '../export/recovery'
 import { useEffect, useRef, useState } from 'react'
 import { useEditor, flushPersistence } from '../store/editor'
 import * as repo from '../store/repo'
@@ -193,6 +194,7 @@ function VariantSwitcher() {
 
 function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { projectName: string; onExport: () => void; onShortcuts: () => void; shortcutsOpen: boolean }) {
   const saving = useEditor((s) => s.saving)
+  const saveError = useEditor((s) => s.saveError)
   const headSeq = useEditor((s) => s.headSeq)
   const maxSeq = useEditor((s) => s.maxSeq)
   const undo = useEditor((s) => s.undo)
@@ -219,7 +221,11 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
       </div>
       <GridMenu />
       <div className="spacer" />
-      <span className={`save-state${saving ? ' busy' : ''}`} data-testid="save-state">{saving ? 'Enregistrement…' : 'Enregistré'}</span>
+      {saveError && <div role="alert">{saveError}
+        <button onClick={() => useEditor.getState().retry()}>Réessayer</button>
+        <button onClick={() => { void downloadRecovery().catch(() => useEditor.getState().flash('Export de secours impossible', 'error')) }}>Exporter le secours</button>
+      </div>}
+      <span className={`save-state${saving ? ' busy' : ''}`} data-testid="save-state">{saveError ? 'Non enregistré' : saving ? 'Enregistrement…' : 'Enregistré'}</span>
       <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier" aria-label="Raccourcis clavier">
         <Icon name="keyboard" /> Raccourcis
       </button>
