@@ -41,7 +41,7 @@ export function Home() {
         return
       }
       const { download, safeName } = await import('../export/pdf')
-      download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(p.name)}.betterdraw.json`)
+      download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(p.name)}.frsque.json`)
       setImportMsg(data.warnings?.length ? 'Sauvegarde incomplète téléchargée. Conservez vos autres sauvegardes : ' + data.warnings.join(' ') : 'Sauvegarde téléchargée. Conservez ce fichier hors du navigateur.')
     } catch (e) { setError(storageError(e)) }
   }
@@ -66,7 +66,7 @@ export function Home() {
         <div className="brand">
           <span className="brand-mark" aria-hidden>▦</span>
           <div>
-            <h1>BetterDraw</h1>
+            <h1>frsque</h1>
             <p>Dessiner à l'échelle, peindre au mur.</p>
           </div>
         </div>

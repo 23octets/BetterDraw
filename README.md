@@ -1,4 +1,4 @@
-# BetterDraw
+# frsque
 
 Dessiner à l'échelle un décor mural, le peindre zone par zone, puis le reporter sur le vrai mur
 grâce à une grille de carroyage cotée.
@@ -66,6 +66,8 @@ npm run test:e2e     # tests de bout en bout (Playwright), captures dans docs/sc
 npm run test:all
 npm run size         # budget de taille du bundle, après npm run build (.size-limit.json)
 ```
+
+Les icônes de `public/` se régénèrent depuis les SVG de `assets/icon/` avec `assets/icon/generer.sh` (Chrome sur macOS et ImageMagick).
 
 La régression visuelle (`e2e/visual.spec.ts`) ne tourne qu'en CI, car ses images de référence dépendent du rendu Linux. Après un changement visuel voulu, ou une mise à jour de Playwright qui change le rendu :
 

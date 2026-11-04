@@ -9,7 +9,7 @@ test('explique le stockage et sauvegarde depuis l’accueil', async ({ page }) =
   await page.goto('/')
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Sauvegarder Sauvegarde locale (.json)' }).click()
-  expect((await download).suggestedFilename()).toContain('.betterdraw.json')
+  expect((await download).suggestedFilename()).toContain('.frsque.json')
 })
 
 test('propose une issue quand IndexedDB est inaccessible', async ({ page }) => {
@@ -78,7 +78,7 @@ test('un quota atteint laisse une alerte durable et une sauvegarde de secours', 
   const downloaded = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Sauvegarder l’état affiché', exact: false }).click()
   const file = await downloaded
-  expect(file.suggestedFilename()).toContain('secours.betterdraw.json')
+  expect(file.suggestedFilename()).toContain('secours.frsque.json')
   await page.goBack()
   await expect(page.getByTestId('canvas')).toBeVisible()
   await expect(page.getByRole('alert')).toContainText('Espace de stockage insuffisant')
@@ -111,7 +111,7 @@ test('explique les fichiers qui ne sont pas des sauvegardes JSON', async ({ page
   await page.getByTestId('import-project').setInputFiles({ name: 'invalide.json', mimeType: 'application/json', buffer: Buffer.from('not json') })
   await expect(page.getByTestId('import-msg')).toContainText('ce n’est pas une sauvegarde JSON valide')
   await page.getByTestId('import-project').setInputFiles({ name: 'autre.json', mimeType: 'application/json', buffer: Buffer.from('{"nope":true}') })
-  await expect(page.getByTestId('import-msg')).toContainText('Ce fichier n’est pas un projet BetterDraw')
+  await expect(page.getByTestId('import-msg')).toContainText('Ce fichier n’est pas un projet frsque')
 })
 
 test('un quota après scission du plan permet une sauvegarde réimportable', async ({ page }) => {
@@ -137,7 +137,7 @@ test('un quota après scission du plan permet une sauvegarde réimportable', asy
   const downloaded = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Sauvegarder le plan affiché (.json)' }).click()
   const file = await downloaded
-  expect(file.suggestedFilename()).toContain('secours.betterdraw.json')
+  expect(file.suggestedFilename()).toContain('secours.frsque.json')
   await page.evaluate(() => (window as unknown as { restoreStorage: () => void }).restoreStorage())
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Accueil et sauvegardes', exact: true }).click()

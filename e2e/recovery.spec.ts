@@ -37,7 +37,7 @@ test('deux onglets : conflit visible, secours téléchargeable, aucun écrasemen
   await other.getByRole('button', { name: 'Fermer', exact: true }).click()
   const download = other.waitForEvent('download')
   await other.getByRole('button', { name: 'Exporter le secours' }).click()
-  expect((await download).suggestedFilename()).toBe('betterdraw-secours.json')
+  expect((await download).suggestedFilename()).toBe('frsque-secours.json')
   await page.reload()
   await page.getByTestId('canvas').waitFor()
   expect(await page.evaluate(async () => {

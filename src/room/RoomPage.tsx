@@ -379,7 +379,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
               const { data, warning } = await rescueRoom(project!, room!)
               setRescueMessage(warning || 'Sauvegarde du plan affiché téléchargée.')
               const { download, safeName } = await import('../export/pdf')
-              download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(project?.name ?? 'Pièce')}.secours.betterdraw.json`)
+              download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(project?.name ?? 'Pièce')}.secours.frsque.json`)
               flash('Sauvegarde du plan affiché téléchargée.')
             } catch (e) { flash(storageError(e)) }
           }}>Sauvegarder le plan affiché (.json)</button>

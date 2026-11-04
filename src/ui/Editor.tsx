@@ -103,7 +103,7 @@ export function Editor({ variantId }: { variantId: string }) {
           const { data, warning } = await rescueProject(variant, useEditor.getState().doc, project)
           setRescueMessage(warning || 'Sauvegarde de secours téléchargée. Conservez ce fichier hors du navigateur.')
           const { download, safeName } = await import('../export/pdf')
-          download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(project?.name ?? 'Projet')}.secours.betterdraw.json`)
+          download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(project?.name ?? 'Projet')}.secours.frsque.json`)
         } catch (e) { useEditor.getState().flash(storageError(e), 'error') }
       }}>Sauvegarder l’état affiché (historique de cette variante exclu)</button><button onClick={() => navigate('/')}>Gérer l’espace depuis l’accueil</button><button onClick={() => { if (confirm('Recharger abandonne les modifications non enregistrées. Avez-vous téléchargé la sauvegarde de secours ?')) location.reload() }}>Recharger</button></div>}
       <Toolbar />

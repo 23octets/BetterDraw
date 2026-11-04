@@ -17,7 +17,7 @@ export async function downloadRecovery() {
   const url = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: 'application/json' }))
   const a = document.createElement('a')
   a.href = url
-  a.download = 'betterdraw-secours.json'
+  a.download = 'frsque-secours.json'
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

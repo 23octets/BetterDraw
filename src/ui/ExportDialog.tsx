@@ -58,7 +58,7 @@ export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () 
                 const data = hasUnsavedWork() ? await recoveryFile() : await serializeProject(variant.projectId)
                 if (data.warnings?.length && !window.confirm(data.warnings.join('\n') + '\nTélécharger cette sauvegarde incomplète ?')) return false
                 const { download, safeName } = await import('../export/pdf')
-                download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(meta.project)}.betterdraw.json`)
+                download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(meta.project)}.frsque.json`)
               })}>Sauvegarde du projet (.json)</button>
             </div>
             {saveError && <p className="hint">Pour conserver les modifications non enregistrées, utilisez la sauvegarde JSON de secours ou celle proposée dans l’alerte.</p>}

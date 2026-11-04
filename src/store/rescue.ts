@@ -21,7 +21,7 @@ export async function rescueProject(variant: Variant, doc: DocState, project: Pr
     const images = cachedImages().filter((im) => refs.has(im.id))
     const stamp = Date.now()
     const data: ProjectFile = {
-      format: 'betterdraw-project', version: 1, exportedAt: stamp,
+      format: 'frsque-project', version: 1, exportedAt: stamp,
       project: { id: variant.projectId, name: project?.name ?? 'Projet de secours', createdAt: project?.createdAt ?? stamp, updatedAt: stamp },
       walls: [{ id: variant.wallId, projectId: variant.projectId, name: 'Mur de secours' }],
       variants: [current], entries: [], images,
@@ -39,7 +39,7 @@ export async function rescueRoom(project: Project, room: RoomPlan) {
     data = await serializeProject(project.id)
   } catch {
     data = {
-      format: 'betterdraw-project', version: 1, exportedAt: Date.now(),
+      format: 'frsque-project', version: 1, exportedAt: Date.now(),
       project: structuredClone(project), walls: [], variants: [], entries: [], images: [],
     }
     warning = 'Sauvegarde limitée au plan affiché. Les dessins des murs, les images et l’historique ne sont pas disponibles ; conservez aussi vos sauvegardes précédentes.'

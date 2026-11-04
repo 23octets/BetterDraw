@@ -1,13 +1,14 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { HistoryEntry, Project, StoredImage, Variant, Wall } from '../model/types'
 
-export class BetterDrawDB extends Dexie {
+export class FrsqueDB extends Dexie {
   projects!: EntityTable<Project, 'id'>
   walls!: EntityTable<Wall, 'id'>
   variants!: EntityTable<Variant, 'id'>
   entries!: Dexie.Table<HistoryEntry, [string, number]>
   images!: EntityTable<StoredImage, 'id'>
 
+  // Nom de la base inchangé après le renommage de l'app : le modifier viderait les projets déjà enregistrés.
   constructor(name = 'betterdraw') {
     super(name)
     this.version(1).stores({
@@ -20,4 +21,4 @@ export class BetterDrawDB extends Dexie {
   }
 }
 
-export const db = new BetterDrawDB()
+export const db = new FrsqueDB()
