@@ -19,9 +19,11 @@ export function parseHash(hash: string): Route {
 }
 
 const guards = new Set<() => boolean>()
-export function registerNavigationGuard(guard: () => boolean) {
+const flushers = new Set<() => Promise<unknown>>()
+export function registerNavigationGuard(guard: () => boolean, flush?: () => Promise<unknown>) {
   guards.add(guard)
-  return () => { guards.delete(guard) }
+  if (flush) flushers.add(flush)
+  return () => { guards.delete(guard); if (flush) flushers.delete(flush) }
 }
 
 export function navigate(path: string) {
@@ -35,7 +37,7 @@ export function useRoute(): Route {
     const on = async () => {
       const next = window.location.hash
       if (next === previous) return
-      await flushPersistence()
+      await Promise.all([flushPersistence(), ...[...flushers].map((flush) => flush())])
       if (window.location.hash !== next) return
       if ((useEditor.getState().persistenceError || [...guards].some((guard) => guard())) &&
         !confirm('Quitter abandonne les modifications non enregistrées. Avez-vous téléchargé la sauvegarde de secours ?')) {

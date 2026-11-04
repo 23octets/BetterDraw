@@ -73,3 +73,17 @@ it('réimporte un plan de secours construit sans aucune lecture de la base', asy
   expect(restored.project.room!.groups).toHaveLength(1)
   expect(restored.variants).toHaveLength(6)
 })
+
+it('conserve les avertissements d’images absentes dans les deux sauvegardes de secours', async () => {
+  const { createRoomProject } = await import('./rooms')
+  const { rescueRoom } = await import('./rescue')
+  const { placeImage } = await import('./images')
+  const project = await createRoomProject('Image absente')
+  const variant = (await repo.listVariants(project.id))[0]
+  const doc = { ...variant.state, images: [
+    placeImage({ id: 'image-absente', dataUrl: '', width: 10, height: 10 }, variant.state.wall, 'Référence'),
+  ] }
+  await db.variants.update(variant.id, { state: doc })
+  expect((await rescueProject(variant, doc, project)).warning).toContain('images sont absentes')
+  expect((await rescueRoom(project, project.room!)).warning).toContain('images sont absentes')
+})

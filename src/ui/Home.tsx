@@ -36,9 +36,13 @@ export function Home() {
   const backup = async (p: Project) => {
     try {
       const data = await serializeProject(p.id)
+      if (data.warnings?.length && !window.confirm(data.warnings.join('\n') + '\nTélécharger quand même cette sauvegarde incomplète ?')) {
+        setImportMsg('Sauvegarde annulée.')
+        return
+      }
       const { download, safeName } = await import('../export/pdf')
       download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(p.name)}.betterdraw.json`)
-      setImportMsg('Sauvegarde téléchargée. Conservez ce fichier hors du navigateur.')
+      setImportMsg(data.warnings?.length ? 'Sauvegarde incomplète téléchargée. Conservez vos autres sauvegardes : ' + data.warnings.join(' ') : 'Sauvegarde téléchargée. Conservez ce fichier hors du navigateur.')
     } catch (e) { setError(storageError(e)) }
   }
   useEffect(() => {

@@ -20,6 +20,10 @@ import {
 type Layout = 'plan' | 'split' | '3d'
 
 let saveQueue: Promise<unknown> = Promise.resolve()
+async function flushRoomSaves() {
+  let pending: Promise<unknown>
+  do { pending = saveQueue; await pending } while (pending !== saveQueue)
+}
 /** Historique du plan, conservé pendant la session (aller peindre un mur puis revenir ne le perd pas). */
 const histories = new Map<string, { past: RoomPlan[]; future: RoomPlan[] }>()
 function historyOf(projectId: string) {
@@ -45,7 +49,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
   const [rescueMessage, setRescueMessage] = useState('')
   const saveErrorRef = useRef('')
   useEffect(() => {
-    const unregister = registerNavigationGuard(() => !!saveErrorRef.current)
+    const unregister = registerNavigationGuard(() => !!saveErrorRef.current, flushRoomSaves)
     const guard = (e: BeforeUnloadEvent) => {
       if (saveErrorRef.current) { e.preventDefault(); e.returnValue = '' }
     }

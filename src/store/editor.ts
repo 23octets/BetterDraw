@@ -28,8 +28,9 @@ function enqueue<T>(fn: () => Promise<T>): Promise<T> {
   return p
 }
 /** Attend que toutes les écritures soient terminées (tests). */
-export function flushPersistence() {
-  return queue
+export async function flushPersistence() {
+  let pending: Promise<unknown>
+  do { pending = queue; await pending } while (pending !== queue)
 }
 
 /** Le mur appartient à une pièce : ouvertures et murs voisins. */

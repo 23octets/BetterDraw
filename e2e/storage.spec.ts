@@ -169,3 +169,55 @@ test('convertit une petite image BMP en format de sauvegarde courant', async ({ 
   })
   expect(format).toBe('data:image/webp')
 })
+
+test('une sauvegarde incomplète demande confirmation et conserve son avertissement', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
+  await expect(page.getByTestId('canvas')).toBeVisible()
+  await page.getByTestId('image-input').setInputFiles('e2e/fixtures/croquis.png')
+  await expect(page.getByTestId('image-row')).toHaveCount(1)
+  await page.evaluate(async () => {
+    const editorPath = '/src/store/editor.ts'
+    const { flushPersistence } = await import(/* @vite-ignore */ editorPath)
+    await flushPersistence()
+    const dbPath = '/src/store/db.ts'
+    const { db } = await import(/* @vite-ignore */ dbPath)
+    await db.images.clear()
+  })
+  await page.goto('/')
+  page.once('dialog', (dialog) => dialog.dismiss())
+  await page.getByRole('button', { name: /Sauvegarder .*\(\.json\)/ }).click()
+  await expect(page.getByTestId('import-msg')).toHaveText('Sauvegarde annulée.')
+  page.once('dialog', (dialog) => dialog.accept())
+  const downloaded = page.waitForEvent('download')
+  await page.getByRole('button', { name: /Sauvegarder .*\(\.json\)/ }).click()
+  await downloaded
+  await expect(page.getByTestId('import-msg')).toContainText('Sauvegarde incomplète téléchargée')
+  await expect(page.getByTestId('import-msg')).toContainText('images sont absentes')
+})
+
+test('la sortie attend un enregistrement de pièce encore en cours avant de signaler son échec', async ({ page }) => {
+  await page.goto('/')
+  await page.getByTestId('kind-room').click()
+  await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
+  await expect(page.getByTestId('plan')).toBeVisible()
+  await page.getByTestId('layout-plan').click()
+  await page.evaluate(async () => {
+    const path = '/src/store/db.ts'
+    const { db } = await import(/* @vite-ignore */ path)
+    const toArray = db.Collection.prototype.toArray
+    db.Collection.prototype.toArray = async function (...args: unknown[]) {
+      const result = await toArray.apply(this, args)
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      return result
+    }
+    IDBObjectStore.prototype.put = function () { throw new DOMException('Quota', 'QuotaExceededError') }
+  })
+  let prompts = 0
+  page.once('dialog', async (dialog) => { prompts++; await dialog.dismiss() })
+  await page.getByTestId('room-floor').fill('#112233')
+  await page.getByRole('button', { name: 'Projets', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('Espace de stockage insuffisant')
+  await expect(page.getByTestId('plan')).toBeVisible()
+  expect(prompts).toBe(1)
+})

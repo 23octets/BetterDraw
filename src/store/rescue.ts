@@ -15,7 +15,7 @@ export async function rescueProject(variant: Variant, doc: DocState, project: Pr
     const refs = imageReferences(data.variants, data.entries)
     const keys = (await db.images.toCollection().primaryKeys()).filter((id) => refs.has(id))
     data.images = (await db.images.bulkGet(keys)).filter((im): im is StoredImage => !!im)
-    return { data, warning: '' }
+    return { data, warning: data.warnings?.join('\n') ?? '' }
   } catch {
     const refs = imageReferences(current.state.images)
     const images = cachedImages().filter((im) => refs.has(im.id))
@@ -44,6 +44,7 @@ export async function rescueRoom(project: Project, room: RoomPlan) {
     }
     warning = 'Sauvegarde limitée au plan affiché. Les dessins des murs, les images et l’historique ne sont pas disponibles ; conservez aussi vos sauvegardes précédentes.'
   }
+  warning = [warning, ...(data.warnings ?? [])].filter(Boolean).join('\n')
   data.project.room = structuredClone(room)
   const sizes = [
     ...room.walls.map((wall, i) => ({ id: wall.id, w: wallLength(room, i), name: `Mur ${i + 1}` })),
