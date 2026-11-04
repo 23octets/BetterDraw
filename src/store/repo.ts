@@ -62,15 +62,25 @@ export async function getProject(id: string) {
   return db.projects.get(id)
 }
 
+export class ConflictError extends Error {
+  constructor() { super('Cette variante a été modifiée dans un autre onglet. Exportez votre dessin de secours, puis rechargez la page. Le fichier peut être importé depuis l’accueil comme nouveau projet.') }
+}
+
+function checkExpected(v: Variant, expected: Variant) {
+  // Toute écriture du dessin ajoute une séquence ; les déplacements ne changent que la tête.
+  if (v.headSeq !== expected.headSeq || v.maxSeq !== expected.maxSeq) throw new ConflictError()
+}
+
 /**
  * Enregistre une modification : nouvelle entrée d'historique + état courant.
  * Si on avait remonté le temps, rien n'est perdu : une entrée « Retour à l'état #k »
  * est d'abord ajoutée (elle annule la suite), puis la nouvelle modification.
  */
-export async function recordChange(variantId: string, label: string, state: DocState, patches: Patch[], inverse: Patch[]) {
+export async function recordChange(variantId: string, label: string, state: DocState, patches: Patch[], inverse: Patch[], expected: Variant) {
   return db.transaction('rw', db.variants, db.entries, db.projects, async () => {
     const v = await db.variants.get(variantId)
     if (!v) throw new Error('variante introuvable')
+    checkExpected(v, expected)
     const ts = now()
     let seq = v.maxSeq + 1
     if (v.maxSeq > v.headSeq) {
@@ -97,10 +107,11 @@ export async function listEntries(variantId: string) {
  * Déplace la tête d'historique vers `target` en appliquant les patches inverses (retour)
  * ou directs (avance). Renvoie le nouvel état.
  */
-export async function moveHead(variantId: string, target: number): Promise<Variant> {
+export async function moveHead(variantId: string, target: number, expected: Variant): Promise<Variant> {
   return db.transaction('rw', db.variants, db.entries, async () => {
     const v = await db.variants.get(variantId)
     if (!v) throw new Error('variante introuvable')
+    checkExpected(v, expected)
     target = Math.max(0, Math.min(v.maxSeq, target))
     let state = v.state
     if (target < v.headSeq) {
