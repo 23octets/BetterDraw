@@ -10,7 +10,8 @@ export async function rescueProject(variant: Variant, doc: DocState, project: Pr
   const current = { ...variant, state: structuredClone(doc), headSeq: 0, maxSeq: 0 }
   try {
     const data = await serializeProject(variant.projectId)
-    data.variants = data.variants.map((v) => v.id === variant.id ? current : v)
+    const found = data.variants.some((v) => v.id === variant.id)
+    data.variants = found ? data.variants.map((v) => v.id === variant.id ? current : v) : [...data.variants, current]
     data.entries = data.entries.filter((e) => e.variantId !== variant.id)
     const refs = imageReferences(data.variants, data.entries)
     const keys = (await db.images.toCollection().primaryKeys()).filter((id) => refs.has(id))

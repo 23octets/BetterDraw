@@ -90,3 +90,26 @@ it('conserve les avertissements d’images absentes dans les deux sauvegardes de
   expect((await rescueProject(variant, doc, project)).warning).toContain('images sont absentes')
   expect((await rescueRoom(project, project.room!)).warning).toContain('images sont absentes')
 })
+
+it('le secours conserve le dessin non enregistré d’une variante supprimée dans un autre onglet', async () => {
+  const { variant, project } = await repo.createProject('Variante supprimée')
+  await repo.snapshotVariant(variant.id, 'Autre variante')
+  await useEditor.getState().load(variant.id)
+  await repo.deleteVariant(variant.id)
+  useEditor.getState().commit('Largeur non enregistrée', (d) => { d.wall.w = 777 })
+  await flushPersistence()
+  expect(useEditor.getState().saveError).toBeTruthy()
+  try {
+    const { recoveryFile } = await import('../export/recovery')
+    const { importProject } = await import('../export/project')
+    const file = await recoveryFile()
+    expect(file.variants.find((v) => v.id === variant.id)?.state.wall.w).toBe(777)
+    expect(file.variants).toHaveLength(2)
+    const restored = await importProject(file)
+    expect(restored.variants.some((v) => v.state.wall.w === 777)).toBe(true)
+    expect(restored.project.name).toBe(project.name)
+  } finally {
+    // Rétablir la cible afin que le nettoyage du test puisse rejouer sa file.
+    await db.variants.put(variant)
+  }
+})

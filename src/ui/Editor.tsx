@@ -105,7 +105,7 @@ export function Editor({ variantId }: { variantId: string }) {
           const { download, safeName } = await import('../export/pdf')
           download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(project?.name ?? 'Projet')}.secours.frsque.json`)
         } catch (e) { useEditor.getState().flash(storageError(e), 'error') }
-      }}>Sauvegarder l’état affiché (historique de cette variante exclu)</button><button onClick={() => navigate('/')}>Gérer l’espace depuis l’accueil</button><button onClick={() => { if (confirm('Recharger abandonne les modifications non enregistrées. Avez-vous téléchargé la sauvegarde de secours ?')) location.reload() }}>Recharger</button></div>}
+      }}>Sauvegarder l’état affiché (historique de cette variante exclu)</button><button title="Ouvrir l’accueil dans un nouvel onglet en conservant ce dessin" onClick={() => window.open(location.pathname + location.search + '#/', '_blank')}>Gérer l’espace depuis l’accueil</button><button onClick={() => { if (confirm('Recharger abandonne les modifications non enregistrées. Avez-vous téléchargé la sauvegarde de secours ?')) location.reload() }}>Recharger</button></div>}
       <Toolbar />
       <main className="stage">
         <Canvas />

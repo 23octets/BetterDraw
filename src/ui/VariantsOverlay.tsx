@@ -97,8 +97,7 @@ export function VariantsOverlay({ onClose }: { onClose: () => void }) {
                   </div>
                   <div className="card-actions">
                     <button className="primary small" onClick={() => open(v.id)} disabled={v.id === current.id}>{v.id === current.id ? 'Ouverte' : 'Ouvrir'}</button>
-                  if (!await requireSaved()) return
-                    <button className="small" onClick={async () => { await repo.snapshotVariant(v.id).catch((e) => { alert(storageError(e)); return null }); refresh() }} data-testid="snapshot-from-card">
+                    <button className="small" disabled={blocked} onClick={async () => { if (!await requireSaved()) return; await repo.snapshotVariant(v.id).catch((e) => { alert(storageError(e)); return null }); refresh() }} data-testid="snapshot-from-card">
                       <Icon name="copy" size={14} /> Dupliquer
                     </button>
                     <div className="spacer" />
