@@ -6,7 +6,7 @@ import type { DocState } from '../model/types'
 import { db } from '../store/db'
 import * as repo from '../store/repo'
 import { flushPersistence, useEditor } from '../store/editor'
-import { importProject, serializeProject } from './project'
+import { importProject, serializeProject, InvalidHistoryError } from './project'
 import { fillAt } from '../store/fills'
 
 function sampleDoc(): DocState {
@@ -105,6 +105,91 @@ describe('import : sécurité', () => {
     const { project } = await repo.createProject('Ok')
     return JSON.parse(JSON.stringify(await serializeProject(project.id)))
   }
+  it('refuse une version inconnue et conserve les anciens fichiers valides', async () => {
+    const f = await validFile()
+    await expect(importProject({ ...f, version: 999 })).rejects.toThrow('Version de sauvegarde')
+    delete f.variants[0].state.grid.lineStyle
+    delete f.variants[0].state.grid.subStep
+    await expect(importProject(f)).resolves.toBeDefined()
+  })
+  it('propose la récupération quand un inverse détruit le mur', async () => {
+    const f = await validFile()
+    f.variants[0].headSeq = f.variants[0].maxSeq = 1
+    f.entries = [{ variantId: f.variants[0].id, seq: 1, label: 'mur', ts: 1,
+      patches: [], inverse: [{ op: 'replace', path: ['wall'], value: null }] }]
+    const count = await db.projects.count()
+    await expect(importProject(f)).rejects.toThrow('historique corrompu')
+    expect(await db.projects.count()).toBe(count)
+    const { variants } = await importProject(f, { withoutHistory: true })
+    expect(variants[0].maxSeq).toBe(0)
+    expect(variants[0].state.wall.w).toBe(300)
+  })
+  it('détecte les séquences manquantes et les références absentes', async () => {
+    const f = await validFile()
+    f.variants[0].headSeq = f.variants[0].maxSeq = 2
+    await expect(importProject(f)).rejects.toThrow('historique corrompu')
+    f.variants[0].headSeq = f.variants[0].maxSeq = 0
+    f.variants[0].state.images = [{ id: 'i', blobId: 'absent', name: 'x', x: 0, y: 0, w: 1, h: 1, opacity: 1, locked: false, visible: true }]
+    await expect(importProject(f)).rejects.toThrow('images absentes')
+    const recovered = await importProject(f, { withoutHistory: true })
+    expect(recovered.variants[0].state.images).toEqual([])
+  })
+  it('conserve une sauvegarde des données disponibles et récupère un ancien historique incomplet', async () => {
+    const { project, variant } = await repo.createProject('Ancien')
+    await useEditor.getState().load(variant.id)
+    useEditor.getState().commit('image perdue', (d) => {
+      d.images.push({ id: 'im', blobId: 'perdu', name: 'x', x: 0, y: 0, w: 1, h: 1, opacity: 1, locked: false, visible: true })
+    })
+    useEditor.getState().commit('retrait', (d) => { d.images = [] })
+    const file = await serializeProject(project.id)
+    expect(file.warnings).toHaveLength(1)
+    await expect(importProject(file)).rejects.toThrow('historique corrompu')
+    const { variants } = await importProject(file, { withoutHistory: true })
+    expect(variants[0].maxSeq).toBe(0)
+  })
+  it('récupère le dessin même si un média réservé à l’historique est invalide', async () => {
+    const f = await validFile()
+    f.images = [{ id: 'ancien', dataUrl: 'invalide' }]
+    await expect(importProject(f)).rejects.toThrow('historique corrompu')
+    await expect(importProject(f, { withoutHistory: true })).resolves.toBeDefined()
+  })
+  it('conserve le gris de secours des anciennes zones sans couleur', async () => {
+    const f = await validFile()
+    f.variants[0].state.fills = [{ id: 'zone', colorId: 'supprimé', seed: { x: 1, y: 1 } }]
+    const { variants } = await importProject(f)
+    expect(variants[0].state.fills[0].colorId).toBe('supprimé')
+  })
+  it('propose la récupération pour une métadonnée de filiation invalide', async () => {
+    const f = await validFile()
+    f.variants[0].parentSeq = 'x'
+    await expect(importProject(f)).rejects.toBeInstanceOf(InvalidHistoryError)
+    const { variants } = await importProject(f, { withoutHistory: true })
+    expect(variants[0].parentSeq).toBeUndefined()
+  })
+  it('sauvegarde les images présentes uniquement dans les inverses après les écritures en attente', async () => {
+    const { project, variant } = await repo.createProject('Images')
+    await db.images.put({ id: 'source', dataUrl: 'data:image/png;base64,AAAA', width: 1, height: 1 })
+    await db.images.put({ id: 'blob', dataUrl: 'data:image/png;base64,AAAA', width: 1, height: 1 })
+    await useEditor.getState().load(variant.id)
+    useEditor.getState().commit('ajout', (d) => {
+      d.images.push({ id: 'im', blobId: 'blob', name: 'photo', x: 0, y: 0, w: 10, h: 10, opacity: 1, locked: false, visible: true,
+        edit: { sourceBlobId: 'source', quad: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }], full: { w: 1, h: 1 }, realSize: null, rect: { x: 0, y: 0, w: 1, h: 1 }, crop: { x: 0, y: 0, w: 1, h: 1 } } })
+    })
+    useEditor.getState().commit('retrait', (d) => { d.images = [] })
+    const file = await serializeProject(project.id)
+    expect(file.images.map((im) => im.id).sort()).toEqual(['blob', 'source'])
+    await db.delete()
+    await db.open()
+    const { variants } = await importProject(JSON.parse(JSON.stringify(file)))
+    const restored = await repo.moveHead(variants[0].id, 1)
+    expect(await db.images.get(restored.state.images[0].blobId)).toBeDefined()
+    expect(await db.images.get(restored.state.images[0].edit!.sourceBlobId)).toBeDefined()
+    const damaged = await serializeProject(variants[0].projectId)
+    damaged.images = damaged.images.filter((im) => im.id !== 'source')
+    const recovered = await importProject(damaged, { withoutHistory: true })
+    expect(recovered.variants[0].state.images[0].blobId).toBe('blob')
+    expect(recovered.variants[0].state.images[0].edit).toBeUndefined()
+  })
   it('rejects an injected color', async () => {
     const f = await validFile()
     f.variants[0].state.palette[0].hex = '#000"/><script>alert(1)</script><x a="'
