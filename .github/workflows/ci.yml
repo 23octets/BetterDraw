@@ -32,7 +32,8 @@ jobs:
 
   e2e:
     name: E2E
-    runs-on: ubuntu-latest
+    # version fixée : les captures de référence dépendent du système et de ses polices
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -65,5 +66,6 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            e2e/__screenshots__/
           retention-days: 14
           if-no-files-found: ignore

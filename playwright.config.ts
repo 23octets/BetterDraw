@@ -6,7 +6,13 @@ export default defineConfig({
   testDir: './e2e',
   // en CI, le rendu WebGL est logiciel : la 3D et les enregistrements sont bien plus lents
   timeout: isCI ? 120_000 : 60_000,
-  expect: { timeout: isCI ? 15_000 : 5_000 },
+  expect: {
+    timeout: isCI ? 15_000 : 5_000,
+    toHaveScreenshot: { maxDiffPixelRatio: 0.002 },
+  },
+  // références produites sur le runner Linux de la CI : elles ne valent pas sur une autre machine
+  testIgnore: isCI ? [] : ['**/visual.spec.ts'],
+  snapshotPathTemplate: 'e2e/__screenshots__/{arg}{ext}',
   fullyParallel: false,
   workers: 1,
   forbidOnly: isCI,
