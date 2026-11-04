@@ -257,6 +257,7 @@ input[type='checkbox'], input[type='radio'] { width: 15px; height: 15px; margin:
 .swatch-row { display: grid; grid-template-columns: 30px minmax(0, 1fr) var(--ctl-sm) var(--ctl-sm); gap: 6px; align-items: center; padding: 3px 4px; border-radius: var(--radius); border: 1px solid transparent; cursor: pointer; }
 .swatch-row:hover { background: rgba(0,0,0,0.03); }
 .swatch-row.on { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 1px var(--primary); }
+.swatch-row.no-paint { cursor: default; }
 .swatch { position: relative; display: block; width: 30px; height: 26px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.18); cursor: pointer; overflow: hidden; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25); }
 .swatch input[type=color] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 .swatch-row .name { height: var(--ctl-sm) !important; border-color: transparent !important; background: transparent !important; padding: 0 4px !important; cursor: pointer; }
@@ -335,8 +336,7 @@ p.small { margin: 0; }
 /* ---------- Consultation ---------- */
 .print-cell { fill: rgba(42, 107, 209, 0.10); stroke: var(--sel); stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; }
 .consult-veil { fill: rgba(239, 235, 227, 0.72); pointer-events: none; }
-.consult-cell-halo { fill: none; stroke: #fff; stroke-width: 7; vector-effect: non-scaling-stroke; pointer-events: none; }
-.consult-cell { fill: none; stroke: var(--ink); stroke-width: 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+.consult-hover { fill: none; stroke: var(--ink); stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; }
 .consult-badge rect { fill: var(--ink); }
 .consult-badge text { fill: var(--paper-2); font-size: 14px; font-weight: 700; }
 .consult-cote { font-size: 13px; font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: #fff; stroke-width: 5px; stroke-linejoin: round; font-variant-numeric: tabular-nums; }
@@ -618,7 +618,7 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .opening-overlay.window .opening-fill { fill: rgba(214, 233, 244, 0.9); }
 .opening-hatch-pattern line { stroke: rgba(29, 31, 34, 0.18); stroke-width: 1; }
 .opening-label { fill: var(--ink-2); font-weight: 600; }
-.mode-render .opening-hatch { display: none; }
+.mode-consult .opening-hatch { display: none; }
 
 /* Plan : outils Porte / Fenêtre / Décroché */
 .plan-tools { position: absolute; left: 12px; top: 12px; z-index: 2; display: flex; align-items: center; gap: 4px; padding: 4px; }

@@ -15,7 +15,7 @@ test.beforeEach(async ({ page }) => {
   await newProject(page, 'Peinture')
 })
 
-test('peindre des zones, surfaces et litres, mode rendu', async ({ page }) => {
+test('peindre des zones, surfaces et litres, rendu en consultation', async ({ page }) => {
   // un soleil couchant : horizon + demi-disque + rayons
   await poly(page, [[0, 170], [300, 170]])
   await page.getByTestId('tool-arc').click()
@@ -40,10 +40,12 @@ test('peindre des zones, surfaces et litres, mode rendu', async ({ page }) => {
   await expect(page.getByTestId('surfaces-table')).toContainText('2.40 m²')
   await page.screenshot({ path: `${SHOTS}/step4-04-estimation-peinture.png` })
   await page.getByTestId('close-estimate').click()
-  await page.getByTestId('mode-render').click()
+  await page.getByTestId('mode-consult').click()
   await expect(page.getByTestId('shapes')).toHaveCount(0)
   await page.screenshot({ path: `${SHOTS}/step4-02-mode-rendu.png` })
   await page.getByTestId('mode-edit').click()
+  // on retrouve l'outil en cours : passer en consultation n'interrompt pas la peinture
+  await expect(page.getByTestId('tool-fill')).toHaveAttribute('aria-pressed', 'true')
 
   // pipette puis gomme
   await page.getByTestId('tool-pick').click()

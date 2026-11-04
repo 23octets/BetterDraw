@@ -31,6 +31,35 @@ export interface ToolHandlers {
   renderScreen?: () => ReactNode
 }
 
+/** Mesure en consultation : les clics mesurent, mais ⌥ + clic reste réservé aux cases à imprimer et les repères de la vue restent affichés. */
+function withMeasure(consult: ToolHandlers, measure: ToolHandlers): ToolHandlers {
+  return {
+    ...measure,
+    cursor: consult.cursor === 'copy' ? 'copy' : measure.cursor,
+    onPointerDown: (p) => (p.alt ? consult : measure).onPointerDown?.(p),
+    onPointerMove(p) {
+      consult.onPointerMove?.(p)
+      measure.onPointerMove?.(p)
+    },
+    onPointerLeave() {
+      consult.onPointerLeave?.()
+      measure.onPointerLeave?.()
+    },
+    renderWorld: () => (
+      <>
+        {consult.renderWorld?.()}
+        {measure.renderWorld?.()}
+      </>
+    ),
+    renderScreen: () => (
+      <>
+        {consult.renderScreen?.()}
+        {measure.renderScreen?.()}
+      </>
+    ),
+  }
+}
+
 export function useActiveTool(): ToolHandlers {
   const tool = useEditor((s) => s.tool)
   const mode = useEditor((s) => s.mode)
@@ -50,7 +79,6 @@ export function useActiveTool(): ToolHandlers {
     image: useImageTool(selectedImageId, setSelectedImage),
   }
   const consult = useConsultTool(mode === 'consult')
-  if (mode === 'consult') return tool === 'measure' ? tools.measure! : consult
-  if (!edit && tool !== 'measure') return {}
+  if (mode === 'consult') return tool === 'measure' ? withMeasure(consult, tools.measure!) : consult
   return tools[tool] ?? {}
 }

@@ -17,6 +17,8 @@ export function PaletteSection() {
   const setActive = useEditor((s) => s.setActiveColor)
   const setTool = useEditor((s) => s.setTool)
   const commit = useEditor((s) => s.commit)
+  // en consultation, on ajuste les teintes sur le rendu : il n'y a rien à peindre
+  const canPaint = useEditor((s) => s.mode === 'edit')
   const [picker, setPicker] = useState<{ id: string; anchor: HTMLElement } | null>(null)
   const [renaming, setRenaming] = useState<string | null>(null)
   const pick = (id: string) => {
@@ -30,10 +32,10 @@ export function PaletteSection() {
         {palette.map((c) => (
           <div
             key={c.id}
-            className={`swatch-row${active === c.id ? ' on' : ''}`}
+            className={`swatch-row${canPaint && active === c.id ? ' on' : ''}${canPaint ? '' : ' no-paint'}`}
             data-testid={`swatch-${c.name}`}
-            onClick={() => renaming !== c.id && pick(c.id)}
-            title={`Peindre avec ${c.name}`}
+            onClick={() => canPaint && renaming !== c.id && pick(c.id)}
+            title={canPaint ? `Peindre avec ${c.name}` : undefined}
           >
             <button
               className="swatch"

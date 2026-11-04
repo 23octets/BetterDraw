@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { Vec } from '../model/types'
 import { useEditor } from '../store/editor'
 import { cellAt, gridLayout } from '../geometry/grid'
 import type { ToolHandlers } from './useActiveTool'
@@ -41,11 +42,23 @@ export function useConsultTool(active: boolean): ToolHandlers {
   const doc = useEditor((s) => s.doc)
   const consultCell = useEditor((s) => s.consultCell)
   const pickPrint = useEditor((s) => s.pickPrint)
-  useEditor((s) => s.view)
+  const view = useEditor((s) => s.view)
+  const pointer = useRef<Vec | null>(null)
+  const [hoverId, setHoverId] = useState<string | null>(null)
+  const [altDown, setAltDown] = useState(false)
+
+  // la vue a bougé sous un pointeur immobile (zoom, retour à la vue d'ensemble) : la case survolée change
+  useEffect(() => {
+    if (!active || !pointer.current) return
+    const st = useEditor.getState()
+    setHoverId(cellAt(gridLayout(st.doc.wall, st.doc.grid), st.screenToWorld(pointer.current))?.id ?? null)
+  }, [active, view])
 
   useEffect(() => {
     if (!active) return
+    const onAlt = (e: KeyboardEvent) => setAltDown(e.altKey)
     const on = (e: KeyboardEvent) => {
+      onAlt(e)
       if (e.target instanceof HTMLInputElement) return
       const st = useEditor.getState()
       if (e.key === 'Escape') {
@@ -58,42 +71,56 @@ export function useConsultTool(active: boolean): ToolHandlers {
       }
     }
     window.addEventListener('keydown', on)
-    return () => window.removeEventListener('keydown', on)
+    window.addEventListener('keyup', onAlt)
+    return () => {
+      window.removeEventListener('keydown', on)
+      window.removeEventListener('keyup', onAlt)
+    }
   }, [active])
 
   const L = gridLayout(doc.wall, doc.grid)
   const cell = consultCell ? L.cells.find((c) => c.id === consultCell) : null
+  // en vue détail, un clic ressort quelle que soit la case : pas de survol à signaler
+  const hover = !cell && hoverId ? L.cells.find((c) => c.id === hoverId) : null
   return {
     // loupe « + » sur la vue d'ensemble, loupe « − » en vue détail (un clic ressort)
-    cursor: pickPrint ? 'copy' : consultCell ? 'zoom-out' : 'zoom-in',
+    cursor: pickPrint || altDown ? 'copy' : consultCell ? 'zoom-out' : 'zoom-in',
+    onPointerMove(p) {
+      pointer.current = p.screen
+      setAltDown(p.alt)
+      setHoverId(cellAt(L, p.world)?.id ?? null)
+    },
+    onPointerLeave() {
+      pointer.current = null
+      setHoverId(null)
+    },
     onPointerDown(p) {
       if (p.button !== 0) return
       const c = cellAt(L, p.world)
       if (!c) return
       const st = useEditor.getState()
-      if (st.pickPrint) togglePrintCell(c.id)
+      if (st.pickPrint || p.alt) togglePrintCell(c.id)
       // un clic zoome sur la case, un nouveau clic revient à la vue d'ensemble
       else zoomToCell(st.consultCell ? null : c.id)
     },
     renderWorld: () => (
       <g className="consult-layer">
         {doc.printCells.map((id) => {
+          // la case ouverte en détail reste nette : son état se lit dans le panneau
+          if (id === consultCell) return null
           const c = L.cells.find((x) => x.id === id)
           return c ? <rect key={id} x={c.x} y={c.y} width={c.w} height={c.h} className="print-cell" data-testid="print-cell" /> : null
         })}
+        {hover && <rect x={hover.x} y={hover.y} width={hover.w} height={hover.h} className="consult-hover" data-testid="consult-hover" data-cell={hover.id} />}
         {cell && <SubGrid cell={cell} step={doc.grid.subStep ?? 10} />}
         {cell && (
-          <>
-            {/* voile sur tout ce qui est hors de la case */}
-            <path
-              className="consult-veil"
-              data-testid="consult-veil"
-              fillRule="evenodd"
-              d={`M${-doc.wall.w} ${-doc.wall.h}h${doc.wall.w * 3}v${doc.wall.h * 3}h${-doc.wall.w * 3}Z M${cell.x} ${cell.y}v${cell.h}h${cell.w}v${-cell.h}Z`}
-            />
-            <rect x={cell.x} y={cell.y} width={cell.w} height={cell.h} className="consult-cell-halo" />
-            <rect x={cell.x} y={cell.y} width={cell.w} height={cell.h} className="consult-cell" />
-          </>
+          // voile sur tout ce qui est hors de la case : il suffit à la détacher, sans bordure qui mordrait sur le dessin
+          <path
+            className="consult-veil"
+            data-testid="consult-veil"
+            fillRule="evenodd"
+            d={`M${-doc.wall.w} ${-doc.wall.h}h${doc.wall.w * 3}v${doc.wall.h * 3}h${-doc.wall.w * 3}Z M${cell.x} ${cell.y}v${cell.h}h${cell.w}v${-cell.h}Z`}
+          />
         )}
       </g>
     ),
