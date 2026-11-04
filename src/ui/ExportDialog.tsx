@@ -15,8 +15,7 @@ export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () 
   const run = async (what: string, fn: () => Promise<unknown> | unknown) => {
     setBusy(what)
     try {
-      await fn()
-      useEditor.getState().flash(`${what} : téléchargé`)
+      if ((await fn()) !== false) useEditor.getState().flash(`${what} : téléchargé`)
     } catch (e) {
       useEditor.getState().flash(`${what} : échec (${(e as Error).message})`, 'error')
     } finally {
@@ -54,6 +53,7 @@ export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () 
               <button disabled={!!busy} data-testid="export-svg" onClick={() => run('SVG', async () => (await import('../export/pdf')).exportSvg(doc, meta))}>Vectoriel SVG</button>
               <button disabled={!!busy} data-testid="export-json" onClick={() => run('Sauvegarde du projet', async () => {
                 const data = await serializeProject(variant.projectId)
+                if (data.warnings?.length && !window.confirm(data.warnings.join('\n') + '\nTélécharger cette sauvegarde incomplète ?')) return false
                 const { download, safeName } = await import('../export/pdf')
                 download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(meta.project)}.betterdraw.json`)
               })}>Sauvegarde du projet (.json)</button>
