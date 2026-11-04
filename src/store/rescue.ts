@@ -53,7 +53,7 @@ export async function rescueRoom(project: Project, room: RoomPlan) {
   for (const size of sizes) {
     let wall = data.walls.find((w) => w.id === size.id)
     if (!wall) {
-      wall = { id: size.id, projectId: project.id, name: size.name }
+      wall = { id: size.id, projectId: project.id, name: size.name, ...(room.groups?.some((g) => g.id === size.id) ? { group: true } : {}) }
       data.walls.push(wall)
     }
     if (!data.variants.some((v) => v.wallId === size.id)) {
