@@ -93,6 +93,15 @@ describe('sauvegarde du projet', () => {
     expect(useEditor.getState().doc.wall.w).toBe(300)
     await expect(importProject({ nope: true })).rejects.toThrow('pas un projet')
   })
+
+  it('exporte au format frsque et relit les sauvegardes faites sous l’ancien nom', async () => {
+    const { project } = await repo.createProject('Ancien')
+    const file = JSON.parse(JSON.stringify(await serializeProject(project.id)))
+    expect(file.format).toBe('frsque-project')
+    const { project: imported } = await importProject({ ...file, format: 'betterdraw-project' })
+    expect(imported.name).toBe('Ancien')
+    await expect(importProject({ ...file, format: 'autre-chose' })).rejects.toThrow('pas un projet')
+  })
 })
 
 describe('import : sécurité', () => {

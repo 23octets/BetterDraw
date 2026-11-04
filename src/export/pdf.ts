@@ -29,7 +29,7 @@ function parseSvg(svg: string): SVGSVGElement {
 export async function buildPdf(doc: DocState, meta: ExportMeta): Promise<Blob> {
   const pages = exportPages(doc, meta)
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-  pdf.setProperties({ title: `${meta.project} — ${meta.variant}`, creator: 'BetterDraw' })
+  pdf.setProperties({ title: `${meta.project} — ${meta.variant}`, creator: 'frsque' })
   for (let i = 0; i < pages.length; i++) {
     if (i > 0) pdf.addPage('a4', 'landscape')
     const el = parseSvg(pages[i])

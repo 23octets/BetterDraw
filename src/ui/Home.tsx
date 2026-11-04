@@ -50,7 +50,7 @@ export function Home() {
         <div className="brand">
           <span className="brand-mark" aria-hidden>▦</span>
           <div>
-            <h1>BetterDraw</h1>
+            <h1>frsque</h1>
             <p>Dessiner à l'échelle, peindre au mur.</p>
           </div>
         </div>
