@@ -46,6 +46,16 @@ npm run typecheck
 npm test             # tests unitaires (Vitest)
 npm run test:e2e     # tests de bout en bout (Playwright), captures dans docs/screenshots
 npm run test:all
+npm run size         # budget de taille du bundle, après npm run build (.size-limit.json)
 ```
+
+La régression visuelle (`e2e/visual.spec.ts`) ne tourne qu'en CI, car ses images de référence dépendent du rendu Linux. Après un changement visuel voulu, ou une mise à jour de Playwright qui change le rendu :
+
+```bash
+gh workflow run visual-update.yml --ref ma-branche
+gh run download <id-du-run> -n captures -D /tmp/captures
+```
+
+Relire les images, les copier dans `e2e/__screenshots__`, puis les committer (`gh run download` refuse d'écraser des fichiers existants). En cas d'échec, l'artefact `playwright-report` de la CI contient les différences.
 
 Les tests e2e génèrent des captures dans `docs/screenshots/` et un exemple de PDF chantier dans `docs/exemple-chantier.pdf` (non versionnés).

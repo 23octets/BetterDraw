@@ -1,0 +1,28 @@
+# Régénère les images de référence sur le même runner que la CI et les publie en artefact.
+name: Mettre à jour les captures
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    name: Captures de référence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test e2e/visual.spec.ts --update-snapshots=all
+      - uses: actions/upload-artifact@v7
+        with:
+          name: captures
+          path: e2e/__screenshots__/
+          retention-days: 7
