@@ -46,6 +46,7 @@ npm run typecheck
 npm test             # tests unitaires (Vitest)
 npm run test:e2e     # tests de bout en bout (Playwright), captures dans docs/screenshots
 npm run test:all
+npm run size         # budget de taille du bundle, après npm run build (.size-limit.json)
 ```
 
 Les tests e2e génèrent des captures dans `docs/screenshots/` et un exemple de PDF chantier dans `docs/exemple-chantier.pdf` (non versionnés).
