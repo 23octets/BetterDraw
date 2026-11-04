@@ -125,7 +125,8 @@ export function PaletteSection() {
 export function BackgroundSection() {
   const doc = useEditor((s) => s.doc)
   const [open, setOpen] = useState(false)
-  const s = surfaces(doc)
+  const room = useEditor((s) => s.room)
+  const s = surfaces(doc, room)
   const totalL = s.colors.reduce((a, c) => a + c.liters, 0)
   return (
     <Section title="Peinture" testId="surfaces-section">
@@ -140,7 +141,8 @@ export function BackgroundSection() {
 export function EstimateModal({ onClose }: { onClose: () => void }) {
   const doc = useEditor((s) => s.doc)
   const commit = useEditor((s) => s.commit)
-  const s = surfaces(doc)
+  const room = useEditor((s) => s.room)
+  const s = surfaces(doc, room)
   const totalA = s.colors.reduce((a, c) => a + c.area, 0)
   const totalL = s.colors.reduce((a, c) => a + c.liters, 0)
   return (
@@ -188,6 +190,7 @@ export function EstimateModal({ onClose }: { onClose: () => void }) {
             <input type="checkbox" checked={doc.paint.showLiters} onChange={(e) => commit('Litres dans le PDF', (d) => { d.paint.showLiters = e.target.checked })} />
             Afficher les litres dans le PDF chantier
           </label>
+          {room && (room.openings.length > 0 || !!room.masks?.length) && <p className="hint">Ouvertures et zones sans mur déduites.</p>}
           <p className="hint">Estimation indicative : litres = surface × couches ÷ rendement. Prévois une marge de 10 %.</p>
         </div>
       </div>

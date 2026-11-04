@@ -8,9 +8,10 @@ import { DocPreview } from './DocPreview'
 
 export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () => void }) {
   const doc = useEditor((s) => s.doc)
+  const room = useEditor((s) => s.room)
   const variant = useEditor((s) => s.variant)!
   const [busy, setBusy] = useState<string | null>(null)
-  const pages = useMemo(() => exportPages(doc, meta), [doc, meta])
+  const pages = useMemo(() => exportPages(doc, meta, room), [doc, meta, room])
   const L = gridLayout(doc.wall, doc.grid)
   const run = async (what: string, fn: () => Promise<unknown> | unknown) => {
     setBusy(what)
@@ -47,11 +48,11 @@ export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () 
               </svg>
             </div>
             <div className="export-actions">
-              <button className="primary" disabled={!!busy} data-testid="export-pdf" onClick={() => run('PDF chantier', async () => (await import('../export/pdf')).exportPdf(doc, meta))}>
+              <button className="primary" disabled={!!busy} data-testid="export-pdf" onClick={() => run('PDF chantier', async () => (await import('../export/pdf')).exportPdf(doc, meta, room))}>
                 {busy === 'PDF chantier' ? 'Génération…' : `Télécharger le PDF (${pages.length} page${pages.length > 1 ? 's' : ''})`}
               </button>
-              <button disabled={!!busy} data-testid="export-png" onClick={() => run('PNG', async () => (await import('../export/pdf')).exportPng(doc, meta))}>Image PNG</button>
-              <button disabled={!!busy} data-testid="export-svg" onClick={() => run('SVG', async () => (await import('../export/pdf')).exportSvg(doc, meta))}>Vectoriel SVG</button>
+              <button disabled={!!busy} data-testid="export-png" onClick={() => run('PNG', async () => (await import('../export/pdf')).exportPng(doc, meta, 3508, room))}>Image PNG</button>
+              <button disabled={!!busy} data-testid="export-svg" onClick={() => run('SVG', async () => (await import('../export/pdf')).exportSvg(doc, meta, room))}>Vectoriel SVG</button>
               <button disabled={!!busy} data-testid="export-json" onClick={() => run('Sauvegarde du projet', async () => {
                 const data = await serializeProject(variant.projectId)
                 const { download, safeName } = await import('../export/pdf')

@@ -1,3 +1,4 @@
+import { excludedArea, type WallContext } from '../geometry/paintable'
 import { nanoid } from 'nanoid'
 import { current } from 'immer'
 import type { DocState, Fill, Shape, Vec } from '../model/types'
@@ -181,15 +182,17 @@ export interface ColorSurface {
 }
 
 /** Surfaces par couleur (m² via area/10000) et litres estimés. */
-export function surfaces(doc: DocState): { colors: ColorSurface[]; background: { area: number; liters: number }; total: number } {
+export function surfaces(doc: DocState, room?: WallContext | null): { colors: ColorSurface[]; background: { area: number; liters: number }; total: number } {
   const resolved = resolveFills(doc)
+  const excluded = excludedArea(doc, room)
+  const total = doc.wall.w * doc.wall.h - (excluded ? Math.abs((excluded as paper.Path).area) : 0)
   const by = new Map<string, number>()
-  for (const r of resolved) by.set(r.fill.colorId, (by.get(r.fill.colorId) ?? 0) + r.region.area)
+  for (const r of resolved) by.set(r.fill.colorId, (by.get(r.fill.colorId) ?? 0) + (excluded ? Math.abs((r.region.item.subtract(excluded, { insert: false }) as paper.Path).area) : r.region.area))
   const liters = (cm2: number) => (cm2 / 10000) * doc.paint.coats / Math.max(0.1, doc.paint.coverage)
   const colors = doc.palette
     .filter((c) => by.has(c.id))
     .map((c) => ({ colorId: c.id, name: c.name, hex: c.hex, area: by.get(c.id)!, liters: liters(by.get(c.id)!) }))
   const painted = [...by.values()].reduce((a, b) => a + b, 0)
-  const bgArea = Math.max(0, doc.wall.w * doc.wall.h - painted)
-  return { colors, background: { area: bgArea, liters: liters(bgArea) }, total: doc.wall.w * doc.wall.h }
+  const bgArea = Math.max(0, total - painted)
+  return { colors, background: { area: bgArea, liters: liters(bgArea) }, total }
 }
