@@ -113,3 +113,44 @@ it('le secours conserve le dessin non enregistré d’une variante supprimée da
     await db.variants.put(variant)
   }
 })
+
+it('récupère du cache l’image et sa source nettoyées après la suppression de la variante', async () => {
+  const { storeImage, placeImage } = await import('./images')
+  const { defaultEdit } = await import('./imageEdit')
+  const { importProject } = await import('../export/project')
+  const { variant, project } = await repo.createProject('Images en mémoire')
+  await repo.snapshotVariant(variant.id, 'Autre')
+  const source = await storeImage('data:image/png;base64,AA==', { width: 10, height: 10 })
+  const rendered = await storeImage('data:image/webp;base64,AA==', { width: 10, height: 10 })
+  await db.images.toCollection().modify({ addedAt: 1 })
+  const ref = placeImage(rendered, variant.state.wall, 'Retouche')
+  ref.edit = defaultEdit({ ...ref, blobId: source.id }, source)
+  const doc = { ...variant.state, images: [ref] }
+  await db.variants.update(variant.id, { state: doc })
+  await repo.deleteVariant(variant.id)
+  expect(await db.images.count()).toBe(0)
+  const { data, warning } = await rescueProject(variant, doc, project)
+  expect(new Set(data.images.map((im) => im.id))).toEqual(new Set([source.id, rendered.id]))
+  expect(warning).toBe('')
+  const restored = await importProject(data)
+  expect(restored.variants.find((v) => v.state.images.length)?.state.images[0].edit?.sourceBlobId).toBe(source.id)
+})
+
+it.each(['image', 'source'])('signale une %s absente de la base et du cache après suppression', async (missing) => {
+  const { storeImage, placeImage } = await import('./images')
+  const { defaultEdit } = await import('./imageEdit')
+  const { variant, project } = await repo.createProject('Image irrécupérable')
+  await repo.snapshotVariant(variant.id, 'Autre')
+  const uncached = { id: 'image-non-chargee-' + missing, dataUrl: 'data:image/png;base64,AA==', width: 10, height: 10, addedAt: 1 }
+  await db.images.put(uncached)
+  const rendered = missing === 'source' ? await storeImage('data:image/webp;base64,AA==', { width: 10, height: 10 }) : uncached
+  const ref = placeImage(rendered, variant.state.wall, 'Référence')
+  if (missing === 'source') ref.edit = defaultEdit({ ...ref, blobId: uncached.id }, uncached)
+  const doc = { ...variant.state, images: [ref] }
+  await db.variants.update(variant.id, { state: doc })
+  await repo.deleteVariant(variant.id)
+  expect(await db.images.get(uncached.id)).toBeUndefined()
+  const { data, warning } = await rescueProject(variant, doc, project)
+  expect(warning).toContain('images du dessin affiché sont absentes')
+  expect(data.warnings?.join(' ')).toContain('images du dessin affiché sont absentes')
+})

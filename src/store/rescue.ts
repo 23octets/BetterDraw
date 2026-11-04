@@ -15,7 +15,12 @@ export async function rescueProject(variant: Variant, doc: DocState, project: Pr
     data.entries = data.entries.filter((e) => e.variantId !== variant.id)
     const refs = imageReferences(data.variants, data.entries)
     const keys = (await db.images.toCollection().primaryKeys()).filter((id) => refs.has(id))
-    data.images = (await db.images.bulkGet(keys)).filter((im): im is StoredImage => !!im)
+    const stored = (await db.images.bulkGet(keys)).filter((im): im is StoredImage => !!im)
+    const have = new Set(stored.map((im) => im.id))
+    data.images = [...stored, ...cachedImages().filter((im) => refs.has(im.id) && !have.has(im.id))]
+    const ids = new Set(data.images.map((im) => im.id))
+    const absent = current.state.images.some((im) => !ids.has(im.blobId) || (im.edit && !ids.has(im.edit.sourceBlobId)))
+    if (absent) data.warnings = [...new Set([...(data.warnings ?? []), 'Certaines images du dessin affiché sont absentes de cette sauvegarde.'])]
     return { data, warning: data.warnings?.join('\n') ?? '' }
   } catch {
     const refs = imageReferences(current.state.images)
