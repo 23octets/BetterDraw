@@ -5,7 +5,7 @@ import { db } from '../store/db'
 import type { DocState, GridSettings, HistoryEntry, ImageEdit, Opening, Project, Rect, RoomPlan, Segment, Shape, StoredImage, Variant, Vec, Wall } from '../model/types'
 
 export interface ProjectFile {
-  format: 'betterdraw-project'
+  format: 'frsque-project'
   version: 1
   exportedAt: number
   project: Project
@@ -46,7 +46,7 @@ export async function serializeProject(projectId: string): Promise<ProjectFile> 
     const complete = images.filter((im): im is StoredImage => !!im)
     // Le fichier conserve même un historique local abîmé : l'import proposera sa récupération.
     // Ne pas reconstruire l'historique dans la transaction de lecture (coût et blocage de l'interface).
-    return { format: 'betterdraw-project', version: 1, exportedAt: Date.now(), project, walls, variants, entries, images: complete, ...(warnings.length ? { warnings } : {}) }
+    return { format: 'frsque-project', version: 1, exportedAt: Date.now(), project, walls, variants, entries, images: complete, ...(warnings.length ? { warnings } : {}) }
   })
 }
 
@@ -257,10 +257,13 @@ export async function validateHistory(variants: Variant[], entries: HistoryEntry
   }
 }
 
+/** Formats lisibles à l'import : les sauvegardes faites sous l'ancien nom de l'app restent valables. */
+const PROJECT_FORMATS: unknown[] = ['frsque-project', 'betterdraw-project']
+
 /** Importe un fichier projet comme nouveau projet (nouveaux identifiants, rien n'est écrasé). */
 export async function importProject(data: unknown, options: { withoutHistory?: boolean } = {}): Promise<{ project: Project; variants: Variant[] }> {
   const root = data && typeof data === 'object' ? (data as Record<string, unknown>) : null
-  if (!root || root.format !== 'betterdraw-project' || !root.project || !Array.isArray(root.variants)) throw new Error('Ce fichier n’est pas un projet BetterDraw')
+  if (!root || !PROJECT_FORMATS.includes(root.format) || !root.project || !Array.isArray(root.variants)) throw new Error('Ce fichier n’est pas un projet frsque')
   if (root.version !== 1) throw new Error('Version de sauvegarde non prise en charge : ' + String(root.version))
   const p0 = obj(root.project, 'projet')
   const now = Date.now()

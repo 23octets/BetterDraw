@@ -18,7 +18,7 @@ export async function recoveryFile(): Promise<ProjectFile> {
   } catch {
     // La base peut être inaccessible : sauver au moins le dessin vectoriel en mémoire.
     return {
-      format: 'betterdraw-project', version: 1, exportedAt: Date.now(),
+      format: 'frsque-project', version: 1, exportedAt: Date.now(),
       project: { id: variant.projectId, name: 'Dessin de secours (sans images)', createdAt: Date.now(), updatedAt: Date.now() },
       walls: [{ id: variant.wallId, projectId: variant.projectId, name: 'Mur' }],
       variants: [{ ...copy, state: { ...doc, images: [] } }], entries: [], images: [],
@@ -31,7 +31,7 @@ export async function downloadRecovery() {
   const url = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: 'application/json' }))
   const a = document.createElement('a')
   a.href = url
-  a.download = 'betterdraw-secours.json'
+  a.download = 'frsque-secours.json'
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

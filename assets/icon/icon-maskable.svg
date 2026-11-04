@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Android recadre l'icône : le F, réduit à 80 %, reste dans le cercle sûr (rayon de 40 %). La ligne de peinture garde sa pente et déborde du cadre. -->
+  <rect width="512" height="512" fill="#efebe3"/>
+  <g transform="translate(256 256) scale(.8) translate(-256 -256)">
+    <path fill="#c8643b" d="M-100 328.28125L612 411.71875V612H-100Z"/>
+    <path fill="#c8643b" d="M112 64H416V160H240V240H368V336H240V368.125L112 353.125Z"/>
+    <path fill="#efebe3" d="M112 353.125L240 368.125V448H112Z"/>
+  </g>
+</svg>

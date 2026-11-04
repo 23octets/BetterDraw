@@ -23,7 +23,7 @@ export function registerAfterChange(h: AfterChange) {
 let queue: Promise<unknown> = Promise.resolve()
 function enqueue<T>(fn: () => Promise<T>): Promise<T> {
   const p = queue.then(fn)
-  queue = p.catch((e) => console.error('[betterdraw] persistance', e))
+  queue = p.catch((e) => console.error('[frsque] persistance', e))
   return p
 }
 /** Attend que toutes les écritures soient terminées (tests). */
