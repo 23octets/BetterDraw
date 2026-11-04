@@ -1,10 +1,11 @@
+import { storageError } from '../store/storage'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { nanoid } from 'nanoid'
 import type { DocState, Opening, OpeningKind, Project, RoomGroup, RoomPlan, Vec } from '../model/types'
 import * as repo from '../store/repo'
 import * as rooms from '../store/rooms'
 import type { WallInfo } from '../store/rooms'
-import { navigate } from '../ui/router'
+import { navigate, registerNavigationGuard } from '../ui/router'
 import { Icon } from '../ui/icons'
 import { NumberField, TextField } from '../ui/fields'
 import { DocPreview } from '../ui/DocPreview'
@@ -19,6 +20,10 @@ import {
 type Layout = 'plan' | 'split' | '3d'
 
 let saveQueue: Promise<unknown> = Promise.resolve()
+async function flushRoomSaves() {
+  let pending: Promise<unknown>
+  do { pending = saveQueue; await pending } while (pending !== saveQueue)
+}
 /** Historique du plan, conservé pendant la session (aller peindre un mur puis revenir ne le perd pas). */
 const histories = new Map<string, { past: RoomPlan[]; future: RoomPlan[] }>()
 function historyOf(projectId: string) {
@@ -40,6 +45,17 @@ export function RoomPage({ projectId }: { projectId: string }) {
   const [sel, setSel] = useState<RoomSelection>(null)
   const [layout, setLayout] = useState<Layout>(() => (localStorage.getItem('bd:room-layout') as Layout) || 'split')
   const [saving, setSaving] = useState(0)
+  const [saveError, setSaveError] = useState('')
+  const [rescueMessage, setRescueMessage] = useState('')
+  const saveErrorRef = useRef('')
+  useEffect(() => {
+    const unregister = registerNavigationGuard(() => !!saveErrorRef.current, flushRoomSaves)
+    const guard = (e: BeforeUnloadEvent) => {
+      if (saveErrorRef.current) { e.preventDefault(); e.returnValue = '' }
+    }
+    window.addEventListener('beforeunload', guard)
+    return () => { unregister(); window.removeEventListener('beforeunload', guard) }
+  }, [])
   const [msg, setMsg] = useState<string | null>(null)
   /** Côté qui s'allonge quand on change la longueur d'un mur. */
   const [grow, setGrow] = useState<GrowSide>(() => (localStorage.getItem('bd:room-grow') as GrowSide) || 'right')
@@ -102,10 +118,11 @@ export function RoomPage({ projectId }: { projectId: string }) {
     setSaving((s) => s + 1)
     saveQueue = saveQueue
       .then(() => rooms.saveRoom(projectId, next))
-      .then(refreshWalls)
+      .then(() => { saveErrorRef.current = ''; setSaveError(''); return refreshWalls() })
       .catch((e) => {
         console.error(e)
-        flash('Enregistrement impossible (voir la console)')
+        saveErrorRef.current = storageError(e)
+        setSaveError(saveErrorRef.current)
       })
       .finally(() => setSaving((s) => s - 1))
   }
@@ -247,7 +264,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
       try {
         await saveQueue
         group = await rooms.createWallGroup(projectId, room, ids)
-      } finally {
+      } catch (e) { flash(storageError(e)); return } finally {
         setSaving((x) => x - 1)
       }
     }
@@ -262,7 +279,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
         <button className="icon-btn ghost" onClick={() => navigate('/')} title="Retour aux projets"><Icon name="arrowLeft" size={16} /> Projets</button>
         <div className="title">
           <TextField className="project-title" value={project.name} testId="room-title" onCommit={async (name) => {
-            await repo.renameProject(project.id, name)
+            try { await repo.renameProject(project.id, name) } catch (e) { alert(storageError(e)); return }
             setProject({ ...project, name })
           }} />
         </div>
@@ -272,7 +289,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
           <button className={layout === '3d' ? 'on' : ''} onClick={() => setLayout('3d')} data-testid="layout-3d">3D</button>
         </div>
         <div className="spacer" />
-        <span className={`save-state${saving ? ' busy' : ''}`} data-testid="room-save-state">{saving ? 'Enregistrement…' : 'Enregistré'}</span>
+        <span className={`save-state${saveError ? ' error' : saving ? ' busy' : ''}`} data-testid="room-save-state">{saveError ? 'Échec de l’enregistrement' : saving ? 'Enregistrement…' : 'Enregistré'}</span>
         <div className="btn-group">
           <button className="icon-btn" onClick={undo} disabled={!hist.past.length} title="Annuler (⌘Z)" aria-label="Annuler" data-testid="room-undo"><Icon name="undo" /></button>
           <button className="icon-btn" onClick={redo} disabled={!hist.future.length} title="Rétablir (⇧⌘Z)" aria-label="Rétablir" data-testid="room-redo"><Icon name="redo" /></button>
@@ -352,7 +369,23 @@ export function RoomPage({ projectId }: { projectId: string }) {
             else setSel({ kind: 'wall', i })
           }} />
         )}
-        {msg && <div className="toast error" role="status" data-testid="room-flash">{msg}</div>}
+        {saveError && <div className="storage-failure" role="alert">
+          {rescueMessage && <p>{rescueMessage}</p>}
+          <p>{saveError} Les dernières modifications du plan ne sont pas enregistrées.</p>
+          <button onClick={() => { if (room) persist(room) }}>Réessayer l’enregistrement</button>
+          <button onClick={async () => {
+            try {
+              const { rescueRoom } = await import('../store/rescue')
+              const { data, warning } = await rescueRoom(project!, room!)
+              setRescueMessage(warning || 'Sauvegarde du plan affiché téléchargée.')
+              const { download, safeName } = await import('../export/pdf')
+              download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(project?.name ?? 'Pièce')}.secours.frsque.json`)
+              flash('Sauvegarde du plan affiché téléchargée.')
+            } catch (e) { flash(storageError(e)) }
+          }}>Sauvegarder le plan affiché (.json)</button>
+          <button onClick={() => navigate('/')}>Accueil et sauvegardes</button>
+        </div>}
+        {msg && <div className="toast error"  role="status" data-testid="room-flash">{msg}</div>}
       </main>
       <aside className="side-panel">
         {linking ? (
@@ -382,11 +415,11 @@ export function RoomPage({ projectId }: { projectId: string }) {
             onClose={() => setSel(null)}
             onPaint={() => openWall(selectedWall)}
             onRename={async (name) => {
-              await rooms.renameWall(room.walls[selectedWall].id, name)
+              try { await rooms.renameWall(room.walls[selectedWall].id, name) } catch (e) { alert(storageError(e)); return }
               refreshWalls()
             }}
             onDisplay={async (vid) => {
-              await rooms.setDisplayVariant(room.walls[selectedWall].id, vid)
+              try { await rooms.setDisplayVariant(room.walls[selectedWall].id, vid) } catch (e) { alert(storageError(e)); return }
               refreshWalls()
             }}
             onSplit={() => {

@@ -667,3 +667,30 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .room-splitter::after { content: ''; position: absolute; top: 50%; left: 2px; width: 6px; height: 44px; transform: translateY(-50%); border-radius: 3px; background: var(--line); transition: background 0.15s; }
 .room-splitter:hover::after, .room-splitter.dragging::after, .room-splitter:focus-visible::after { background: var(--primary); }
 .room-splitter.dragging::before { content: ''; position: absolute; top: 0; bottom: 0; left: -2000px; width: 4000px; }
+
+.storage-notice {
+  margin-block: 1.5rem;
+  padding: 1rem;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+}
+.storage-notice p { margin: 0 0 .75rem; }
+.storage-notice button { margin: .25rem .5rem .25rem 0; }
+.storage-failure {
+  position: fixed;
+  z-index: 1000;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  max-height: 45vh;
+  overflow: auto;
+  padding: 1rem;
+  background: var(--panel, white);
+  border: 2px solid #a32d2d;
+  border-radius: 8px;
+  color: var(--ink, #222);
+}
+.storage-failure button { margin: .25rem; white-space: normal; height: auto; min-height: 32px; }
+.save-state.error { color: #a32d2d; }
+
+.save-state.error::before { color: #a32d2d; }

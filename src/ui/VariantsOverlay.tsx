@@ -1,3 +1,4 @@
+import { storageError } from '../store/storage'
 import { useEffect, useState } from 'react'
 import { useEditor, flushPersistence, requireSaved } from '../store/editor'
 import * as repo from '../store/repo'
@@ -63,7 +64,8 @@ export function VariantsOverlay({ onClose }: { onClose: () => void }) {
                 disabled={blocked} data-testid="snapshot"
                 onClick={async () => {
                   if (!await requireSaved()) return
-                  const nv = await repo.snapshotVariant(current.id)
+                  const nv = await repo.snapshotVariant(current.id).catch((e) => { alert(storageError(e)); return null })
+                  if (!nv) return
                   onClose()
                   navigate(`/v/${nv.id}`)
                   setTimeout(() => useEditor.getState().flash(`${nv.name} créée : copie de ${current.name}, à modifier librement`), 50)
@@ -96,14 +98,14 @@ export function VariantsOverlay({ onClose }: { onClose: () => void }) {
                   </div>
                   <div className="card-actions">
                     <button className="primary small" onClick={() => open(v.id)} disabled={v.id === current.id}>{v.id === current.id ? 'Ouverte' : 'Ouvrir'}</button>
-                    <button className="small" disabled={blocked} onClick={async () => { if (!await requireSaved()) return; await repo.snapshotVariant(v.id); refresh() }} data-testid="snapshot-from-card">
+                    <button className="small" disabled={blocked} onClick={async () => { if (!await requireSaved()) return; await repo.snapshotVariant(v.id).catch((e) => { alert(storageError(e)); return null }); refresh() }} data-testid="snapshot-from-card">
                       <Icon name="copy" size={14} /> Dupliquer
                     </button>
                     <div className="spacer" />
                     <button className="icon-btn ghost small danger" disabled={(list?.length ?? 0) <= 1 || v.id === current.id} title={v.id === current.id ? 'Impossible de supprimer la variante ouverte' : 'Supprimer la variante'} aria-label={`Supprimer ${v.name}`}
                       onClick={async () => {
                         if (!confirm(`Supprimer « ${v.name} » et son historique ?`)) return
-                        await repo.deleteVariant(v.id)
+                        try { await repo.deleteVariant(v.id) } catch (e) { alert(storageError(e)); return }
                         setPicked((p) => p.filter((x) => x !== v.id))
                         refresh()
                       }}>

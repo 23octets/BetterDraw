@@ -1,5 +1,6 @@
 import { roomContext } from '../store/rooms'
 import type { WallContext } from '../geometry/paintable'
+import { storageError } from '../store/storage'
 import { useEffect, useState } from 'react'
 import * as repo from '../store/repo'
 import type { Project, Variant } from '../model/types'
@@ -41,7 +42,7 @@ export function ProjectPage({ projectId }: { projectId: string }) {
       <header className="project-head">
         <button className="ghost" onClick={() => navigate('/')}><Icon name="arrowLeft" size={15} /> Projets</button>
         <TextField className="project-title" value={project.name} testId="project-title" onCommit={async (name) => {
-          await repo.renameProject(project.id, name)
+          try { await repo.renameProject(project.id, name) } catch (e) { alert(storageError(e)); return }
           refresh()
         }} />
         <span className="muted">{variants.length} variante{variants.length > 1 ? 's' : ''}</span>
@@ -65,7 +66,7 @@ export function ProjectPage({ projectId }: { projectId: string }) {
               </Thumb>
               <div className="card-body">
                 <TextField className="variant-name" value={v.name} testId="variant-name" onCommit={async (name) => {
-                  await repo.renameVariant(v.id, name)
+                  try { await repo.renameVariant(v.id, name) } catch (e) { alert(storageError(e)); return }
                   refresh()
                 }} />
                 <span className="card-meta">
@@ -84,13 +85,13 @@ export function ProjectPage({ projectId }: { projectId: string }) {
               <div className="card-actions">
                 <button className="primary small" onClick={() => navigate(`/v/${v.id}`)}>Ouvrir</button>
                 <button className="small" data-testid="snapshot-from-card" onClick={async () => {
-                  await repo.snapshotVariant(v.id)
+                  await repo.snapshotVariant(v.id).catch((e) => { alert(storageError(e)); return null })
                   refresh()
                 }}><Icon name="copy" size={14} /> Dupliquer</button>
                 <div className="spacer" />
                 <button className="icon-btn ghost small danger" disabled={variants.length <= 1} title="Supprimer la variante" aria-label={`Supprimer ${v.name}`} onClick={async () => {
                   if (!confirm(`Supprimer « ${v.name} » et son historique ?`)) return
-                  await repo.deleteVariant(v.id)
+                  try { await repo.deleteVariant(v.id) } catch (e) { alert(storageError(e)); return }
                   setPicked((p) => p.filter((x) => x !== v.id))
                   refresh()
                 }}><Icon name="trash" size={15} /></button>

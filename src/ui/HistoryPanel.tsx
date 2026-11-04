@@ -1,3 +1,4 @@
+import { storageError } from '../store/storage'
 import { useEffect, useState } from 'react'
 import { useEditor, flushPersistence, requireSaved } from '../store/editor'
 import * as repo from '../store/repo'
@@ -32,7 +33,8 @@ export function HistoryPanel() {
   const branch = async (seq: number) => {
     if (!variant) return
     if (!await requireSaved()) return
-    const nv = await repo.snapshotVariant(variant.id, undefined, seq)
+    const nv = await repo.snapshotVariant(variant.id, undefined, seq).catch((e) => { useEditor.getState().flash(storageError(e), 'error'); return null })
+    if (!nv) return
     navigate(`/v/${nv.id}`)
     setTimeout(() => useEditor.getState().flash(`${nv.name} créée depuis l’état #${seq} de ${variant.name}`), 50)
   }
