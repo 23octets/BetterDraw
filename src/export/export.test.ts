@@ -227,3 +227,22 @@ describe('import : sécurité', () => {
     expect(coverPageSvg(d, { project: 'P', variant: 'V' })).not.toContain('<script>')
   })
 })
+
+describe('mur de pièce', () => {
+  const room = { openings: [{ id: 'f', wallId: 'w', kind: 'window' as const, x: 40, w: 80, h: 100, sill: 70 }], masks: [{ x: 90, y: 80, w: 40, h: 100 }], seams: [{ x: 150, name: 'Mur 2' }] }
+  it('reporte les ouvertures à leur position intérieure dans tous les formats SVG', () => {
+    const doc = sampleDoc()
+    for (const svg of [...exportPages(doc, { project: 'P', variant: 'V' }, room), drawingSvg(doc, { room }), drawingSvg(doc, { labels: false, room })]) {
+      expect(svg).toContain('x="40" y="80" width="80" height="100"')
+      expect(svg).toContain('Fenêtre')
+      expect(svg).toContain('Pas de mur')
+      expect(svg).toContain('stroke-dasharray="4 3"')
+    }
+    expect(coverPageSvg(doc, { project: 'P', variant: 'V' }, room)).toContain('Ouvertures et zones sans mur déduites')
+    const cover = coverPageSvg(doc, { project: 'P', variant: 'V' }, room)
+    expect(cover.indexOf('data-room-overlay')).toBeLessThan(cover.indexOf('<g opacity='))
+    expect(cover.indexOf('data-room-overlay')).toBeLessThan(cover.indexOf('fill="#2a6bd1"'))
+
+    expect(drawingSvg(doc).replace(/gc\d+/g, 'gc')).toBe(drawingSvg(doc, { room: null }).replace(/gc\d+/g, 'gc'))
+  })
+})

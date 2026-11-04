@@ -1,3 +1,5 @@
+import type { WallContext } from '../geometry/paintable'
+import { openingRect, windowBars } from '../room/geometry'
 import type { DocState } from '../model/types'
 import { shapeToD } from '../geometry/shapes'
 import { dashPattern, gridLayout, gridStrokeFor, type GridCell } from '../geometry/grid'
@@ -34,6 +36,25 @@ function wallContent(doc: DocState, strokeCm: number, opts: { lines?: boolean } 
   return s
 }
 
+function roomOverlay(doc: DocState, room: WallContext | null | undefined, stroke: number) {
+  if (!room) return ''
+  let s = '<g data-room-overlay="true">'
+  const rects = [...(room.masks ?? []).map((r) => ({ r, label: 'Pas de mur', offset: 40, divisor: 5 })), ...room.openings.map((o) => ({ r: openingRect(o, doc.wall.h), label: o.kind === 'door' ? 'Porte' : 'Fenêtre', offset: 30, divisor: 6 }))]
+  for (const { r, label, offset, divisor } of rects) {
+    s += `<rect x="${n(r.x)}" y="${n(r.y)}" width="${n(r.w)}" height="${n(r.h)}" fill="#f3f1eb" stroke="#666666" stroke-width="${n(stroke)}"/>`
+    // Hachures explicites : même rendu dans SVG, PNG et svg2pdf.
+    for (let t = 8; t < r.w + r.h; t += 8) {
+      const x1 = Math.max(0, t - r.h), y1 = Math.min(t, r.h)
+      const x2 = Math.min(t, r.w), y2 = Math.max(0, t - r.w)
+      s += `<line x1="${n(r.x + x1)}" y1="${n(r.y + y1)}" x2="${n(r.x + x2)}" y2="${n(r.y + y2)}" stroke="#cccccc" stroke-width="${n(stroke * 0.5)}"/>`
+    }
+    s += `<text x="${n(r.x + r.w / 2)}" y="${n(r.y + Math.min(r.h / 2, offset))}" text-anchor="middle" font-family="${FONT}" font-size="${n(Math.min(stroke * 10, Math.max(6, Math.min(14, r.w / divisor))))}" fill="#444444">${label}</text>`
+  }
+  for (const o of room.openings) for (const [x1, y1, x2, y2] of windowBars(o, doc.wall.h)) s += `<line x1="${n(x1)}" y1="${n(y1)}" x2="${n(x2)}" y2="${n(y2)}" stroke="#666666" stroke-width="${n(stroke)}"/>`
+  for (const seam of room.seams ?? []) if (seam.x > 0) s += `<line x1="${n(seam.x)}" y1="0" x2="${n(seam.x)}" y2="${n(doc.wall.h)}" stroke="#666666" stroke-dasharray="4 3" stroke-width="${n(stroke)}"/>`
+  return s + '</g>'
+}
+
 let clipSeq = 0
 /** Grille dont la couleur s'adapte à chaque aplat (lignes redessinées dans chaque zone peinte). */
 function gridLines(doc: DocState, strokeCm0: number, _color?: string, dash = true) {
@@ -56,7 +77,7 @@ function gridLines(doc: DocState, strokeCm0: number, _color?: string, dash = tru
 }
 
 /** Mur complet avec grille, repères et cotes, placé dans le rectangle (x, y, w, h) en mm. */
-function wallBlock(doc: DocState, x: number, y: number, w: number, h: number, opts: { lines?: boolean; highlight?: string[]; fontMm?: number } = {}) {
+function wallBlock(doc: DocState, x: number, y: number, w: number, h: number, opts: { lines?: boolean; highlight?: string[]; fontMm?: number; room?: WallContext | null } = {}) {
   const fs = opts.fontMm ?? 3
   const ml = fs * 3.2, mt = fs * 2.6, mr = fs * 3.6, mb = fs * 3
   const k = Math.min((w - ml - mr) / doc.wall.w, (h - mt - mb) / doc.wall.h)
@@ -67,6 +88,7 @@ function wallBlock(doc: DocState, x: number, y: number, w: number, h: number, op
   const L = gridLayout(doc.wall, doc.grid)
   let s = `<g transform="translate(${n(x0)} ${n(y0)}) scale(${n(k)})">`
   s += wallContent(doc, 0.25 / k, opts)
+  s += roomOverlay(doc, opts.room, 0.3 / k)
   if (doc.grid.show) s += gridLines(doc, 0.22 / k)
   for (const id of opts.highlight ?? []) {
     const c = L.cells.find((c) => c.id === id)
@@ -99,12 +121,12 @@ function wrap(body: string) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.w}mm" height="${PAGE.h}mm" viewBox="0 0 ${PAGE.w} ${PAGE.h}"><rect width="${PAGE.w}" height="${PAGE.h}" fill="#ffffff"/>${body}</svg>`
 }
 
-export function coverPageSvg(doc: DocState, meta: ExportMeta): string {
-  const S = surfaces(doc)
+export function coverPageSvg(doc: DocState, meta: ExportMeta, room?: WallContext | null): string {
+  const S = surfaces(doc, room)
   const g = doc.grid
   const L = gridLayout(doc.wall, g)
   let body = header(`${meta.project} — ${meta.variant}`, `Mur ${fmt(doc.wall.w)} × ${fmt(doc.wall.h)} cm · grille ${fmt(g.step)} cm (${L.cols} × ${L.rows} cases) · cotes depuis le coin ${ORIGIN_LABEL[g.origin]}${meta.date ? ` · ${meta.date}` : ''}`)
-  const block = wallBlock(doc, 10, 28, 200, 172, { highlight: doc.printCells })
+  const block = wallBlock(doc, 10, 28, 200, 172, { highlight: doc.printCells, room })
   body += block.svg
   // légende
   let y = 34
@@ -128,6 +150,7 @@ export function coverPageSvg(doc: DocState, meta: ExportMeta): string {
   if (doc.paint.showLiters) body += `<text x="${lx + 69}" y="${y + 1}" font-family="${FONT}" font-size="3.2" font-weight="bold" text-anchor="end">${totalL.toFixed(2)} L</text>`
   y += 10
   const notes = [
+    room && (room.openings.length || room.masks?.length) ? 'Ouvertures et zones sans mur déduites' : '',
     doc.paint.showLiters ? `Litres : ${doc.paint.coats} couche(s), rendement ${fmt(doc.paint.coverage)} m²/L` : '',
     `Échelle : 1 mm sur la page = ${fmt(1 / block.k)} cm au mur`,
     doc.printCells.length ? `Cases détaillées : ${doc.printCells.join(', ')}` : 'Aucune case détaillée',
@@ -139,7 +162,7 @@ export function coverPageSvg(doc: DocState, meta: ExportMeta): string {
   return wrap(body)
 }
 
-export function cellPageSvg(doc: DocState, cell: GridCell, meta: ExportMeta): string {
+export function cellPageSvg(doc: DocState, cell: GridCell, meta: ExportMeta, room?: WallContext | null): string {
   const g = doc.grid
   const L = gridLayout(doc.wall, g)
   const v = L.vLines.filter((l) => Math.abs(l.pos - cell.x) < 1e-6 || Math.abs(l.pos - (cell.x + cell.w)) < 1e-6).map((l) => l.cote).sort((a, b) => a - b)
@@ -156,6 +179,7 @@ export function cellPageSvg(doc: DocState, cell: GridCell, meta: ExportMeta): st
   body += `<defs><clipPath id="${clipId}"><rect x="${n(area.x + (area.w - vw * k) / 2)}" y="${n(area.y + (area.h - vh * k) / 2)}" width="${n(vw * k)}" height="${n(vh * k)}"/></clipPath></defs>`
   body += `<g clip-path="url(#${clipId})"><g transform="translate(${n(ox)} ${n(oy)}) scale(${n(k)})">`
   body += wallContent(doc, 0.35 / k)
+  body += roomOverlay(doc, room, 0.35 / k)
   if (g.show) body += gridLines(doc, 0.3 / k, '#c8643b', false)
   // voile sur le contexte hors case
   body += `<path d="M${n(vx)} ${n(vy)}h${n(vw)}v${n(vh)}h${n(-vw)}Z M${n(cell.x)} ${n(cell.y)}v${n(cell.h)}h${n(cell.w)}v${n(-cell.h)}Z" fill="#ffffff" fill-opacity="0.6" fill-rule="evenodd"/>`
@@ -190,7 +214,7 @@ export function cellPageSvg(doc: DocState, cell: GridCell, meta: ExportMeta): st
   body += '</g>'
   body += `<text x="${n((cx0 + cx1) / 2)}" y="${n((cy0 + cy1) / 2)}" font-family="${FONT}" font-size="${n(Math.min(30, (cx1 - cx0) / 3))}" fill="#c8643b" fill-opacity="0.12" font-weight="bold" text-anchor="middle" dominant-baseline="middle">${cell.id}</text>`
   // mini-carte
-  const mini = wallBlock(doc, 232, 120, 56, 50, { lines: false, highlight: [cell.id], fontMm: 2 })
+  const mini = wallBlock(doc, 232, 120, 56, 50, { lines: false, highlight: [cell.id], fontMm: 2, room })
   body += `<text x="236" y="118" font-family="${FONT}" font-size="3" fill="#4a4d52">Position sur le mur</text>` + mini.svg
   body += `<text x="236" y="40" font-family="${FONT}" font-size="3" fill="#4a4d52">Case ${esc(cell.id)} : ${fmt(cell.w)} × ${fmt(cell.h)} cm</text>`
   body += `<text x="236" y="46" font-family="${FONT}" font-size="2.8" fill="#4a4d52">Reporter le dessin à l’œil,</text><text x="236" y="50.5" font-family="${FONT}" font-size="2.8" fill="#4a4d52">case par case.</text>`
@@ -198,22 +222,23 @@ export function cellPageSvg(doc: DocState, cell: GridCell, meta: ExportMeta): st
 }
 
 /** SVG du mur seul (export SVG / PNG), dimensions en cm. */
-export function drawingSvg(doc: DocState, opts: { grid?: boolean; lines?: boolean; labels?: boolean } = {}): string {
+export function drawingSvg(doc: DocState, opts: { grid?: boolean; lines?: boolean; labels?: boolean; room?: WallContext | null } = {}): string {
   const showGrid = opts.grid ?? true
   if (opts.labels === false) {
     let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${n(doc.wall.w)}cm" height="${n(doc.wall.h)}cm" viewBox="0 0 ${n(doc.wall.w)} ${n(doc.wall.h)}">`
     s += wallContent(doc, 0.4, { lines: opts.lines })
+    s += roomOverlay(doc, opts.room, 0.4)
     if (showGrid && doc.grid.show) s += gridLines(doc, 0.3)
     return s + '</svg>'
   }
   const W = 297, H = 210
-  const block = wallBlock({ ...doc, grid: { ...doc.grid, show: showGrid && doc.grid.show } }, 4, 4, W - 8, H - 8, { lines: opts.lines })
+  const block = wallBlock({ ...doc, grid: { ...doc.grid, show: showGrid && doc.grid.show } }, 4, 4, W - 8, H - 8, { lines: opts.lines, room: opts.room })
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}mm" height="${H}mm" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="#ffffff"/>${block.svg}</svg>`
 }
 
-export function exportPages(doc: DocState, meta: ExportMeta): string[] {
+export function exportPages(doc: DocState, meta: ExportMeta, room?: WallContext | null): string[] {
   const L = gridLayout(doc.wall, doc.grid)
   const cells = doc.printCells.map((id) => L.cells.find((c) => c.id === id)).filter((c): c is GridCell => !!c)
   cells.sort((a, b) => a.row - b.row || a.col - b.col)
-  return [coverPageSvg(doc, meta), ...cells.map((c) => cellPageSvg(doc, c, meta))]
+  return [coverPageSvg(doc, meta, room), ...cells.map((c) => cellPageSvg(doc, c, meta, room))]
 }

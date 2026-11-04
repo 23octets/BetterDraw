@@ -1,3 +1,5 @@
+import { roomContext } from '../store/rooms'
+import type { WallContext } from '../geometry/paintable'
 import { storageError } from '../store/storage'
 import { useEffect, useState } from 'react'
 import * as repo from '../store/repo'
@@ -10,13 +12,14 @@ import { surfaces } from '../store/fills'
 
 export function ProjectPage({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null | undefined>(undefined)
-  const [variants, setVariants] = useState<Variant[]>([])
+  const [variants, setVariants] = useState<(Variant & { context: WallContext | null })[]>([])
   const [picked, setPicked] = useState<string[]>([])
 
   const refresh = async () => {
     const p = await repo.getProject(projectId)
     setProject(p ?? null)
-    setVariants(await repo.listVariants(projectId))
+    const vs = await repo.listVariants(projectId)
+    setVariants(await Promise.all(vs.map(async (v) => ({ ...v, context: await roomContext(v) }))))
   }
   useEffect(() => {
     refresh()
@@ -52,7 +55,7 @@ export function ProjectPage({ projectId }: { projectId: string }) {
       <ul className="card-grid variants">
         {variants.map((v) => {
           const parent = v.parentId ? byId.get(v.parentId) : undefined
-          const s = surfaces(v.state)
+          const s = surfaces(v.state, v.context)
           const on = picked.includes(v.id)
           return (
             <li key={v.id} className={`card variant-card${on ? ' picked' : ''}`} data-testid="variant-card">

@@ -1,3 +1,4 @@
+import { defaultDoc } from '../model/defaults'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from './db'
 import * as repo from './repo'
@@ -132,4 +133,18 @@ describe('suppression d’un trait qui découpait une zone peinte', () => {
     expect(colorAt(doc, { x: 20, y: 100 })).toBe(green)
     expect(colorAt(doc, { x: 150, y: 20 })).toBe(doc.palette[2].id)
   })
+})
+
+it('déduit une seule fois les ouvertures et vides, dans les aplats comme dans le fond', () => {
+  const doc = defaultDoc()
+  doc.shapes = [{ id: 's', pts: [{ x: 100, y: 0 }, { x: 100, y: 250 }], segs: [{ t: 'line' }], closed: false }]
+  doc.fills = fillAt(doc, { x: 20, y: 20 }, doc.palette[0].id)!.fills
+  const room = { openings: [{ id: 'f', wallId: 'w', kind: 'window' as const, x: 40, w: 80, h: 100, sill: 70 }], masks: [{ x: 90, y: 80, w: 40, h: 100 }] }
+  const plain = surfaces(doc), net = surfaces(doc, room)
+  expect(plain.total).toBe(75000)
+  expect(net.total).toBe(66000)
+  expect(net.colors[0].area).toBe(19000)
+  expect(net.background.area).toBe(47000)
+  expect(net.colors[0].liters).toBeCloseTo(1.9 * doc.paint.coats / doc.paint.coverage)
+  expect(net.background.liters).toBeCloseTo(4.7 * doc.paint.coats / doc.paint.coverage)
 })
