@@ -4,7 +4,7 @@ import type { Project, Variant } from '../model/types'
 import { navigate } from './router'
 import { DEFAULT_WALL } from '../model/defaults'
 import { Thumb } from './DocPreview'
-import { importProject } from '../export/project'
+import { importProject, InvalidHistoryError } from '../export/project'
 import { Icon } from './icons'
 import { createRoomProject, convertToRoom, type RoomShape } from '../store/rooms'
 import { RoomThumb } from '../room/RoomThumb'
@@ -16,6 +16,7 @@ const latest = (vs: Variant[]) => [...vs].sort((a, b) => b.updatedAt - a.updated
 const fmtDate = (t: number) => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 
 export function Home() {
+  const [importing, setImporting] = useState(false)
   const [projects, setProjects] = useState<Row[] | null>(null)
   const [name, setName] = useState('')
   const [w, setW] = useState(DEFAULT_WALL.w)
@@ -49,7 +50,7 @@ export function Home() {
         <div className="brand">
           <span className="brand-mark" aria-hidden>▦</span>
           <div>
-            <h1>BetterDraw</h1>
+            <h1>frsque</h1>
             <p>Dessiner à l'échelle, peindre au mur.</p>
           </div>
         </div>
@@ -116,17 +117,27 @@ export function Home() {
         <div className="projects-head">
           <h2>Projets{projects?.length ? <span className="count">{projects.length}</span> : null}</h2>
           <label className="import-btn">
-            <input type="file" accept=".json,application/json" hidden data-testid="import-project"
+            <input type="file" accept=".json,application/json" hidden disabled={importing} data-testid="import-project"
               onChange={async (e) => {
                 const f = e.target.files?.[0]
                 e.target.value = ''
-                if (!f) return
+                if (!f || importing) return
+                setImporting(true)
+                setImportMsg('Vérification de la sauvegarde…')
                 try {
-                  const { project } = await importProject(JSON.parse(await f.text()))
+                  const data: unknown = JSON.parse(await f.text())
+                  const { project } = await importProject(data).catch((err: unknown) => {
+                    if (err instanceof InvalidHistoryError && window.confirm(err.message + '\nImporter sans historique ?')) {
+                      return importProject(data, { withoutHistory: true })
+                    }
+                    throw err
+                  })
                   setImportMsg(`« ${project.name} » importé`)
                   refresh()
                 } catch (err) {
                   setImportMsg(`Import impossible : ${(err as Error).message}`)
+                } finally {
+                  setImporting(false)
                 }
               }} />
             <Icon name="export" size={15} /> Importer une sauvegarde

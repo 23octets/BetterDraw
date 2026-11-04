@@ -1,9 +1,11 @@
+import { applyPatches, enablePatches, type Patch } from 'immer'
+import { flushPersistence } from '../store/editor'
 import { nanoid } from 'nanoid'
 import { db } from '../store/db'
 import type { DocState, GridSettings, HistoryEntry, ImageEdit, Opening, Project, Rect, RoomPlan, Segment, Shape, StoredImage, Variant, Vec, Wall } from '../model/types'
 
 export interface ProjectFile {
-  format: 'betterdraw-project'
+  format: 'frsque-project'
   version: 1
   exportedAt: number
   project: Project
@@ -11,20 +13,41 @@ export interface ProjectFile {
   variants: Variant[]
   entries: HistoryEntry[]
   images: StoredImage[]
+  warnings?: string[]
 }
 
 /** Exporte un projet complet : variantes, historique et images. */
 export async function serializeProject(projectId: string): Promise<ProjectFile> {
-  const project = await db.projects.get(projectId)
-  if (!project) throw new Error('projet introuvable')
-  const walls = await db.walls.where('projectId').equals(projectId).toArray()
-  const variants = await db.variants.where('projectId').equals(projectId).toArray()
-  const entries: HistoryEntry[] = []
-  for (const v of variants) entries.push(...(await db.entries.where('variantId').equals(v.id).toArray()))
-  // images affichées + images d'origine des images retouchées
-  const blobIds = new Set(variants.flatMap((v) => v.state.images.flatMap((i) => (i.edit ? [i.blobId, i.edit.sourceBlobId] : [i.blobId]))))
-  const images = (await db.images.bulkGet([...blobIds])).filter((x): x is StoredImage => !!x)
-  return { format: 'betterdraw-project', version: 1, exportedAt: Date.now(), project, walls, variants, entries, images }
+  await flushPersistence()
+  return db.transaction('r', [db.projects, db.walls, db.variants, db.entries, db.images], async () => {
+    const project = await db.projects.get(projectId)
+    if (!project) throw new Error('Projet introuvable')
+    const walls = await db.walls.where('projectId').equals(projectId).toArray()
+    const variants = await db.variants.where('projectId').equals(projectId).toArray()
+    const entries = (await Promise.all(variants.map((v) => db.entries.where('variantId').equals(v.id).toArray()))).flat()
+    const blobIds = new Set<string>()
+    const collect = (x: unknown): void => {
+      if (!x || typeof x !== 'object') return
+      for (const [key, value] of Object.entries(x)) {
+        if ((key === 'blobId' || key === 'sourceBlobId') && typeof value === 'string') blobIds.add(value)
+        else collect(value)
+      }
+    }
+    collect(variants.map((v) => v.state))
+    collect(entries)
+    for (const e of entries) for (const raw of [...e.patches, ...e.inverse]) {
+      const patch = raw as Patch
+      if (patch.op !== 'remove' && ['blobId', 'sourceBlobId'].includes(String(patch.path.at(-1))) && typeof patch.value === 'string') blobIds.add(patch.value)
+    }
+    const images = await db.images.bulkGet([...blobIds])
+    const warnings = images.some((im) => !im)
+      ? ['Certaines images sont absentes de ce projet. La sauvegarde conserve les données disponibles ; sa restauration pourra nécessiter une récupération sans historique.']
+      : []
+    const complete = images.filter((im): im is StoredImage => !!im)
+    // Le fichier conserve même un historique local abîmé : l'import proposera sa récupération.
+    // Ne pas reconstruire l'historique dans la transaction de lecture (coût et blocage de l'interface).
+    return { format: 'frsque-project', version: 1, exportedAt: Date.now(), project, walls, variants, entries, images: complete, ...(warnings.length ? { warnings } : {}) }
+  })
 }
 
 // ---------- Validation stricte de l'import (le fichier vient de l'extérieur) ----------
@@ -175,10 +198,73 @@ function sanitizePatches(x: unknown): unknown[] {
   })
 }
 
+enablePatches()
+
+export class InvalidHistoryError extends Error {
+  constructor() {
+    super('Fichier invalide (historique corrompu ou images absentes). Vous pouvez importer le dessin actuel sans historique ; les images indisponibles seront retirées.')
+  }
+}
+
+function checkReferences(state: DocState, images: Set<string>) {
+  for (const im of state.images) {
+    if (!images.has(im.blobId) || (im.edit && !images.has(im.edit.sourceBlobId))) fail('image référencée absente')
+  }
+  // Une couleur supprimée utilisait déjà le gris de secours dans les anciens fichiers.
+}
+
+/** Deux parcours linéaires ; aucun tableau de snapshots n'est conservé. */
+export async function validateHistory(variants: Variant[], entries: HistoryEntry[], images: Set<string>) {
+  const grouped = new Map<string, HistoryEntry[]>()
+  for (const e of entries) {
+    const list = grouped.get(e.variantId) ?? []
+    list.push(e)
+    grouped.set(e.variantId, list)
+  }
+  const ids = new Set(variants.map((v) => v.id))
+  if (entries.some((e) => !ids.has(e.variantId))) fail('référence historique')
+  const check = (state: unknown) => {
+    const doc = sanitizeDoc(state)
+    checkReferences(doc, images)
+    return doc
+  }
+  let deadline = performance.now() + 12
+  const breathe = async () => {
+    if (performance.now() < deadline) return
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+    deadline = performance.now() + 12
+  }
+  for (const v of variants) {
+    if (!Number.isInteger(v.headSeq) || !Number.isInteger(v.maxSeq) || v.headSeq < 0 || v.headSeq > v.maxSeq) fail('séquence historique')
+    const es = (grouped.get(v.id) ?? []).sort((a, b) => a.seq - b.seq)
+    if (es.length !== v.maxSeq || es.some((e, i) => e.seq !== i + 1)) fail('séquence historique')
+    let state = check(v.state)
+    const headJson = JSON.stringify(state)
+    for (let i = v.headSeq - 1; i >= 0; i--) {
+      state = check(applyPatches(state, es[i].inverse as Patch[]))
+      await breathe()
+    }
+    let stateJson = JSON.stringify(state)
+    for (let i = 0; i < es.length; i++) {
+      const next = check(applyPatches(state, es[i].patches as Patch[]))
+      const previous = check(applyPatches(next, es[i].inverse as Patch[]))
+      if (JSON.stringify(previous) !== stateJson) fail('patch inverse incohérent')
+      state = next
+      stateJson = JSON.stringify(state)
+      if (i + 1 === v.headSeq && stateJson !== headJson) fail('état historique incohérent')
+      await breathe()
+    }
+  }
+}
+
+/** Formats lisibles à l'import : les sauvegardes faites sous l'ancien nom de l'app restent valables. */
+const PROJECT_FORMATS: unknown[] = ['frsque-project', 'betterdraw-project']
+
 /** Importe un fichier projet comme nouveau projet (nouveaux identifiants, rien n'est écrasé). */
-export async function importProject(data: unknown): Promise<{ project: Project; variants: Variant[] }> {
+export async function importProject(data: unknown, options: { withoutHistory?: boolean } = {}): Promise<{ project: Project; variants: Variant[] }> {
   const root = data && typeof data === 'object' ? (data as Record<string, unknown>) : null
-  if (!root || root.format !== 'betterdraw-project' || !root.project || !Array.isArray(root.variants)) throw new Error('Ce fichier n’est pas un projet BetterDraw')
+  if (!root || !PROJECT_FORMATS.includes(root.format) || !root.project || !Array.isArray(root.variants)) throw new Error('Ce fichier n’est pas un projet frsque')
+  if (root.version !== 1) throw new Error('Version de sauvegarde non prise en charge : ' + String(root.version))
   const p0 = obj(root.project, 'projet')
   const now = Date.now()
   const pid = nanoid(10)
@@ -187,6 +273,7 @@ export async function importProject(data: unknown): Promise<{ project: Project; 
   const wallIds = new Map(wallsIn.map((w) => [str(w.id, 'id', 40), nanoid(10)]))
   const variantsIn = arr(root.variants, 'variantes', 5000).map((v) => obj(v, 'variante'))
   const varIds = new Map(variantsIn.map((v) => [str(v.id, 'id', 40), nanoid(10)]))
+  if (wallIds.size !== wallsIn.length || varIds.size !== variantsIn.length) fail('identifiants dupliqués')
   const walls: Wall[] = wallsIn.map((w) => ({
     id: wallIds.get(w.id as string)!, projectId: pid, name: str(w.name, 'nom'),
     ...(w.group === true ? { group: true } : {}),
@@ -195,39 +282,75 @@ export async function importProject(data: unknown): Promise<{ project: Project; 
   if (p0.room !== undefined) project.room = sanitizeRoom(p0.room, (id) => wallIds.get(id))
   const fallbackWall = walls[0]?.id ?? nanoid(10)
   if (!walls.length) walls.push({ id: fallbackWall, projectId: pid, name: 'Mur 1' })
+  let historyError = false
   const variants: Variant[] = variantsIn.map((v) => {
-    const maxSeq = Math.floor(num(v.maxSeq, 'historique', 0, 1e9))
+    const maxSeq = options.withoutHistory ? 0 : v.maxSeq as number
+    let parentSeq: number | undefined
+    if (!options.withoutHistory && v.parentSeq !== undefined) {
+      try {
+        parentSeq = num(v.parentSeq, 'historique', 0, 1e9)
+        if (!Number.isInteger(parentSeq)) fail('historique')
+      } catch { historyError = true }
+    }
     return {
       id: varIds.get(v.id as string)!,
       projectId: pid,
       wallId: wallIds.get(v.wallId as string) ?? fallbackWall,
       name: str(v.name, 'nom'),
-      parentId: typeof v.parentId === 'string' ? varIds.get(v.parentId) : undefined,
-      parentSeq: v.parentSeq === undefined ? undefined : num(v.parentSeq, 'historique', 0, 1e9),
+      parentId: !options.withoutHistory && typeof v.parentId === 'string' ? varIds.get(v.parentId) : undefined,
+      parentSeq,
       createdAt: num(v.createdAt, 'date', 0, 1e14),
       updatedAt: num(v.updatedAt, 'date', 0, 1e14),
-      headSeq: Math.min(maxSeq, Math.floor(num(v.headSeq, 'historique', 0, 1e9))),
+      headSeq: options.withoutHistory ? 0 : v.headSeq as number,
       maxSeq,
       state: sanitizeDoc(v.state),
     }
   })
-  const entries: HistoryEntry[] = arr(root.entries ?? [], 'historique', 10_000_000)
-    .map((ex) => obj(ex, 'historique'))
-    .filter((e) => typeof e.variantId === 'string' && varIds.has(e.variantId))
-    .map((e) => ({
-      variantId: varIds.get(e.variantId as string)!,
-      seq: Math.floor(num(e.seq, 'historique', 1, 1e9)),
-      label: str(e.label, 'historique', 300),
-      ts: num(e.ts, 'date', 0, 1e14),
-      patches: sanitizePatches(e.patches),
-      inverse: sanitizePatches(e.inverse),
-    }))
-  const images: StoredImage[] = arr(root.images ?? [], 'images', 1000).map((ix) => {
-    const i = obj(ix, 'image')
-    const dataUrl = str(i.dataUrl, 'image', 60_000_000)
-    if (!IMAGE_DATA_URL.test(dataUrl)) fail('image')
-    return { id: str(i.id, 'id', 40), dataUrl, width: num(i.width, 'image', 0, 1e6), height: num(i.height, 'image', 0, 1e6) }
-  })
+  let entries: HistoryEntry[] = []
+  try {
+    entries = options.withoutHistory ? [] : arr(root.entries ?? [], 'historique', 10_000_000)
+      .map((ex) => obj(ex, 'historique'))
+      .map((e) => ({
+        variantId: varIds.get(e.variantId as string) ?? fail('référence historique'),
+        seq: num(e.seq, 'historique', 1, 1e9),
+        label: str(e.label, 'historique', 300),
+        ts: num(e.ts, 'date', 0, 1e14),
+        patches: sanitizePatches(e.patches),
+        inverse: sanitizePatches(e.inverse),
+      }))
+  } catch { historyError = true }
+  const currentImages = new Set(variants.flatMap((v) => v.state.images.flatMap((im) => im.edit ? [im.blobId, im.edit.sourceBlobId] : [im.blobId])))
+  const images: StoredImage[] = []
+  const imageIds = new Set<string>()
+  for (const ix of arr(root.images ?? [], 'images', 100000)) {
+    const raw = ix && typeof ix === 'object' ? ix as Record<string, unknown> : null
+    if (options.withoutHistory && (!raw || !currentImages.has(raw.id as string))) continue
+    try {
+      const i = obj(ix, 'image')
+      const id = str(i.id, 'id', 40)
+      const dataUrl = str(i.dataUrl, 'image', 60_000_000)
+      if (!IMAGE_DATA_URL.test(dataUrl) || imageIds.has(id)) fail('image')
+      images.push({ id, dataUrl, width: num(i.width, 'image', 0, 1e6), height: num(i.height, 'image', 0, 1e6) })
+      imageIds.add(id)
+    } catch (err) {
+      if (raw && currentImages.has(raw.id as string)) throw err
+      historyError = true
+    }
+  }
+  if (options.withoutHistory) {
+    for (const v of variants) v.state.images = v.state.images.filter((im) => imageIds.has(im.blobId)).map((im) => {
+      if (!im.edit || imageIds.has(im.edit.sourceBlobId)) return im
+      const { edit: _edit, ...visible } = im
+      return visible
+    })
+  }
+  try {
+    if (historyError) fail('historique')
+    for (const v of variants) checkReferences(v.state, imageIds)
+    await validateHistory(variants, entries, imageIds)
+  } catch {
+    throw new InvalidHistoryError()
+  }
   await db.transaction('rw', [db.projects, db.walls, db.variants, db.entries, db.images], async () => {
     await db.projects.add(project)
     await db.walls.bulkAdd(walls)

@@ -1,4 +1,4 @@
-# BetterDraw
+# frsque
 
 Dessiner à l'échelle un décor mural, le peindre zone par zone, puis le reporter sur le vrai mur
 grâce à une grille de carroyage cotée.
@@ -39,6 +39,24 @@ npm run dev          # http://localhost:5199
 - **Exports** : PDF chantier (vue d'ensemble cotée + cases choisies en grand), PNG, SVG,
   sauvegarde du projet en JSON (réimportable depuis l'accueil).
 
+## Enregistrement et récupération
+
+Après un échec d’enregistrement, le dessin reste en mémoire et affiche « Non enregistré ».
+Réessayer rejoue les modifications dans leur ordre, sans sauter d’entrée d’historique.
+Avant de fermer ou recharger la page, « Exporter le secours » produit un JSON réimportable
+depuis l’accueil comme nouveau projet. Le dessin en mémoire y remplace sa version enregistrée,
+avec un historique remis à zéro ; les autres variantes gardent leur historique.
+Si le stockage est inaccessible, seul le dessin sans images peut être récupéré.
+
+Deux onglets peuvent ouvrir une variante, mais une écriture vérifie dans la même transaction
+la position et la dernière séquence de son historique. Un onglet périmé ne peut pas écraser
+les modifications de l’autre : il faut exporter son secours, puis recharger.
+Les déplacements dans l’historique sont également contrôlés. La navigation et la création
+de copies restent bloquées tant qu’un échec n’est pas résolu.
+
+Une erreur de rendu affiche un écran de récupération proposant le secours du dessin ouvert,
+le rechargement et le retour à l’accueil.
+
 ## Tests
 
 ```bash
@@ -48,6 +66,8 @@ npm run test:e2e     # tests de bout en bout (Playwright), captures dans docs/sc
 npm run test:all
 npm run size         # budget de taille du bundle, après npm run build (.size-limit.json)
 ```
+
+Les icônes de `public/` se régénèrent depuis les SVG de `assets/icon/` avec `assets/icon/generer.sh` (Chrome sur macOS et ImageMagick).
 
 La régression visuelle (`e2e/visual.spec.ts`) ne tourne qu'en CI, car ses images de référence dépendent du rendu Linux. Après un changement visuel voulu, ou une mise à jour de Playwright qui change le rendu :
 
