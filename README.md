@@ -34,7 +34,7 @@ npm run dev          # http://localhost:5199
 - **Historique illimité et persistant** : annuler/rétablir, frise navigable ; rien n'est perdu après un retour en arrière.
 - **Variantes** : snapshot → variante indépendante, galerie, comparaison côte à côte (2 à 4, zoom synchronisé).
 - **Images en filigrane** : plusieurs images, déplacement, agrandissement proportionnel, opacité, verrouillage ;
-  jamais exportées.
+  absentes des exports PDF, PNG et SVG, incluses dans la sauvegarde JSON.
 - **Consultation** : le rendu sans les traits ni les images, avec réglage des teintes ; zoom case par case avec les cotes de la case, choix des cases à imprimer.
 - **Exports** : PDF chantier (vue d'ensemble cotée + cases choisies en grand), PNG, SVG,
   sauvegarde du projet en JSON (réimportable depuis l'accueil).
@@ -59,3 +59,26 @@ gh run download <id-du-run> -n captures -D /tmp/captures
 Relire les images, les copier dans `e2e/__screenshots__`, puis les committer (`gh run download` refuse d'écraser des fichiers existants). En cas d'échec, l'artefact `playwright-report` de la CI contient les différences.
 
 Les tests e2e génèrent des captures dans `docs/screenshots/` et un exemple de PDF chantier dans `docs/exemple-chantier.pdf` (non versionnés).
+
+## Mentions légales et confidentialité
+
+Les informations publiées et le nom affiché du produit sont centralisés dans
+`src/config/legal.ts`. **Cette branche est un brouillon : ne pas fusionner ni publier
+avant la réponse du propriétaire et la confirmation du texte selon son statut.**
+Les champs `null` ne sont pas des valeurs publiables. Le propriétaire doit également
+confirmer les modalités des journaux techniques de l’hébergeur ; la notice actuelle
+signale cette information encore manquante.
+
+Vérification du code pour cette notice : `src/store/db.ts` et `images.ts` (IndexedDB,
+lecture locale des images), `src/ui/Editor.tsx` et `src/room/RoomPage.tsx`
+(localStorage), `src/export/project.ts` (JSON avec images), `src/export/pdf.ts` et
+`svg.ts` (exports locaux sans images de référence), `src/index.css` (polices système).
+Aucun appel réseau applicatif, traceur, cookie ou chargement de police distante n’a
+été trouvé dans les sources, `public` et `index.html`. Le chargement des ressources
+du site reste nécessaire ; les journaux du futur hébergement ne sont pas vérifiables ici.
+
+`e2e/legal.spec.ts` vérifie l’accès aux informations depuis l’accueil et l’éditeur,
+et échoue si une requête HTTP(S) ou une connexion WebSocket vers une autre origine
+est tentée pendant création, import d’image, dessin, peinture, consultation et exports.
+Ce contrôle porte sur ce parcours, pas sur les futures configurations d’hébergement
+ni sur des fonctionnalités non parcourues.

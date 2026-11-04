@@ -1,3 +1,5 @@
+import { legal } from '../config/legal'
+import { LegalInfo } from './LegalInfo'
 import { useEffect, useState } from 'react'
 import * as repo from '../store/repo'
 import type { Project, Variant } from '../model/types'
@@ -49,10 +51,11 @@ export function Home() {
         <div className="brand">
           <span className="brand-mark" aria-hidden>▦</span>
           <div>
-            <h1>BetterDraw</h1>
+            <h1>{legal.productName}</h1>
             <p>Dessiner à l'échelle, peindre au mur.</p>
           </div>
         </div>
+        <LegalInfo />
       </header>
 
       <form className="new-project" onSubmit={create} data-testid="new-project-form">

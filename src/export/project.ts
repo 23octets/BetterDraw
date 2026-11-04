@@ -1,3 +1,4 @@
+import { legal } from '../config/legal'
 import { nanoid } from 'nanoid'
 import { db } from '../store/db'
 import type { DocState, GridSettings, HistoryEntry, ImageEdit, Opening, Project, Rect, RoomPlan, Segment, Shape, StoredImage, Variant, Vec, Wall } from '../model/types'
@@ -178,7 +179,7 @@ function sanitizePatches(x: unknown): unknown[] {
 /** Importe un fichier projet comme nouveau projet (nouveaux identifiants, rien n'est écrasé). */
 export async function importProject(data: unknown): Promise<{ project: Project; variants: Variant[] }> {
   const root = data && typeof data === 'object' ? (data as Record<string, unknown>) : null
-  if (!root || root.format !== 'betterdraw-project' || !root.project || !Array.isArray(root.variants)) throw new Error('Ce fichier n’est pas un projet BetterDraw')
+  if (!root || root.format !== 'betterdraw-project' || !root.project || !Array.isArray(root.variants)) throw new Error(`Ce fichier n’est pas un projet ${legal.productName}`)
   const p0 = obj(root.project, 'projet')
   const now = Date.now()
   const pid = nanoid(10)

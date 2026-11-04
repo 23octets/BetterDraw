@@ -1,3 +1,4 @@
+import { LegalInfo } from './LegalInfo'
 import { useEffect, useRef, useState } from 'react'
 import { useEditor, flushPersistence } from '../store/editor'
 import * as repo from '../store/repo'
@@ -217,6 +218,7 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
         <button className={mode === 'edit' ? 'on' : ''} onClick={() => setMode('edit')} data-testid="mode-edit">Édition</button>
         <button className={mode === 'consult' ? 'on' : ''} onClick={() => setMode('consult')} data-testid="mode-consult" title="Voir le résultat sans les traits, et lire la grille case par case">Consultation</button>
       </div>
+      <LegalInfo />
       <GridMenu />
       <div className="spacer" />
       <span className={`save-state${saving ? ' busy' : ''}`} data-testid="save-state">{saving ? 'Enregistrement…' : 'Enregistré'}</span>

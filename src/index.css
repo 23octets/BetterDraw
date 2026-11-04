@@ -667,3 +667,11 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .room-splitter::after { content: ''; position: absolute; top: 50%; left: 2px; width: 6px; height: 44px; transform: translateY(-50%); border-radius: 3px; background: var(--line); transition: background 0.15s; }
 .room-splitter:hover::after, .room-splitter.dragging::after, .room-splitter:focus-visible::after { background: var(--primary); }
 .room-splitter.dragging::before { content: ''; position: absolute; top: 0; bottom: 0; left: -2000px; width: 4000px; }
+
+.legal-dialog { width: min(760px, calc(100vw - 32px)); max-height: 85dvh; padding: 0; border: 1px solid #ccc; border-radius: 12px; color: #1d1f22; background: #fff; overflow: auto; }
+.legal-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.legal-dialog h2 { font-size: 18px; white-space: normal; }
+.legal-dialog p { line-height: 1.6; white-space: normal; }
+.legal-dialog dt { font-weight: 600; }
+.legal-dialog dd { margin: 4px 0 12px; }
+.home-head { flex-wrap: wrap; gap: 16px; }
