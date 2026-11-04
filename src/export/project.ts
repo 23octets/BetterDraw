@@ -52,7 +52,7 @@ export async function serializeProject(projectId: string): Promise<ProjectFile> 
 
 // ---------- Validation stricte de l'import (le fichier vient de l'extérieur) ----------
 
-class ImportError extends Error {}
+export class ImportError extends Error {}
 const fail = (what: string): never => {
   throw new ImportError(`Fichier invalide (${what})`)
 }
@@ -180,7 +180,7 @@ export function sanitizeRoom(x: unknown, wallId: (id: string) => string | undefi
   return room
 }
 
-const IMAGE_DATA_URL = /^data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/
+const IMAGE_DATA_URL = /^data:image\/[a-z0-9][a-z0-9.+-]*;base64,[A-Za-z0-9+/=]+$/i
 
 function sanitizePatches(x: unknown): unknown[] {
   return arr(x, 'historique', 1_000_000).map((px) => {
@@ -263,8 +263,8 @@ const PROJECT_FORMATS: unknown[] = ['frsque-project', 'betterdraw-project']
 /** Importe un fichier projet comme nouveau projet (nouveaux identifiants, rien n'est écrasé). */
 export async function importProject(data: unknown, options: { withoutHistory?: boolean } = {}): Promise<{ project: Project; variants: Variant[] }> {
   const root = data && typeof data === 'object' ? (data as Record<string, unknown>) : null
-  if (!root || !PROJECT_FORMATS.includes(root.format) || !root.project || !Array.isArray(root.variants)) throw new Error('Ce fichier n’est pas un projet frsque')
-  if (root.version !== 1) throw new Error('Version de sauvegarde non prise en charge : ' + String(root.version))
+  if (!root || !PROJECT_FORMATS.includes(root.format) || !root.project || !Array.isArray(root.variants)) throw new ImportError('Ce fichier n’est pas un projet frsque')
+  if (root.version !== 1) throw new ImportError('Version de sauvegarde non prise en charge : ' + String(root.version))
   const p0 = obj(root.project, 'projet')
   const now = Date.now()
   const pid = nanoid(10)

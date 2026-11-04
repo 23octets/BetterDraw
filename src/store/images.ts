@@ -4,6 +4,8 @@ import { db } from './db'
 import type { RefImage, StoredImage } from '../model/types'
 
 const urlCache = new Map<string, string>()
+const imageCache = new Map<string, StoredImage>()
+export const cachedImages = () => [...imageCache.values()]
 
 export function readFileAsDataUrl(file: Blob): Promise<string> {
   return new Promise((res, rej) => {
@@ -23,10 +25,30 @@ export function imageSize(dataUrl: string): Promise<{ width: number; height: num
   })
 }
 
-export async function storeImage(dataUrl: string, size: { width: number; height: number }): Promise<StoredImage> {
-  const rec: StoredImage = { id: nanoid(12), dataUrl, ...size }
+export async function storeImage(dataUrl: string, size: { width: number; height: number }, reduce = false): Promise<StoredImage> {
+  const scale = Math.min(1, 2048 / Math.max(size.width, size.height))
+  const portable = /^data:image\/(png|jpeg|gif|webp|svg\+xml);base64,/i.test(dataUrl)
+  if (reduce && (scale < 1 || !portable)) {
+    const image = new Image()
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve()
+      image.onerror = () => reject(new Error('Image illisible'))
+      image.src = dataUrl
+    })
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(size.width * scale))
+    canvas.height = Math.max(1, Math.round(size.height * scale))
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Réduction de l’image impossible')
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+    dataUrl = canvas.toDataURL('image/webp', 0.85)
+    size = { width: canvas.width, height: canvas.height }
+  }
+  // Dimensions du bitmap réduit : les retouches utilisent ses pixels réels.
+  const rec: StoredImage = { id: nanoid(12), dataUrl, ...size, addedAt: Date.now() }
   await db.images.put(rec)
   urlCache.set(rec.id, dataUrl)
+  imageCache.set(rec.id, rec)
   return rec
 }
 
@@ -49,6 +71,7 @@ export function useImageUrl(blobId: string): string | null {
     db.images.get(blobId).then((r) => {
       if (!r || !alive) return
       urlCache.set(blobId, r.dataUrl)
+      imageCache.set(blobId, r)
       setUrl(r.dataUrl)
     })
     return () => {

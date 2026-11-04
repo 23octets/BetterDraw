@@ -1,3 +1,4 @@
+import { storageError } from './storage'
 import { create } from 'zustand'
 import { produceWithPatches, type Draft, type Patch } from 'immer'
 import type { DocState, GridLineStyle, Opening, RefImage, Shape, Variant, Vec, Rect } from '../model/types'
@@ -141,7 +142,7 @@ function persist(verify = false) {
         pending.shift()
       }
     } catch (e) {
-      useEditor.setState({ saveError: e instanceof repo.ConflictError ? e.message : 'Enregistrement impossible. Vos modifications restent en mémoire. Réessayez ou exportez une sauvegarde de secours avant de quitter.' })
+      useEditor.setState({ saveError: e instanceof repo.ConflictError ? e.message : storageError(e) })
     } finally {
       scheduled = false
       useEditor.setState({ saving: 0 })
@@ -274,7 +275,7 @@ export const useEditor = create<EditorState>((set, get) => ({
           set((s) => ({ doc: v.state, headSeq: v.headSeq, rev: s.rev + 1, selection: s.selection.filter((id) => sel.has(id)) }))
         }
       } catch (e) {
-        set({ saveError: e instanceof repo.ConflictError ? e.message : 'Déplacement dans l’historique impossible. Réessayez ou exportez le secours.' })
+        set({ saveError: e instanceof repo.ConflictError ? e.message : storageError(e) })
       } finally {
         historyTarget = null
         historyRun = null

@@ -1,3 +1,4 @@
+import { cleanOrphanImagesBestEffort } from './storage'
 import { nanoid } from 'nanoid'
 import { applyPatches, enablePatches, type Patch } from 'immer'
 import { db } from './db'
@@ -41,13 +42,14 @@ export async function renameProject(id: string, name: string) {
 }
 
 export async function deleteProject(id: string) {
-  await db.transaction('rw', [db.projects, db.walls, db.variants, db.entries], async () => {
+  await db.transaction('rw', [db.projects, db.walls, db.variants, db.entries, db.images], async () => {
     const variants = await db.variants.where('projectId').equals(id).toArray()
     for (const v of variants) await db.entries.where('variantId').equals(v.id).delete()
     await db.variants.where('projectId').equals(id).delete()
     await db.walls.where('projectId').equals(id).delete()
     await db.projects.delete(id)
   })
+  await cleanOrphanImagesBestEffort()
 }
 
 export async function listVariants(projectId: string) {
@@ -168,8 +170,9 @@ export async function renameVariant(id: string, name: string) {
 }
 
 export async function deleteVariant(id: string) {
-  await db.transaction('rw', db.variants, db.entries, async () => {
+  await db.transaction('rw', db.variants, db.entries, db.images, async () => {
     await db.entries.where('variantId').equals(id).delete()
     await db.variants.delete(id)
   })
+  await cleanOrphanImagesBestEffort()
 }

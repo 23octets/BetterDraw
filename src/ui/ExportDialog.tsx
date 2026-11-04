@@ -8,6 +8,7 @@ import { togglePrintCell } from '../tools/consult'
 import { DocPreview } from './DocPreview'
 
 export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () => void }) {
+  const saveError = useEditor((s) => s.saveError)
   const doc = useEditor((s) => s.doc)
   const variant = useEditor((s) => s.variant)!
   const [busy, setBusy] = useState<string | null>(null)
@@ -60,6 +61,7 @@ export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () 
                 download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(meta.project)}.frsque.json`)
               })}>Sauvegarde du projet (.json)</button>
             </div>
+            {saveError && <p className="hint">Pour conserver les modifications non enregistrées, utilisez la sauvegarde JSON de secours ou celle proposée dans l’alerte.</p>}
             <p className="hint">Les images de référence ne sont jamais incluses dans le PDF, le PNG ni le SVG.</p>
           </div>
           <div className="export-pages" data-testid="export-pages">
