@@ -1,3 +1,4 @@
+import { useModal } from './useModal'
 import { useMemo, useState } from 'react'
 import { useEditor } from '../store/editor'
 import { exportPages, type ExportMeta } from '../export/svg'
@@ -7,6 +8,7 @@ import { togglePrintCell } from '../tools/consult'
 import { DocPreview } from './DocPreview'
 
 export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () => void }) {
+  useModal('[data-testid=export-dialog]', onClose)
   const doc = useEditor((s) => s.doc)
   const variant = useEditor((s) => s.variant)!
   const [busy, setBusy] = useState<string | null>(null)
@@ -39,7 +41,7 @@ export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () 
               <DocPreview doc={doc} showGrid className="cell-picker-svg" />
               <svg className="cell-picker-hit" viewBox={`0 0 ${doc.wall.w} ${doc.wall.h}`} preserveAspectRatio="none">
                 {L.cells.map((c) => (
-                  <g key={c.id} onClick={() => togglePrintCell(c.id)} className={`pick-cell${doc.printCells.includes(c.id) ? ' on' : ''}`} data-testid={`pick-${c.id}`}>
+                  <g key={c.id} role="button" tabIndex={0} aria-label={`Imprimer la case ${c.id}`} aria-pressed={doc.printCells.includes(c.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePrintCell(c.id) } }} onClick={() => togglePrintCell(c.id)} className={`pick-cell${doc.printCells.includes(c.id) ? ' on' : ''}`} data-testid={`pick-${c.id}`}>
                     <rect x={c.x} y={c.y} width={c.w} height={c.h} />
                     <text x={c.x + c.w / 2} y={c.y + c.h / 2} fontSize={Math.min(c.w, c.h) / 3.2} textAnchor="middle" dominantBaseline="middle">{c.id}</text>
                   </g>

@@ -4,7 +4,7 @@
   --panel: #fbfaf7;
   --ink: #1d1f22;
   --ink-2: #4a4d52;
-  --muted: #8a8780;
+  --muted: #64615b;
   --line: #d9d3c7;
   --line-2: #e7e2d8;
   --accent: #c8643b;
@@ -667,3 +667,32 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .room-splitter::after { content: ''; position: absolute; top: 50%; left: 2px; width: 6px; height: 44px; transform: translateY(-50%); border-radius: 3px; background: var(--line); transition: background 0.15s; }
 .room-splitter:hover::after, .room-splitter.dragging::after, .room-splitter:focus-visible::after { background: var(--primary); }
 .room-splitter.dragging::before { content: ''; position: absolute; top: 0; bottom: 0; left: -2000px; width: 4000px; }
+
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.mobile-notice, .mobile-consult { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media (max-width: 1000px) {
+  .home { padding: 24px 16px; }
+  .new-project-fields .field.grow { min-width: 0; flex-basis: 100%; }
+  .projects-head, .new-project-top { flex-wrap: wrap; gap: 10px; }
+  .editor { height: 100dvh; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: 'top' 'notice' 'stage'; }
+  .editor .toolbar, .editor > .side-panel { display: none; }
+  .editor .topbar { flex-wrap: wrap; padding: 6px; }
+  .editor .topbar > .title, .editor .topbar > .split-btn, .editor .topbar > .save-state,
+  .editor .topbar > .btn-group, .editor .topbar > [data-testid=toggle-shortcuts],
+  .editor .topbar > [data-testid=open-settings] { display: none; }
+  .mobile-notice { display: block; grid-area: notice; padding: 6px 12px; margin: 0; background: var(--panel); color: var(--ink-2); }
+  .mobile-consult { display: flex; position: absolute; left: 8px; top: 8px; right: 8px; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .mobile-consult span { padding: 6px; background: var(--panel); border-radius: 6px; }
+  .mobile-consult button { min-width: 40px; height: 40px; }
+  .modal-body { display: block; overflow-y: auto; }
+  .export-left, .export-pages { overflow: visible; }
+  .export-pages { grid-template-columns: minmax(0, 1fr); }
+  .modal { max-height: 94dvh; }
+  .canvas-hud { max-width: calc(100% - 16px); }
+}
+
+@media (max-width: 1000px) { [data-testid=mode-edit] { display: none; } }
+.op-corner.on circle { fill: var(--accent-ink); }

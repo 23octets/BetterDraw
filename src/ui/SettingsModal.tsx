@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useModal } from './useModal'
 import { useEditor } from '../store/editor'
 import { NumberField } from './fields'
 import { ORIGINS } from './SidePanel'
@@ -8,22 +8,13 @@ import { GridStyleControls } from './GridStyleControls'
 
 /** Réglages de l'espace de travail : taille du mur et origine des cotes. */
 export function SettingsModal({ onClose }: { onClose: () => void }) {
+  useModal('[data-testid=settings-modal]', onClose)
   const doc = useEditor((s) => s.doc)
   const commit = useEditor((s) => s.commit)
   const { wall, grid } = doc
   const room = useEditor((s) => s.room)
   const layout = gridLayout(wall, grid)
 
-  useEffect(() => {
-    const on = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopImmediatePropagation()
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', on, true)
-    return () => window.removeEventListener('keydown', on, true)
-  }, [onClose])
 
   // aperçu proportionnel du mur
   const k = 220 / Math.max(wall.w, wall.h)
@@ -67,7 +58,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                   const [cx, cy] = corner[o.id]
                   const on = grid.origin === o.id
                   return (
-                    <g key={o.id} className={`op-corner${on ? ' on' : ''}`} onClick={() => commit('Origine de la grille', (d) => { d.grid.origin = o.id })} data-testid={`origin-${o.id}`} role="button" aria-pressed={on} aria-label={o.label}>
+                    <g key={o.id} className={`op-corner${on ? ' on' : ''}`} onClick={() => commit('Origine de la grille', (d) => { d.grid.origin = o.id })} data-testid={`origin-${o.id}`} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.dispatchEvent(new MouseEvent('click', { bubbles: true })) } }} role="button" aria-pressed={on} aria-label={o.label}>
                       <circle cx={cx} cy={cy} r={on ? 11 : 8} />
                       {on && <text x={cx} y={cy + 4} textAnchor="middle">0</text>}
                     </g>

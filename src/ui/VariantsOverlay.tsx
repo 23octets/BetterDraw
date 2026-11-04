@@ -1,3 +1,4 @@
+import { useModal } from './useModal'
 import { useEffect, useState } from 'react'
 import { useEditor, flushPersistence } from '../store/editor'
 import * as repo from '../store/repo'
@@ -9,6 +10,7 @@ import { surfaces } from '../store/fills'
 
 /** Liste des variantes du projet, affichée par-dessus l'éditeur. */
 export function VariantsOverlay({ onClose }: { onClose: () => void }) {
+  useModal('[data-testid=variants-overlay]', onClose)
   const current = useEditor((s) => s.variant)!
   const doc = useEditor((s) => s.doc)
   const [list, setList] = useState<Variant[] | null>(null)
@@ -22,16 +24,6 @@ export function VariantsOverlay({ onClose }: { onClose: () => void }) {
     refresh()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    const on = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopImmediatePropagation()
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', on, true)
-    return () => window.removeEventListener('keydown', on, true)
-  }, [onClose])
 
   const byId = new Map((list ?? []).map((v) => [v.id, v]))
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= 4 ? p : [...p, id]))

@@ -1,3 +1,4 @@
+import { useModal } from './useModal'
 import { useState } from 'react'
 import { nanoid } from 'nanoid'
 import { useEditor } from '../store/editor'
@@ -138,6 +139,7 @@ export function BackgroundSection() {
 }
 
 export function EstimateModal({ onClose }: { onClose: () => void }) {
+  useModal('[data-testid=estimate-modal]', onClose)
   const doc = useEditor((s) => s.doc)
   const commit = useEditor((s) => s.commit)
   const s = surfaces(doc)

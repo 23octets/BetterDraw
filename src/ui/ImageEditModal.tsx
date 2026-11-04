@@ -1,3 +1,4 @@
+import { useModal } from './useModal'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useEditor } from '../store/editor'
 import { db } from '../store/db'
@@ -18,6 +19,7 @@ function toImg(e: { clientX: number; clientY: number }, el: Element, size: { w: 
 }
 
 export function ImageEditModal({ imageId, onClose }: { imageId: string; onClose: () => void }) {
+  useModal('[data-testid=image-edit-modal]', onClose)
   const img = useEditor((s) => s.doc.images.find((i) => i.id === imageId))!
   const [source, setSource] = useState<StoredImage | null>(null)
   const [tab, setTab] = useState<Tab>('perspective')
@@ -93,16 +95,6 @@ export function ImageEditModal({ imageId, onClose }: { imageId: string; onClose:
   }, [tab, planKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Échap ferme la fenêtre, où que soit le focus
-  useEffect(() => {
-    const on = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopImmediatePropagation()
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', on, true)
-    return () => window.removeEventListener('keydown', on, true)
-  }, [onClose])
 
   // loupe : agrandit la zone autour du coin déplacé
   useEffect(() => {
@@ -126,7 +118,7 @@ export function ImageEditModal({ imageId, onClose }: { imageId: string; onClose:
   if (!source || !quad || !crop || !full || !baseEdit) {
     return (
       <div className="modal-backdrop">
-        <div className="modal modal-image"><div className="modal-pad">Chargement…</div></div>
+        <div className="modal modal-image" role="dialog" aria-label="Ajuster l’image" data-testid="image-edit-modal"><div className="modal-pad">Chargement…</div></div>
       </div>
     )
   }

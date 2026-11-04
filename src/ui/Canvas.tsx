@@ -27,6 +27,9 @@ export function Canvas() {
   const panning = useRef<{ x: number; y: number; px: number; py: number } | null>(null)
   const [spaceDown, setSpaceDown] = useState(false)
   const fitted = useRef(false)
+  const touches = useRef(new Map<number, { x: number; y: number }>())
+  const gesture = useRef(false)
+  const tap = useRef<{ x: number; y: number } | null>(null)
 
   useLayoutEffect(() => {
     const el = ref.current
@@ -121,6 +124,12 @@ export function Canvas() {
 
   function onPointerDown(e: React.PointerEvent) {
     ref.current?.setPointerCapture(e.pointerId)
+    if (e.pointerType === 'touch' && mode === 'consult') {
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (touches.current.size === 1) { tap.current = { x: e.clientX, y: e.clientY }; gesture.current = false }
+      else { gesture.current = true; tap.current = null }
+      return
+    }
     if (e.button === 1 || e.button === 2 || spaceDown) {
       const v = useEditor.getState().view
       panning.current = { x: e.clientX, y: e.clientY, px: v.panX, py: v.panY }
@@ -129,6 +138,22 @@ export function Canvas() {
     tool.onPointerDown?.(toPointer(e))
   }
   function onPointerMove(e: React.PointerEvent) {
+    if (touches.current.has(e.pointerId)) {
+      const before = [...touches.current.values()]
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      const after = [...touches.current.values()]
+      if (tap.current && Math.hypot(e.clientX - tap.current.x, e.clientY - tap.current.y) > 8) tap.current = null
+      if (before.length === 2) {
+        const mid = (p: typeof before) => ({ x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 })
+        const distance = (p: typeof before) => Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y)
+        const a = mid(before), b = mid(after), r = ref.current!.getBoundingClientRect()
+        const v = useEditor.getState().view
+        const zoom = Math.max(0.05, Math.min(80, v.zoom * distance(after) / Math.max(1, distance(before))))
+        setView({ zoom, panX: b.x - r.left - (a.x - r.left - v.panX) / v.zoom * zoom,
+          panY: b.y - r.top - (a.y - r.top - v.panY) / v.zoom * zoom })
+      }
+      return
+    }
     if (panning.current) {
       const p = panning.current
       setView({ panX: p.px + e.clientX - p.x, panY: p.py + e.clientY - p.y })
@@ -137,6 +162,12 @@ export function Canvas() {
     tool.onPointerMove?.(toPointer(e))
   }
   function onPointerUp(e: React.PointerEvent) {
+    if (touches.current.has(e.pointerId)) {
+      touches.current.delete(e.pointerId)
+      if (!gesture.current && tap.current) tool.onPointerDown?.(toPointer(e))
+      tap.current = null
+      return
+    }
     if (panning.current) {
       panning.current = null
       return
@@ -154,6 +185,7 @@ export function Canvas() {
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onPointerCancel={(e) => { touches.current.delete(e.pointerId); tap.current = null; gesture.current = true }}
       onPointerLeave={() => tool.onPointerLeave?.()}
       onDoubleClick={(e) => tool.onDoubleClick?.(toPointer(e))}
       onContextMenu={(e) => e.preventDefault()}
