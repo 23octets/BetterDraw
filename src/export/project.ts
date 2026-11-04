@@ -161,7 +161,7 @@ export function sanitizeRoom(x: unknown, wallId: (id: string) => string | undefi
   return room
 }
 
-const IMAGE_DATA_URL = /^data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/
+const IMAGE_DATA_URL = /^data:image\/[a-z0-9][a-z0-9.+-]*;base64,[A-Za-z0-9+/=]+$/i
 
 function sanitizePatches(x: unknown): unknown[] {
   return arr(x, 'historique', 1_000_000).map((px) => {

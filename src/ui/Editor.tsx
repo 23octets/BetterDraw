@@ -43,7 +43,7 @@ export function Editor({ variantId }: { variantId: string }) {
       const ctx = await roomContext(v)
       if (!alive || !ctx) return
       // la variante ouverte devient celle affichée dans la vue 3D de la pièce
-      await setDisplayVariant(v.wallId, v.id)
+      await setDisplayVariant(v.wallId, v.id).catch((e) => useEditor.getState().flash(storageError(e), 'error'))
       useEditor.getState().setRoom({
         projectId: ctx.project.id,
         index: ctx.index,
@@ -201,7 +201,7 @@ function VariantSwitcher() {
         value={variant.name}
         testId="variant-name-input"
         onCommit={async (name) => {
-          await repo.renameVariant(variant.id, name)
+          try { await repo.renameVariant(variant.id, name) } catch (e) { useEditor.getState().flash(storageError(e), 'error'); return }
           useEditor.setState((s) => (s.variant ? { variant: { ...s.variant, name } } : {}))
         }}
       />

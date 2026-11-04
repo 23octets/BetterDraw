@@ -27,7 +27,8 @@ export function imageSize(dataUrl: string): Promise<{ width: number; height: num
 
 export async function storeImage(dataUrl: string, size: { width: number; height: number }, reduce = false): Promise<StoredImage> {
   const scale = Math.min(1, 2048 / Math.max(size.width, size.height))
-  if (reduce && scale < 1) {
+  const portable = /^data:image\/(png|jpeg|gif|webp|svg\+xml);base64,/i.test(dataUrl)
+  if (reduce && (scale < 1 || !portable)) {
     const image = new Image()
     await new Promise<void>((resolve, reject) => {
       image.onload = () => resolve()

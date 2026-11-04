@@ -39,7 +39,7 @@ export function ProjectPage({ projectId }: { projectId: string }) {
       <header className="project-head">
         <button className="ghost" onClick={() => navigate('/')}><Icon name="arrowLeft" size={15} /> Projets</button>
         <TextField className="project-title" value={project.name} testId="project-title" onCommit={async (name) => {
-          await repo.renameProject(project.id, name)
+          try { await repo.renameProject(project.id, name) } catch (e) { alert(storageError(e)); return }
           refresh()
         }} />
         <span className="muted">{variants.length} variante{variants.length > 1 ? 's' : ''}</span>
@@ -63,7 +63,7 @@ export function ProjectPage({ projectId }: { projectId: string }) {
               </Thumb>
               <div className="card-body">
                 <TextField className="variant-name" value={v.name} testId="variant-name" onCommit={async (name) => {
-                  await repo.renameVariant(v.id, name)
+                  try { await repo.renameVariant(v.id, name) } catch (e) { alert(storageError(e)); return }
                   refresh()
                 }} />
                 <span className="card-meta">

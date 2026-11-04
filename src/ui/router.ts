@@ -1,4 +1,4 @@
-import { useEditor } from '../store/editor'
+import { useEditor, flushPersistence } from '../store/editor'
 import { useEffect, useState } from 'react'
 
 export type Route =
@@ -32,9 +32,11 @@ export function useRoute(): Route {
   const [route, setRoute] = useState(() => parseHash(window.location.hash))
   useEffect(() => {
     let previous = window.location.hash
-    const on = () => {
+    const on = async () => {
       const next = window.location.hash
       if (next === previous) return
+      await flushPersistence()
+      if (window.location.hash !== next) return
       if ((useEditor.getState().persistenceError || [...guards].some((guard) => guard())) &&
         !confirm('Quitter abandonne les modifications non enregistrées. Avez-vous téléchargé la sauvegarde de secours ?')) {
         window.history.pushState(null, '', window.location.pathname + window.location.search + previous)

@@ -114,16 +114,21 @@ test('explique les fichiers qui ne sont pas des sauvegardes JSON', async ({ page
   await expect(page.getByTestId('import-msg')).toContainText('Ce fichier n’est pas un projet BetterDraw')
 })
 
-test('un quota sur le plan reste visible et protège la sortie', async ({ page }) => {
+test('un quota après scission du plan permet une sauvegarde réimportable', async ({ page }) => {
   await page.goto('/')
   await page.getByTestId('kind-room').click()
   await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
   await expect(page.getByTestId('plan')).toBeVisible()
   await page.getByTestId('layout-plan').click()
   await page.evaluate(() => {
-    IDBObjectStore.prototype.put = function () { throw new DOMException('Quota', 'QuotaExceededError') }
+    const put = IDBObjectStore.prototype.put
+    const add = IDBObjectStore.prototype.add
+    const scope = window as unknown as { restoreStorage: () => void }
+    scope.restoreStorage = () => { IDBObjectStore.prototype.put = put; IDBObjectStore.prototype.add = add }
+    IDBObjectStore.prototype.put = IDBObjectStore.prototype.add = function () { throw new DOMException('Quota', 'QuotaExceededError') }
   })
-  await page.getByTestId('room-floor').fill('#112233')
+  await page.getByTestId('plan-wall-0').click({ force: true })
+  await page.getByTestId('split-wall').click()
   await expect(page.getByRole('alert')).toContainText('Espace de stockage insuffisant')
   await expect(page.getByTestId('room-save-state')).toHaveText('Échec de l’enregistrement')
   page.once('dialog', (dialog) => dialog.dismiss())
@@ -131,5 +136,36 @@ test('un quota sur le plan reste visible et protège la sortie', async ({ page }
   await expect(page.getByTestId('plan')).toBeVisible()
   const downloaded = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Sauvegarder le plan affiché (.json)' }).click()
-  expect((await downloaded).suggestedFilename()).toContain('secours.betterdraw.json')
+  const file = await downloaded
+  expect(file.suggestedFilename()).toContain('secours.betterdraw.json')
+  await page.evaluate(() => (window as unknown as { restoreStorage: () => void }).restoreStorage())
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Accueil et sauvegardes', exact: true }).click()
+  await page.getByTestId('import-project').setInputFiles((await file.path())!)
+  await expect(page.getByTestId('import-msg')).toContainText('importé')
+  await page.getByTestId('open-room').first().click()
+  await expect(page.getByTestId('room-wall-item')).toHaveCount(5)
+})
+
+test('convertit une petite image BMP en format de sauvegarde courant', async ({ page }) => {
+  const bmp = Buffer.alloc(70)
+  bmp.write('BM')
+  bmp.writeUInt32LE(70, 2)
+  bmp.writeUInt32LE(54, 10)
+  bmp.writeUInt32LE(40, 14)
+  bmp.writeInt32LE(2, 18)
+  bmp.writeInt32LE(2, 22)
+  bmp.writeUInt16LE(1, 26)
+  bmp.writeUInt16LE(24, 28)
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
+  await expect(page.getByTestId('canvas')).toBeVisible()
+  await page.getByTestId('image-input').setInputFiles({ name: 'reference.bmp', mimeType: 'image/bmp', buffer: bmp })
+  await expect(page.getByTestId('image-row')).toHaveCount(1)
+  const format = await page.evaluate(async () => {
+    const path = '/src/store/db.ts'
+    const { db } = await import(/* @vite-ignore */ path)
+    return (await db.images.toArray())[0].dataUrl.split(';')[0]
+  })
+  expect(format).toBe('data:image/webp')
 })

@@ -42,6 +42,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
   const [layout, setLayout] = useState<Layout>(() => (localStorage.getItem('bd:room-layout') as Layout) || 'split')
   const [saving, setSaving] = useState(0)
   const [saveError, setSaveError] = useState('')
+  const [rescueMessage, setRescueMessage] = useState('')
   const saveErrorRef = useRef('')
   useEffect(() => {
     const unregister = registerNavigationGuard(() => !!saveErrorRef.current)
@@ -259,7 +260,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
       try {
         await saveQueue
         group = await rooms.createWallGroup(projectId, room, ids)
-      } finally {
+      } catch (e) { flash(storageError(e)); return } finally {
         setSaving((x) => x - 1)
       }
     }
@@ -274,7 +275,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
         <button className="icon-btn ghost" onClick={() => navigate('/')} title="Retour aux projets"><Icon name="arrowLeft" size={16} /> Projets</button>
         <div className="title">
           <TextField className="project-title" value={project.name} testId="room-title" onCommit={async (name) => {
-            await repo.renameProject(project.id, name)
+            try { await repo.renameProject(project.id, name) } catch (e) { alert(storageError(e)); return }
             setProject({ ...project, name })
           }} />
         </div>
@@ -365,13 +366,14 @@ export function RoomPage({ projectId }: { projectId: string }) {
           }} />
         )}
         {saveError && <div className="storage-failure" role="alert">
+          {rescueMessage && <p>{rescueMessage}</p>}
           <p>{saveError} Les dernières modifications du plan ne sont pas enregistrées.</p>
           <button onClick={() => { if (room) persist(room) }}>Réessayer l’enregistrement</button>
           <button onClick={async () => {
             try {
-              const { serializeProject } = await import('../export/project')
-              const data = await serializeProject(projectId)
-              data.project.room = room!
+              const { rescueRoom } = await import('../store/rescue')
+              const { data, warning } = await rescueRoom(project!, room!)
+              setRescueMessage(warning || 'Sauvegarde du plan affiché téléchargée.')
               const { download, safeName } = await import('../export/pdf')
               download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(project?.name ?? 'Pièce')}.secours.betterdraw.json`)
               flash('Sauvegarde du plan affiché téléchargée.')
@@ -409,11 +411,11 @@ export function RoomPage({ projectId }: { projectId: string }) {
             onClose={() => setSel(null)}
             onPaint={() => openWall(selectedWall)}
             onRename={async (name) => {
-              await rooms.renameWall(room.walls[selectedWall].id, name)
+              try { await rooms.renameWall(room.walls[selectedWall].id, name) } catch (e) { alert(storageError(e)); return }
               refreshWalls()
             }}
             onDisplay={async (vid) => {
-              await rooms.setDisplayVariant(room.walls[selectedWall].id, vid)
+              try { await rooms.setDisplayVariant(room.walls[selectedWall].id, vid) } catch (e) { alert(storageError(e)); return }
               refreshWalls()
             }}
             onSplit={() => {

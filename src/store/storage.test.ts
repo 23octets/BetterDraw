@@ -40,3 +40,18 @@ it('reconnaît les quotas imbriqués dans les erreurs Dexie', async () => {
   expect(storageError({ name: 'BulkError', failures: [{ name: 'QuotaExceededError' }] })).toContain('Espace de stockage insuffisant')
   expect(storageError(new Error('image illisible'))).not.toContain('Stockage local inaccessible')
 })
+
+it.each(['avif', 'bmp', 'x-ms-bmp'])('réimporte les sauvegardes existantes avec une image %s', async (type) => {
+  const { variant, project } = await createProject('Format image')
+  await db.images.put({ id: 'image-originale', dataUrl: `data:image/${type};base64,AA==`, width: 10, height: 10 })
+  const { placeImage } = await import('./images')
+  await db.variants.update(variant.id, { state: {
+    ...variant.state,
+    images: [placeImage({ id: 'image-originale', dataUrl: '', width: 10, height: 10 }, variant.state.wall, 'Référence')],
+  } })
+  const { importProject } = await import('../export/project')
+  const backup = await serializeProject(project.id)
+  const restored = await importProject(backup)
+  expect(restored.variants[0].state.images[0].blobId).toBe('image-originale')
+  expect((await db.images.get('image-originale'))!.dataUrl).toBe(`data:image/${type};base64,AA==`)
+})

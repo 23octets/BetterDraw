@@ -39,3 +39,37 @@ it('construit une sauvegarde de secours en mémoire si la base ne peut plus êtr
   expect(result.data.entries).toEqual([])
   expect(result.warning).toContain('limité')
 })
+
+it('réimporte un plan scindé dont le nouveau mur n’a jamais été enregistré', async () => {
+  const { createRoomProject } = await import('./rooms')
+  const { splitWall } = await import('../room/geometry')
+  const { rescueRoom } = await import('./rescue')
+  const { importProject } = await import('../export/project')
+  const project = await createRoomProject('Pièce scindée')
+  const room = splitWall(project.room!, 0, 'mur-non-enregistré')
+  const { data, warning } = await rescueRoom(project, room)
+  expect(warning).toBe('')
+  const restored = await importProject(data)
+  expect(restored.project.room!.walls).toHaveLength(5)
+  for (const wall of restored.project.room!.walls) {
+    expect(restored.variants.some((v) => v.wallId === wall.id)).toBe(true)
+  }
+})
+
+it('réimporte un plan de secours construit sans aucune lecture de la base', async () => {
+  const { createRoomProject } = await import('./rooms')
+  const { splitWall } = await import('../room/geometry')
+  const { rescueRoom } = await import('./rescue')
+  const { importProject } = await import('../export/project')
+  const project = await createRoomProject('Plan en mémoire')
+  const room = splitWall(project.room!, 0, 'mur-en-mémoire')
+  room.groups = [{ id: 'groupe-en-mémoire', walls: [room.walls[0].id, room.walls[1].id] }]
+  const read = vi.spyOn(db.projects, 'get').mockRejectedValue(new Error('Base inaccessible'))
+  const { data, warning } = await rescueRoom(project, room)
+  read.mockRestore()
+  expect(warning).toContain('limitée au plan affiché')
+  const restored = await importProject(data)
+  expect(restored.project.room!.walls).toHaveLength(5)
+  expect(restored.project.room!.groups).toHaveLength(1)
+  expect(restored.variants).toHaveLength(6)
+})
