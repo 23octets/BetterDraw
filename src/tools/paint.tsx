@@ -25,7 +25,7 @@ export function useFillTool(): ToolHandlers {
       if (p.button !== 0) return
       const st = useEditor.getState()
       if (!insideWall(p.world)) return
-      if (!st.activeColorId) return st.flash('Choisis une couleur dans la palette', 'error')
+      if (!st.activeColorId || !st.doc.palette.some((c) => c.id === st.activeColorId)) return st.flash('Choisis une couleur dans la palette', 'error')
       const graph = buildRegions(st.doc.shapes, st.doc.wall)
       const region = regionAt(graph, p.world)
       if (!region) return

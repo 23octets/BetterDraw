@@ -1,3 +1,4 @@
+import type { WallContext } from '../geometry/paintable'
 import { jsPDF } from 'jspdf'
 import { svg2pdf } from 'svg2pdf.js'
 import type { DocState } from '../model/types'
@@ -26,10 +27,10 @@ function parseSvg(svg: string): SVGSVGElement {
   return el
 }
 
-export async function buildPdf(doc: DocState, meta: ExportMeta): Promise<Blob> {
-  const pages = exportPages(doc, meta)
+export async function buildPdf(doc: DocState, meta: ExportMeta, room?: WallContext | null): Promise<Blob> {
+  const pages = exportPages(doc, meta, room)
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-  pdf.setProperties({ title: `${meta.project} — ${meta.variant}`, creator: 'BetterDraw' })
+  pdf.setProperties({ title: `${meta.project} — ${meta.variant}`, creator: 'frsque' })
   for (let i = 0; i < pages.length; i++) {
     if (i > 0) pdf.addPage('a4', 'landscape')
     const el = parseSvg(pages[i])
@@ -42,19 +43,19 @@ export async function buildPdf(doc: DocState, meta: ExportMeta): Promise<Blob> {
   return pdf.output('blob')
 }
 
-export async function exportPdf(doc: DocState, meta: ExportMeta) {
-  const blob = await buildPdf(doc, meta)
+export async function exportPdf(doc: DocState, meta: ExportMeta, room?: WallContext | null) {
+  const blob = await buildPdf(doc, meta, room)
   download(blob, `${safeName(meta.project)}-${safeName(meta.variant)}-chantier.pdf`)
   return blob
 }
 
-export function exportSvg(doc: DocState, meta: ExportMeta) {
-  const svg = drawingSvg(doc)
+export function exportSvg(doc: DocState, meta: ExportMeta, room?: WallContext | null) {
+  const svg = drawingSvg(doc, { room })
   download(new Blob([svg], { type: 'image/svg+xml' }), `${safeName(meta.project)}-${safeName(meta.variant)}.svg`)
 }
 
-export async function exportPng(doc: DocState, meta: ExportMeta, widthPx = 3508) {
-  const svg = drawingSvg(doc)
+export async function exportPng(doc: DocState, meta: ExportMeta, widthPx = 3508, room?: WallContext | null) {
+  const svg = drawingSvg(doc, { room })
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }))
   const img = new Image()
   await new Promise<void>((res, rej) => {

@@ -1,5 +1,6 @@
+import { storageError } from '../store/storage'
 import { useEffect, useState } from 'react'
-import { useEditor, flushPersistence } from '../store/editor'
+import { useEditor, flushPersistence, requireSaved } from '../store/editor'
 import * as repo from '../store/repo'
 import { Icon } from './icons'
 import { navigate } from './router'
@@ -21,6 +22,7 @@ export function HistoryPanel() {
   const variant = useEditor((s) => s.variant)
   const headSeq = useEditor((s) => s.headSeq)
   const maxSeq = useEditor((s) => s.maxSeq)
+  const blocked = useEditor((s) => !!s.saveError || !!s.saving)
   const rev = useEditor((s) => s.rev)
   const goTo = useEditor((s) => s.goTo)
   const [rows, setRows] = useState<Row[]>([])
@@ -30,8 +32,9 @@ export function HistoryPanel() {
 
   const branch = async (seq: number) => {
     if (!variant) return
-    await flushPersistence()
-    const nv = await repo.snapshotVariant(variant.id, undefined, seq)
+    if (!await requireSaved()) return
+    const nv = await repo.snapshotVariant(variant.id, undefined, seq).catch((e) => { useEditor.getState().flash(storageError(e), 'error'); return null })
+    if (!nv) return
     navigate(`/v/${nv.id}`)
     setTimeout(() => useEditor.getState().flash(`${nv.name} créée depuis l’état #${seq} de ${variant.name}`), 50)
   }
@@ -71,7 +74,7 @@ export function HistoryPanel() {
       <p className="hint" style={{ margin: 0 }}>
         Glisse pour remonter le temps. Rien n’est jamais perdu : modifier après un retour en arrière ajoute une étape « Retour à l’état ».
       </p>
-      <button className="wide" data-testid="history-branch" onClick={() => branch(headSeq)}>
+      <button className="wide" disabled={blocked} data-testid="history-branch" onClick={() => branch(headSeq)}>
         <Icon name="branch" size={15} /> Créer une variante depuis l’état #{headSeq}
       </button>
       <ol className="history-list">
@@ -82,7 +85,7 @@ export function HistoryPanel() {
               <span className="label">{r.label}</span>
               <span className="time">{fmtTime(r.ts)}</span>
             </button>
-            <button className="icon-btn ghost small branch-btn" title={`Créer une variante depuis l’état #${r.seq}`} aria-label={`Créer une variante depuis l’état #${r.seq}`} onClick={() => branch(r.seq)}>
+            <button disabled={blocked} className="icon-btn ghost small branch-btn" title={`Créer une variante depuis l’état #${r.seq}`} aria-label={`Créer une variante depuis l’état #${r.seq}`} onClick={() => branch(r.seq)}>
               <Icon name="branch" size={14} />
             </button>
           </li>

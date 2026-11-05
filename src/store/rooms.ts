@@ -9,7 +9,7 @@ import { mergeDocs } from '../room/merge'
 
 const now = () => Date.now()
 
-function newVariant(projectId: string, wallId: string, w: number, h: number, base?: DocState): Variant {
+export function newVariant(projectId: string, wallId: string, w: number, h: number, base?: DocState): Variant {
   const t = now()
   const state = defaultDoc()
   state.wall = { w: Math.max(1, Math.round(w * 10) / 10), h }
@@ -127,7 +127,7 @@ export async function saveRoom(projectId: string, room: RoomPlan) {
         d.wall.w = w
         d.wall.h = h
       })
-      await recordChange(v.id, `Taille du mur (plan de la pièce) : ${w} × ${h} cm`, next, patches, inverse)
+      await recordChange(v.id, `Taille du mur (plan de la pièce) : ${w} × ${h} cm`, next, patches, inverse, cur)
     }
   }
 }

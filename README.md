@@ -1,4 +1,4 @@
-# BetterDraw
+# frsque
 
 Dessiner à l'échelle un décor mural, le peindre zone par zone, puis le reporter sur le vrai mur
 grâce à une grille de carroyage cotée.
@@ -39,6 +39,24 @@ npm run dev          # http://localhost:5199
 - **Exports** : PDF chantier (vue d'ensemble cotée + cases choisies en grand), PNG, SVG,
   sauvegarde du projet en JSON (réimportable depuis l'accueil).
 
+## Enregistrement et récupération
+
+Après un échec d’enregistrement, le dessin reste en mémoire et affiche « Non enregistré ».
+Réessayer rejoue les modifications dans leur ordre, sans sauter d’entrée d’historique.
+Avant de fermer ou recharger la page, « Exporter le secours » produit un JSON réimportable
+depuis l’accueil comme nouveau projet. Le dessin en mémoire y remplace sa version enregistrée,
+avec un historique remis à zéro ; les autres variantes gardent leur historique.
+Si le stockage est inaccessible, seul le dessin sans images peut être récupéré.
+
+Deux onglets peuvent ouvrir une variante, mais une écriture vérifie dans la même transaction
+la position et la dernière séquence de son historique. Un onglet périmé ne peut pas écraser
+les modifications de l’autre : il faut exporter son secours, puis recharger.
+Les déplacements dans l’historique sont également contrôlés. La navigation et la création
+de copies restent bloquées tant qu’un échec n’est pas résolu.
+
+Une erreur de rendu affiche un écran de récupération proposant le secours du dessin ouvert,
+le rechargement et le retour à l’accueil.
+
 ## Tests
 
 ```bash
@@ -48,6 +66,8 @@ npm run test:e2e     # tests de bout en bout (Playwright), captures dans docs/sc
 npm run test:all
 npm run size         # budget de taille du bundle, après npm run build (.size-limit.json)
 ```
+
+Les icônes de `public/` se régénèrent depuis les SVG de `assets/icon/` avec `assets/icon/generer.sh` (Chrome sur macOS et ImageMagick).
 
 La régression visuelle (`e2e/visual.spec.ts`) ne tourne qu'en CI, car ses images de référence dépendent du rendu Linux. Après un changement visuel voulu, ou une mise à jour de Playwright qui change le rendu :
 
@@ -59,3 +79,22 @@ gh run download <id-du-run> -n captures -D /tmp/captures
 Relire les images, les copier dans `e2e/__screenshots__`, puis les committer (`gh run download` refuse d'écraser des fichiers existants). En cas d'échec, l'artefact `playwright-report` de la CI contient les différences.
 
 Les tests e2e génèrent des captures dans `docs/screenshots/` et un exemple de PDF chantier dans `docs/exemple-chantier.pdf` (non versionnés).
+
+## Données locales et sauvegardes
+
+L’accueil permet de télécharger chaque projet en JSON avec ses variantes, son
+historique et ses images, puis de le réimporter. Garder ces fichiers en dehors du
+navigateur : vider ses données efface les projets. La protection de stockage
+persistant, si le navigateur l’accorde, ne protège pas d’un effacement manuel.
+
+L’espace affiché est l’estimation du navigateur pour ce site. Les nouvelles images
+de référence sont réduites à 2 048 pixels sur leur plus grand côté. Les images
+sans référence sont nettoyées à l’ouverture, à la suppression d’un projet ou
+d’une variante, et par le bouton de nettoyage. Les ajouts de moins de 24 heures
+restent conservés pour protéger les enregistrements en cours dans un autre onglet.
+Les états courants et les deux sens de l’historique de toutes les variantes
+protègent leurs images, y compris les sources des retouches et les images partagées.
+
+Si un enregistrement échoue, l’éditeur le signale durablement et permet de
+sauvegarder l’état affiché en JSON de secours ; cette sauvegarde exclut l’historique
+de la variante courante, dont les dernières écritures ne sont pas garanties.

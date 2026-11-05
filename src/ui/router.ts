@@ -1,3 +1,4 @@
+import { flushPersistence, requireSaved } from '../store/editor'
 import { useEffect, useState } from 'react'
 
 export type Route =
@@ -17,14 +18,40 @@ export function parseHash(hash: string): Route {
   return { name: 'home' }
 }
 
-export function navigate(path: string) {
+const guards = new Set<() => boolean>()
+const flushers = new Set<() => Promise<unknown>>()
+export function registerNavigationGuard(guard: () => boolean, flush?: () => Promise<unknown>) {
+  guards.add(guard)
+  if (flush) flushers.add(flush)
+  return () => { guards.delete(guard); if (flush) flushers.delete(flush) }
+}
+
+export async function navigate(path: string) {
+  if (!await requireSaved()) return
   window.location.hash = path
 }
 
 export function useRoute(): Route {
   const [route, setRoute] = useState(() => parseHash(window.location.hash))
   useEffect(() => {
-    const on = () => setRoute(parseHash(window.location.hash))
+    let previous = window.location.hash
+    const on = async () => {
+      const next = window.location.hash
+      if (next === previous) return
+      await Promise.all([flushPersistence(), ...[...flushers].map((flush) => flush())])
+      if (window.location.hash !== next) return
+      if (!await requireSaved()) {
+        window.history.pushState(null, '', window.location.pathname + window.location.search + previous)
+        return
+      }
+      if ([...guards].some((guard) => guard()) &&
+        !confirm('Quitter abandonne les modifications non enregistrées. Avez-vous téléchargé la sauvegarde de secours ?')) {
+        window.history.pushState(null, '', window.location.pathname + window.location.search + previous)
+        return
+      }
+      previous = next
+      setRoute(parseHash(next))
+    }
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
   }, [])

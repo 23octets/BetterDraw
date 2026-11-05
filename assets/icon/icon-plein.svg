@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Sans coins arrondis ni transparence : iOS applique son propre masque et remplit la transparence en noir. -->
+  <rect width="512" height="512" fill="#efebe3"/>
+  <path fill="#c8643b" d="M0 340L512 400V512H0Z"/>
+  <path fill="#c8643b" d="M112 64H416V160H240V240H368V336H240V368.125L112 353.125Z"/>
+  <path fill="#efebe3" d="M112 353.125L240 368.125V448H112Z"/>
+</svg>

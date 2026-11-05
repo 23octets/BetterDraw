@@ -1,12 +1,28 @@
-node_modules
-dist
-test-results
-playwright-report
-*.local
-.DS_Store
-
-# fichiers générés
+# dépendances et compilation
+node_modules/
+/dist/
 *.tsbuildinfo
+# cache temporaire de la configuration Vite
+vite.config.*.timestamp-*
+.vite-temp/
+
+# tests et rapports générés (les références e2e/__screenshots__/ restent versionnées)
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/coverage/
 # captures et PDF d'exemple produits à chaque lancement des tests e2e
-docs/screenshots/
-docs/exemple-chantier.pdf
+/docs/screenshots/
+/docs/exemple-chantier.pdf
+
+# configuration locale (les modèles peuvent être versionnés)
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.local
+
+# journaux et fichiers macOS
+*.log
+.DS_Store
