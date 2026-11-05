@@ -129,6 +129,7 @@ test.describe('consultation tactile des pièces et tablettes', () => {
     const nav = page.getByRole('navigation', { name: 'Consulter les murs' })
     await expect(nav).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375)
+    expect((await page.getByTestId('plan').boundingBox())!.height).toBeGreaterThanOrEqual(280)
     await nav.getByRole('button').first().click()
     await expect(page.getByTestId('mode-consult')).toHaveClass('on')
     await page.getByTestId('back-to-room').click()
@@ -156,3 +157,31 @@ test.describe('consultation tactile des pièces et tablettes', () => {
     await expect(page.getByRole('button', { name: 'Plein écran', exact: true })).toHaveCount(0)
   })
 })
+
+
+for (const viewport of [{ width: 375, height: 812 }, { width: 667, height: 375 }]) {
+  test.describe(`plan en lecture seule à ${viewport.width}px`, () => {
+    test.use({ viewport, hasTouch: true })
+    test('un glissement fait défiler sans déplacer un angle', async ({ page }) => {
+      await resetDb(page)
+      await page.getByTestId('kind-room').click()
+      await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
+      const corner = page.getByTestId('plan-corner-0')
+      const before = await corner.evaluate((el) => [el.getAttribute('cx'), el.getAttribute('cy')])
+      const box = (await corner.boundingBox())!
+      const scrollable = await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight)
+      const session = await page.context().newCDPSession(page)
+      const x = box.x + box.width / 2, y = box.y + box.height / 2
+      await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] })
+      for (let i = 1; i <= 5; i++) {
+        await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + i * 4, y: y - i * 12, id: 1 }] })
+      }
+      await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+      expect(await corner.evaluate((el) => [el.getAttribute('cx'), el.getAttribute('cy')])).toEqual(before)
+      await expect(page.getByTestId('room-undo')).toBeDisabled()
+      if (scrollable) await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+      else expect(await page.evaluate(() => window.scrollY)).toBe(0)
+      await expect(page.getByRole('navigation', { name: 'Consulter les murs' })).toBeAttached()
+    })
+  })
+}

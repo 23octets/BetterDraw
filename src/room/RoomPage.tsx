@@ -1,3 +1,4 @@
+import { COMPACT_QUERY } from '../ui/compact'
 import { storageError } from '../store/storage'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { nanoid } from 'nanoid'
@@ -170,6 +171,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
   keys.current = { undo, redo, sel, room, commit }
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
+      if (window.matchMedia(COMPACT_QUERY).matches) return
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || document.pointerLockElement) return
       const { undo, redo, sel, room, commit } = keys.current
       const mod = e.metaKey || e.ctrlKey
@@ -296,7 +298,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
         </div>
       </header>
       <div className="mobile-notice">
-        <p>L’édition du plan et la vue 3D nécessitent un ordinateur. Pour consulter le décor et ses cotes, ouvrez un mur :</p>
+        <p>L’édition du plan et la vue 3D interactive nécessitent un ordinateur. Pour consulter le décor et ses cotes, ouvrez un mur :</p>
         <nav className="mobile-room-walls" aria-label="Consulter les murs">
           {names.map((name, i) => <button key={room.walls[i].id} onClick={() => openWall(i)}>Consulter {name}</button>)}
         </nav>

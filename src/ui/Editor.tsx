@@ -151,10 +151,11 @@ function MobileConsult() {
         onClick={() => zoomToCell(id ? neighborCell(id, key) ?? id : 'A1')}>{['←', '↑', '↓', '→'][i]}</button>)}
     <button onClick={() => zoomToCell(null)} aria-label="Vue d’ensemble">⤢</button>
     <>{document.fullscreenEnabled && <button aria-label="Plein écran" onClick={() => {
-      const request = document.fullscreenElement
+      const exiting = !!document.fullscreenElement
+      const request = exiting
         ? document.exitFullscreen()
         : document.querySelector('.editor')?.requestFullscreen()
-      void request?.catch(() => useEditor.getState().flash('Le plein écran n’a pas pu être activé.', 'error'))
+      void request?.catch(() => useEditor.getState().flash(exiting ? 'Le plein écran n’a pas pu être fermé.' : 'Le plein écran n’a pas pu être activé.', 'error'))
     }}>⛶</button>}</>
   </nav>
 }
