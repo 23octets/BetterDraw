@@ -128,6 +128,8 @@ test.describe('consultation tactile des pièces et tablettes', () => {
     await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
     const nav = page.getByRole('navigation', { name: 'Consulter les murs' })
     await expect(nav).toBeVisible()
+    await expect(page.locator('.plan-help')).toBeHidden()
+    await expect(page.locator('.room-3d-help')).toBeHidden()
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375)
     expect((await page.getByTestId('plan').boundingBox())!.height).toBeGreaterThanOrEqual(280)
     await nav.getByRole('button').first().click()
