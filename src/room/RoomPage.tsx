@@ -1,3 +1,4 @@
+import { COMPACT_QUERY } from '../ui/compact'
 import { storageError } from '../store/storage'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { nanoid } from 'nanoid'
@@ -170,6 +171,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
   keys.current = { undo, redo, sel, room, commit }
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
+      if (window.matchMedia(COMPACT_QUERY).matches) return
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || document.pointerLockElement) return
       const { undo, redo, sel, room, commit } = keys.current
       const mod = e.metaKey || e.ctrlKey
@@ -295,6 +297,12 @@ export function RoomPage({ projectId }: { projectId: string }) {
           <button className="icon-btn" onClick={redo} disabled={!hist.future.length} title="Rétablir (⇧⌘Z)" aria-label="Rétablir" data-testid="room-redo"><Icon name="redo" /></button>
         </div>
       </header>
+      <div className="mobile-notice">
+        <p>L’édition du plan et la vue 3D interactive nécessitent un ordinateur. Pour consulter le décor et ses cotes, ouvrez un mur :</p>
+        <nav className="mobile-room-walls" aria-label="Consulter les murs">
+          {names.map((name, i) => <button key={room.walls[i].id} onClick={() => openWall(i)}>Consulter {name}</button>)}
+        </nav>
+      </div>
       <main className="room-stage" ref={stageRef} style={layout === 'split' ? { gridTemplateColumns: `minmax(0, ${split}fr) 0px minmax(0, ${1 - split}fr)` } : undefined}>
         {layout !== '3d' && (
           <PlanEditor

@@ -4,7 +4,7 @@
   --panel: #fbfaf7;
   --ink: #1d1f22;
   --ink-2: #4a4d52;
-  --muted: #8a8780;
+  --muted: #64615b;
   --line: #d9d3c7;
   --line-2: #e7e2d8;
   --accent: #c8643b;
@@ -668,6 +668,34 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .room-splitter:hover::after, .room-splitter.dragging::after, .room-splitter:focus-visible::after { background: var(--primary); }
 .room-splitter.dragging::before { content: ''; position: absolute; top: 0; bottom: 0; left: -2000px; width: 4000px; }
 
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.mobile-notice, .mobile-consult { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media (max-width: 1000px), (pointer: coarse) and (max-width: 1366px) {
+  .home { padding: 24px 16px; }
+  .new-project-fields .field.grow { min-width: 0; flex-basis: 100%; }
+  .projects-head, .new-project-top { flex-wrap: wrap; gap: 10px; }
+  .editor { height: 100dvh; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: 'top' 'notice' 'stage'; }
+  .editor .toolbar, .editor > .side-panel { display: none; }
+  .editor .topbar { flex-wrap: wrap; padding: 6px; }
+  .editor .topbar .title strong, .editor .topbar .variant-title, .editor .topbar .title-sep, .editor .topbar > .split-btn, .editor .topbar > .save-state,
+  .editor .topbar > .btn-group, .editor .topbar > [data-testid=toggle-shortcuts],
+  .editor .topbar > [data-testid=open-settings] { display: none; }
+  .mobile-notice { display: block; grid-area: notice; padding: 6px 12px; margin: 0; background: var(--panel); color: var(--ink-2); }
+  .mobile-consult { display: flex; position: absolute; left: 8px; top: 8px; right: 8px; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .mobile-consult span { padding: 6px; background: var(--panel); border-radius: 6px; }
+  .mobile-consult button { min-width: 40px; height: 40px; }
+  .modal-body { display: block; overflow-y: auto; }
+  .export-left, .export-pages { overflow: visible; }
+  .export-pages { grid-template-columns: minmax(0, 1fr); }
+  .modal { max-height: 94dvh; }
+  .canvas-hud { max-width: calc(100% - 16px); }
+}
+
+@media (max-width: 1000px), (pointer: coarse) and (max-width: 1366px) { [data-testid=mode-edit] { display: none; } }
+.op-corner.on circle { fill: var(--accent-ink); }
 .welcome-actions { display: flex; align-items: center; gap: 20px; margin: 20px 0; }
 .guide summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
 .guide-content { position: fixed; right: 24px; top: 90px; width: min(480px, calc(100vw - 48px)); max-height: calc(100vh - 120px); overflow: auto; z-index: 45; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 40px #0003; }
@@ -703,3 +731,41 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .save-state.error { color: #a32d2d; }
 
 .save-state.error::before { color: #a32d2d; }
+
+@media (max-width: 1000px), (pointer: coarse) and (max-width: 1366px) {
+  .welcome-actions { flex-wrap: wrap; gap: 12px; }
+  .editor-guide { left: 8px; bottom: 60px; }
+  .editor-guide .guide-content { left: 8px; width: calc(100vw - 16px); bottom: 104px; max-height: calc(100dvh - 180px); }
+}
+
+@media (max-width: 1000px), (pointer: coarse) and (max-width: 1366px) {
+  .mobile-consult { position: static; order: -1; flex-shrink: 0; padding: 6px 8px; }
+  .consult-badge { display: none; } /* le repère reste dans la navigation */
+  .project-head { flex-wrap: wrap; min-width: 0; }
+  .project-head .project-title { min-width: 0; max-width: 100%; flex: 1 1 180px; }
+  .project-head .spacer { display: none; }
+  .project-head .muted { overflow-wrap: anywhere; }
+}
+@media (max-width: 1000px), (pointer: coarse) and (max-width: 1366px) {
+  .mode-consult:has(.consult-overlay) .grid-labels { display: none; } /* les cotes de détail remplacent celles du mur entier */
+}
+
+.compare-mobile-help { display: none; }
+@media (max-width: 1000px), (pointer: coarse) and (max-width: 1366px) {
+  .room-page { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto; grid-template-areas: 'top' 'notice' 'stage' 'side'; height: auto; min-height: 100dvh; overflow: visible; }
+  .room-page .topbar { flex-wrap: wrap; padding: 6px; }
+  .room-page .topbar .title { flex: 1; }
+  .room-page .topbar .project-title { width: 100%; min-width: 0; max-width: 100%; }
+  .room-page .mobile-notice p { margin: 6px 0; }
+  .mobile-room-walls { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
+  .room-page .room-stage { grid-template-columns: minmax(0, 1fr) !important; }
+  .room-page .plan-editor, .room-page .room-3d { min-height: 280px; }
+  .room-page .room-splitter { display: none; }
+  .room-page .plan-svg, .room-page .room-3d { pointer-events: none; touch-action: auto; }
+  .room-page .plan-tools, .room-page .plan-placing-tip, .room-page .plan-help, .room-page .room-3d-bar, .room-page .room-3d-tip, .room-page .room-3d-help, .room-page > .side-panel,
+  .room-page .topbar > .btn-group { display: none; }
+  .editor:has(.consult-overlay) .editor-guide { display: none; }
+  .compare-grid.n2, .compare-grid.n3, .compare-grid.n4 { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .compare-desktop-help { display: none; }
+  .compare-mobile-help { display: inline; }
+}

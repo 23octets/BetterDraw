@@ -1,3 +1,6 @@
+import { COMPACT_QUERY } from './compact'
+import { gridLayout } from '../geometry/grid'
+import { neighborCell, zoomToCell } from '../tools/consult'
 import { Guide } from './Guide'
 import { storageError } from '../store/storage'
 import { downloadRecovery } from '../export/recovery'
@@ -72,6 +75,17 @@ export function Editor({ variantId }: { variantId: string }) {
   }, [variantId, load])
 
   useEffect(() => {
+    const query = window.matchMedia(COMPACT_QUERY)
+    const consult = () => { if (query.matches) useEditor.getState().setMode('consult') }
+    consult()
+    query.addEventListener('change', consult)
+    const unsubscribe = useEditor.subscribe((state) => {
+      if (query.matches && state.mode !== 'consult') state.setMode('consult')
+    })
+    return () => { query.removeEventListener('change', consult); unsubscribe() }
+  }, [])
+
+  useEffect(() => {
     const guard = (e: BeforeUnloadEvent) => {
       if (hasUnsavedWork()) { e.preventDefault(); e.returnValue = '' }
     }
@@ -98,6 +112,7 @@ export function Editor({ variantId }: { variantId: string }) {
   return (
     <div className="editor">
       <TopBar projectName={project?.name ?? ''} onExport={() => setExporting(true)} onShortcuts={() => setShortcuts((x) => !x)} shortcutsOpen={shortcuts} />
+      <p className="mobile-notice">L’édition avancée nécessite un ordinateur. Sur cet écran, consultez le dessin : touchez une case, pincez pour zoomer, glissez à deux doigts.</p>
       {saveError && <div className="storage-failure" role="alert"><button onClick={() => useEditor.getState().retry()}>Réessayer</button><button onClick={() => { void downloadRecovery().catch((e) => useEditor.getState().flash(storageError(e), 'error')) }}>Exporter le secours</button>{rescueMessage && <p>{rescueMessage}</p>}<p>{saveError} Les dernières modifications ne sont pas enregistrées.</p><button onClick={async () => {
         try {
           const { rescueProject } = await import('../store/rescue')
@@ -112,6 +127,7 @@ export function Editor({ variantId }: { variantId: string }) {
       <main className="stage">
         <Canvas />
         <CanvasOverlay />
+        <MobileConsult />
         {shortcuts && <ShortcutsPanel />}
       </main>
       <aside className="side-panel">
@@ -120,6 +136,28 @@ export function Editor({ variantId }: { variantId: string }) {
       {exporting && <ExportDialog meta={{ project: project?.name ?? 'Projet', variant: variant.name, date: new Date().toLocaleDateString('fr-FR') }} onClose={() => setExporting(false)} />}
     </div>
   )
+}
+
+function MobileConsult() {
+  const doc = useEditor((s) => s.doc)
+  const id = useEditor((s) => s.consultCell)
+  const mode = useEditor((s) => s.mode)
+  const cell = gridLayout(doc.wall, doc.grid).cells.find((c) => c.id === id)
+  if (mode !== 'consult') return null
+  return <nav className="mobile-consult" aria-label="Cases du mur">
+    <span>{cell ? `${id} · ${cell.w} × ${cell.h} cm` : 'Vue d’ensemble'}</span>
+    {(['ArrowLeft', 'ArrowUp', 'ArrowDown', 'ArrowRight'] as const).map((key, i) =>
+      <button key={key} aria-label={['Case à gauche', 'Case au-dessus', 'Case en dessous', 'Case à droite'][i]}
+        onClick={() => zoomToCell(id ? neighborCell(id, key) ?? id : 'A1')}>{['←', '↑', '↓', '→'][i]}</button>)}
+    <button onClick={() => zoomToCell(null)} aria-label="Vue d’ensemble">⤢</button>
+    <>{document.fullscreenEnabled && <button aria-label="Plein écran" onClick={() => {
+      const exiting = !!document.fullscreenElement
+      const request = exiting
+        ? document.exitFullscreen()
+        : document.querySelector('.editor')?.requestFullscreen()
+      void request?.catch(() => useEditor.getState().flash(exiting ? 'Le plein écran n’a pas pu être fermé.' : 'Le plein écran n’a pas pu être activé.', 'error'))
+    }}>⛶</button>}</>
+  </nav>
 }
 
 function SidePanelContent() {

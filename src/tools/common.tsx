@@ -70,6 +70,7 @@ export function useToolKeys(active: boolean, handler: (e: KeyboardEvent) => bool
   useEffect(() => {
     if (!active) return
     const on = (e: KeyboardEvent) => {
+      if (document.querySelector('[aria-modal="true"]')) return
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if (e.metaKey || e.ctrlKey) return
       if (ref.current(e) === true) {

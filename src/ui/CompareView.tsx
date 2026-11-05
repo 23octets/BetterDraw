@@ -55,7 +55,8 @@ export function CompareView({ ids }: { ids: string[] }) {
         <div className="spacer" />
         <label className="check"><input type="checkbox" checked={lines} onChange={(e) => setLines(e.target.checked)} data-testid="compare-lines" /> Traits</label>
         <label className="check"><input type="checkbox" checked={grid} onChange={(e) => setGrid(e.target.checked)} /> Grille</label>
-        <span className="muted small">Molette : zoom · glisser : déplacer (synchronisés)</span>
+        <span className="muted small compare-desktop-help">Molette : zoom · glisser : déplacer (synchronisés)</span>
+        <span className="muted small compare-mobile-help">Ouvrir une variante pour consulter ses cases et zoomer au toucher.</span>
       </header>
       <div className={`compare-grid n${n}`}>
         {variants.map((v) => {

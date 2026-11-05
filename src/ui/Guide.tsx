@@ -4,10 +4,15 @@ import { useRef } from 'react'
 export function Guide() {
   const ref = useRef<HTMLDetailsElement>(null)
   return (
-    <details className="guide" ref={ref}>
+    <details className="guide" ref={ref} onKeyDown={(e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        if (ref.current) { ref.current.open = false; ref.current.querySelector('summary')?.focus() }
+      }
+    }}>
       <summary>Guide en 5 étapes</summary>
       <aside className="guide-content" aria-label="Guide en 5 étapes" data-testid="guide">
-        <div className="modal-head"><strong>Du dessin au mur</strong><div className="spacer" /><button onClick={() => { if (ref.current) ref.current.open = false }} aria-label="Fermer le guide">Fermer</button></div>
+        <div className="modal-head"><strong>Du dessin au mur</strong><div className="spacer" /><button onClick={() => { if (ref.current) { ref.current.open = false; ref.current.querySelector('summary')?.focus() } }} aria-label="Fermer le guide">Fermer</button></div>
         <ol>
           <li><strong>Mesurer le mur.</strong> Saisis sa largeur et sa hauteur en centimètres à la création du projet. Tu peux les ajuster dans Réglages.</li>
           <li><strong>Dessiner.</strong> Avec l’outil Ligne, clique pour placer les points puis clique sur le premier point pour fermer la forme. Entrée termine un tracé ouvert.</li>

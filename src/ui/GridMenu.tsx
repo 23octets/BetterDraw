@@ -46,7 +46,7 @@ export function GridMenu() {
         <Icon name={grid.show ? 'eye' : 'eyeOff'} size={16} />
       </button>
       {open && (
-        <div className="popover" role="dialog" aria-label="Lignes de la grille" data-testid="grid-popover">
+        <div className="popover" role="region" aria-label="Lignes de la grille" data-testid="grid-popover">
           <h4>Lignes de la grille</h4>
           <GridStyleControls compact />
           <p className="hint">Également appliqué au PDF chantier.</p>

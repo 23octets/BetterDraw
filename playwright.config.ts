@@ -1,6 +1,8 @@
 import { defineConfig } from '@playwright/test'
 
 const isCI = !!process.env.CI
+const port = process.env.BETTERDRAW_TEST_PORT ?? '5199'
+const baseURL = `http://localhost:${port}`
 
 export default defineConfig({
   testDir: './e2e',
@@ -20,15 +22,15 @@ export default defineConfig({
   retries: isCI ? 1 : 0,
   reporter: isCI ? [['list'], ['github'], ['html', { open: 'never' }]] : 'list',
   use: {
-    baseURL: 'http://localhost:5199',
+    baseURL,
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1,
     trace: isCI ? 'on-first-retry' : 'off',
   },
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5199',
-    reuseExistingServer: !isCI,
+    command: `npm run dev -- --port ${port}`,
+    url: baseURL,
+    reuseExistingServer: !isCI && !process.env.BETTERDRAW_TEST_PORT,
     timeout: 60_000,
   },
 })
