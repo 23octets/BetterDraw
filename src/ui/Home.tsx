@@ -80,11 +80,11 @@ export function Home() {
           try {
             const { variant } = await repo.createProject('Exemple — Paysage géométrique', undefined, exampleDoc())
             navigate(`/v/${variant.id}`)
-          } catch {
-            setImportMsg("Impossible de créer l’exemple. Réessaie.")
+          } catch (e) {
+            setError(storageError(e))
             setExampleBusy(false)
           }
-        }}>Ouvrir un projet exemple</button>
+        }}>Créer un projet exemple</button>
         <Guide />
       </div>
 

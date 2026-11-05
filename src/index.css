@@ -675,6 +675,7 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .guide-content li { margin: 12px 0; }
 .guide-content > p { margin: 16px 24px; }
 .editor-guide { position: absolute; bottom: 16px; left: 76px; z-index: 20; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.editor-guide .guide-content { left: 76px; right: auto; top: auto; bottom: 60px; width: min(480px, calc(100vw - 100px)); }
 .paint-help { padding: 12px; line-height: 1.5; }
 .storage-notice {
   margin-block: 1.5rem;
