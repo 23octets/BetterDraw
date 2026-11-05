@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Mur en deux tons : la ligne de peinture part de (0,340) et finit en (512,400). Papier 1 unité sous le terracotta : anti-interstice. -->
+  <path fill="#efebe3" d="M0 341V112A112 112 0 0 1 112 0H400A112 112 0 0 1 512 112V401Z"/>
+  <path fill="#c8643b" d="M0 340L512 400A112 112 0 0 1 400 512H112A112 112 0 0 1 0 400Z"/>
+  <!-- Le F inverse ses couleurs en passant la ligne : seul le pied bascule. -->
+  <path fill="#c8643b" d="M112 64H416V160H240V240H368V336H240V368.125L112 353.125Z"/>
+  <path fill="#efebe3" d="M112 353.125L240 368.125V448H112Z"/>
+</svg>

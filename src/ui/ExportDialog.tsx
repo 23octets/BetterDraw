@@ -1,7 +1,8 @@
 import { useModal } from './useModal'
 import { useMemo, useState } from 'react'
-import { useEditor } from '../store/editor'
+import { useEditor, flushPersistence, hasUnsavedWork } from '../store/editor'
 import { exportPages, type ExportMeta } from '../export/svg'
+import { recoveryFile } from '../export/recovery'
 import { serializeProject } from '../export/project'
 import { gridLayout } from '../geometry/grid'
 import { togglePrintCell } from '../tools/consult'
@@ -9,16 +10,17 @@ import { DocPreview } from './DocPreview'
 
 export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () => void }) {
   useModal('[data-testid=export-dialog]', onClose)
+  const saveError = useEditor((s) => s.saveError)
   const doc = useEditor((s) => s.doc)
+  const room = useEditor((s) => s.room)
   const variant = useEditor((s) => s.variant)!
   const [busy, setBusy] = useState<string | null>(null)
-  const pages = useMemo(() => exportPages(doc, meta), [doc, meta])
+  const pages = useMemo(() => exportPages(doc, meta, room), [doc, meta, room])
   const L = gridLayout(doc.wall, doc.grid)
   const run = async (what: string, fn: () => Promise<unknown> | unknown) => {
     setBusy(what)
     try {
-      await fn()
-      useEditor.getState().flash(`${what} : téléchargé`)
+      if ((await fn()) !== false) useEditor.getState().flash(`${what} : téléchargé`)
     } catch (e) {
       useEditor.getState().flash(`${what} : échec (${(e as Error).message})`, 'error')
     } finally {
@@ -49,17 +51,20 @@ export function ExportDialog({ meta, onClose }: { meta: ExportMeta; onClose: () 
               </svg>
             </div>
             <div className="export-actions">
-              <button className="primary" disabled={!!busy} data-testid="export-pdf" onClick={() => run('PDF chantier', async () => (await import('../export/pdf')).exportPdf(doc, meta))}>
+              <button className="primary" disabled={!!busy} data-testid="export-pdf" onClick={() => run('PDF chantier', async () => (await import('../export/pdf')).exportPdf(doc, meta, room))}>
                 {busy === 'PDF chantier' ? 'Génération…' : `Télécharger le PDF (${pages.length} page${pages.length > 1 ? 's' : ''})`}
               </button>
-              <button disabled={!!busy} data-testid="export-png" onClick={() => run('PNG', async () => (await import('../export/pdf')).exportPng(doc, meta))}>Image PNG</button>
-              <button disabled={!!busy} data-testid="export-svg" onClick={() => run('SVG', async () => (await import('../export/pdf')).exportSvg(doc, meta))}>Vectoriel SVG</button>
+              <button disabled={!!busy} data-testid="export-png" onClick={() => run('PNG', async () => (await import('../export/pdf')).exportPng(doc, meta, 3508, room))}>Image PNG</button>
+              <button disabled={!!busy} data-testid="export-svg" onClick={() => run('SVG', async () => (await import('../export/pdf')).exportSvg(doc, meta, room))}>Vectoriel SVG</button>
               <button disabled={!!busy} data-testid="export-json" onClick={() => run('Sauvegarde du projet', async () => {
-                const data = await serializeProject(variant.projectId)
+                await flushPersistence()
+                const data = hasUnsavedWork() ? await recoveryFile() : await serializeProject(variant.projectId)
+                if (data.warnings?.length && !window.confirm(data.warnings.join('\n') + '\nTélécharger cette sauvegarde incomplète ?')) return false
                 const { download, safeName } = await import('../export/pdf')
-                download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(meta.project)}.betterdraw.json`)
+                download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(meta.project)}.frsque.json`)
               })}>Sauvegarde du projet (.json)</button>
             </div>
+            {saveError && <p className="hint">Pour conserver les modifications non enregistrées, utilisez la sauvegarde JSON de secours ou celle proposée dans l’alerte.</p>}
             <p className="hint">Les images de référence ne sont jamais incluses dans le PDF, le PNG ni le SVG.</p>
           </div>
           <div className="export-pages" data-testid="export-pages">

@@ -1,3 +1,4 @@
+import { storageError } from '../store/storage'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useEditor } from '../store/editor'
 import { GridLabels } from './GridOverlay'
@@ -192,7 +193,7 @@ export function Canvas() {
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault()
-        if (e.dataTransfer.files.length) importImageFiles(e.dataTransfer.files)
+        if (e.dataTransfer.files.length) importImageFiles(e.dataTransfer.files).catch((err) => useEditor.getState().flash(storageError(err), 'error'))
       }}
     >
       <g transform={t} data-testid="world">

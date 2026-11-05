@@ -696,3 +696,29 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 
 @media (max-width: 1000px) { [data-testid=mode-edit] { display: none; } }
 .op-corner.on circle { fill: var(--accent-ink); }
+.storage-notice {
+  margin-block: 1.5rem;
+  padding: 1rem;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+}
+.storage-notice p { margin: 0 0 .75rem; }
+.storage-notice button { margin: .25rem .5rem .25rem 0; }
+.storage-failure {
+  position: fixed;
+  z-index: 1000;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  max-height: 45vh;
+  overflow: auto;
+  padding: 1rem;
+  background: var(--panel, white);
+  border: 2px solid #a32d2d;
+  border-radius: 8px;
+  color: var(--ink, #222);
+}
+.storage-failure button { margin: .25rem; white-space: normal; height: auto; min-height: 32px; }
+.save-state.error { color: #a32d2d; }
+
+.save-state.error::before { color: #a32d2d; }

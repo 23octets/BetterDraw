@@ -15,8 +15,9 @@ export default defineConfig({
   // références produites sur le runner Linux de la CI : elles ne valent pas sur une autre machine
   testIgnore: isCI ? [] : ['**/visual.spec.ts'],
   snapshotPathTemplate: 'e2e/__screenshots__/{arg}{ext}',
-  fullyParallel: false,
-  workers: 1,
+  fullyParallel: true,
+  // 3 workers mesurés sur les runners à 4 CPU ; en local, un seul pour ne pas dépendre de la machine
+  workers: isCI ? 3 : 1,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
   reporter: isCI ? [['list'], ['github'], ['html', { open: 'never' }]] : 'list',

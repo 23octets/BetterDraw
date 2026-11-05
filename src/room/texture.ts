@@ -23,7 +23,7 @@ export async function paintCanvas(doc: DocState, opts: { lines?: boolean; maxSiz
     await img.decode()
     ctx.drawImage(img, 0, 0, w, h)
   } catch (e) {
-    console.warn('[betterdraw] texture du mur', e)
+    console.warn('[frsque] texture du mur', e)
   } finally {
     URL.revokeObjectURL(url)
   }

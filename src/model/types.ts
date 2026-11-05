@@ -203,6 +203,7 @@ export interface HistoryEntry {
 }
 
 export interface StoredImage {
+  addedAt?: number
   id: string
   dataUrl: string
   width: number

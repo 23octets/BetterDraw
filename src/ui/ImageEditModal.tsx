@@ -1,4 +1,5 @@
 import { useModal } from './useModal'
+import { storageError } from '../store/storage'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useEditor } from '../store/editor'
 import { db } from '../store/db'
@@ -135,6 +136,7 @@ export function ImageEditModal({ imageId, onClose }: { imageId: string; onClose:
   const handleR = Math.max(source.width, source.height) / 70
 
   const apply = async () => {
+    if (useEditor.getState().saveError) return setError('Sauvegardez le dessin affiché puis rechargez avant de poursuivre.')
     if (!valid) return setError('Les 4 coins doivent former un quadrilatère sans croisement.')
     setBusy(true)
     try {
@@ -157,7 +159,7 @@ export function ImageEditModal({ imageId, onClose }: { imageId: string; onClose:
       })
       onClose()
     } catch (e) {
-      setError((e as Error).message)
+      setError(storageError(e))
       setBusy(false)
     }
   }

@@ -1,7 +1,9 @@
 import { gridLayout } from '../geometry/grid'
 import { neighborCell, zoomToCell } from '../tools/consult'
+import { storageError } from '../store/storage'
+import { downloadRecovery } from '../export/recovery'
 import { useEffect, useRef, useState } from 'react'
-import { useEditor, flushPersistence } from '../store/editor'
+import { useEditor, flushPersistence, hasUnsavedWork } from '../store/editor'
 import * as repo from '../store/repo'
 import { Canvas } from './Canvas'
 import { navigate } from './router'
@@ -25,9 +27,12 @@ import { roomContext, setDisplayVariant } from '../store/rooms'
 import { seamLineIds } from '../room/merge'
 
 export function Editor({ variantId }: { variantId: string }) {
+  const saveError = useEditor((s) => s.saveError)
   const load = useEditor((s) => s.load)
   const variant = useEditor((s) => s.variant)
   const [status, setStatus] = useState<'loading' | 'ok' | 'missing'>('loading')
+  const [error, setError] = useState('')
+  const [rescueMessage, setRescueMessage] = useState('')
   const [project, setProject] = useState<Project | null>(null)
 
   useEffect(() => {
@@ -41,7 +46,7 @@ export function Editor({ variantId }: { variantId: string }) {
       const ctx = await roomContext(v)
       if (!alive || !ctx) return
       // la variante ouverte devient celle affichée dans la vue 3D de la pièce
-      await setDisplayVariant(v.wallId, v.id)
+      await setDisplayVariant(v.wallId, v.id).catch((e) => useEditor.getState().flash(storageError(e), 'error'))
       useEditor.getState().setRoom({
         projectId: ctx.project.id,
         index: ctx.index,
@@ -61,7 +66,7 @@ export function Editor({ variantId }: { variantId: string }) {
           d.shapes = d.shapes.filter((s) => !ids.has(s.id))
         })
       }
-    })
+    }).catch((e) => { if (alive) setError(storageError(e)) })
     return () => {
       alive = false
     }
@@ -77,11 +82,21 @@ export function Editor({ variantId }: { variantId: string }) {
     })
     return () => { query.removeEventListener('change', consult); unsubscribe() }
   }, [])
+
+  useEffect(() => {
+    const guard = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedWork()) { e.preventDefault(); e.returnValue = '' }
+    }
+    window.addEventListener('beforeunload', guard)
+    return () => window.removeEventListener('beforeunload', guard)
+  }, [])
+
   useShortcuts()
   const mode = useEditor((s) => s.mode)
   const [exporting, setExporting] = useState(false)
   const [shortcuts, setShortcuts] = useState(false)
 
+  if (error) return <div role="alert" className="missing"><p>{error}</p><button onClick={() => navigate('/')}>Retour aux projets et sauvegardes</button><button onClick={() => location.reload()}>Réessayer</button></div>
   if (status === 'missing') {
     return (
       <div className="missing">
@@ -96,6 +111,15 @@ export function Editor({ variantId }: { variantId: string }) {
     <div className="editor">
       <TopBar projectName={project?.name ?? ''} onExport={() => setExporting(true)} onShortcuts={() => setShortcuts((x) => !x)} shortcutsOpen={shortcuts} />
       <p className="mobile-notice">L’édition avancée nécessite un ordinateur. Sur cet écran, consultez le dessin : touchez une case, pincez pour zoomer, glissez à deux doigts.</p>
+      {saveError && <div className="storage-failure" role="alert"><button onClick={() => useEditor.getState().retry()}>Réessayer</button><button onClick={() => { void downloadRecovery().catch((e) => useEditor.getState().flash(storageError(e), 'error')) }}>Exporter le secours</button>{rescueMessage && <p>{rescueMessage}</p>}<p>{saveError} Les dernières modifications ne sont pas enregistrées.</p><button onClick={async () => {
+        try {
+          const { rescueProject } = await import('../store/rescue')
+          const { data, warning } = await rescueProject(variant, useEditor.getState().doc, project)
+          setRescueMessage(warning || 'Sauvegarde de secours téléchargée. Conservez ce fichier hors du navigateur.')
+          const { download, safeName } = await import('../export/pdf')
+          download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(project?.name ?? 'Projet')}.secours.frsque.json`)
+        } catch (e) { useEditor.getState().flash(storageError(e), 'error') }
+      }}>Sauvegarder l’état affiché (historique de cette variante exclu)</button><button title="Ouvrir l’accueil dans un nouvel onglet en conservant ce dessin" onClick={() => window.open(location.pathname + location.search + '#/', '_blank')}>Gérer l’espace depuis l’accueil</button><button onClick={() => { if (confirm('Recharger abandonne les modifications non enregistrées. Avez-vous téléchargé la sauvegarde de secours ?')) location.reload() }}>Recharger</button></div>}
       <Toolbar />
       <main className="stage">
         <Canvas />
@@ -212,7 +236,7 @@ function VariantSwitcher() {
         value={variant.name}
         testId="variant-name-input"
         onCommit={async (name) => {
-          await repo.renameVariant(variant.id, name)
+          try { await repo.renameVariant(variant.id, name) } catch (e) { useEditor.getState().flash(storageError(e), 'error'); return }
           useEditor.setState((s) => (s.variant ? { variant: { ...s.variant, name } } : {}))
         }}
       />
@@ -226,6 +250,7 @@ function VariantSwitcher() {
 
 function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { projectName: string; onExport: () => void; onShortcuts: () => void; shortcutsOpen: boolean }) {
   const saving = useEditor((s) => s.saving)
+  const failed = useEditor((s) => s.saveError)
   const headSeq = useEditor((s) => s.headSeq)
   const maxSeq = useEditor((s) => s.maxSeq)
   const undo = useEditor((s) => s.undo)
@@ -252,7 +277,7 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
       </div>
       <GridMenu />
       <div className="spacer" />
-      <span className={`save-state${saving ? ' busy' : ''}`} data-testid="save-state">{saving ? 'Enregistrement…' : 'Enregistré'}</span>
+      <span className={`save-state${failed ? ' error' : saving ? ' busy' : ''}`} data-testid="save-state">{failed ? 'Non enregistré' : saving ? 'Enregistrement…' : 'Enregistré'}</span>
       <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier" aria-label="Raccourcis clavier">
         <Icon name="keyboard" /> Raccourcis
       </button>
