@@ -2,6 +2,11 @@ import type { Page } from '@playwright/test'
 
 export const SHOTS = 'docs/screenshots'
 
+/** Les pièces s'ouvrent sur le plan seul : sans scène 3D, le rendu logiciel de la CI ne ralentit pas le test. */
+export async function openRoomsOnPlan(page: Page) {
+  await page.evaluate(() => localStorage.setItem('bd:room-layout', 'plan'))
+}
+
 export async function resetDb(page: Page) {
   await page.goto('/')
   await page.evaluate(async () => {

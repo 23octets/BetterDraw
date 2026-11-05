@@ -33,7 +33,7 @@ test('les dialogues confinent et restaurent le focus', async ({ page }) => {
 for (const width of [375, 768]) {
   test.describe(`consultation tactile à ${width}px`, () => {
     test.use({ viewport: { width, height: 844 }, hasTouch: true })
-    test('cases, cotes, pincement et export', async ({ page }) => {
+    test('cases, cotes, pincement et export', { tag: width === 375 ? '@essentiel' : [] }, async ({ page }) => {
       await resetDb(page)
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width)
       await newProject(page)

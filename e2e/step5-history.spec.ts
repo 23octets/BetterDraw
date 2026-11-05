@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { clickWall, newProject, resetDb, SHOTS } from './helpers'
 
-test('frise d’historique : revenir à n’importe quel état, persistant', async ({ page }) => {
+test('frise d’historique : revenir à n’importe quel état, persistant', { tag: '@essentiel' }, async ({ page }) => {
   await resetDb(page)
   await newProject(page, 'Historique')
   await page.getByTestId('tool-polyline').click()

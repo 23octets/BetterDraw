@@ -11,6 +11,7 @@
     "size": "size-limit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:essentiel": "playwright test --grep @essentiel",
     "test:all": "npm run typecheck && vitest run && playwright test",
     "typecheck": "tsc -b --noEmit"
   },

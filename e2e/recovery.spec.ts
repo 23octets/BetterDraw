@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { test, expect } from '@playwright/test'
 import { resetDb, newProject } from './helpers'
 
-test('deux onglets : conflit visible, secours téléchargeable, aucun écrasement', async ({ page, context }) => {
+test('deux onglets : conflit visible, secours téléchargeable, aucun écrasement', { tag: '@essentiel' }, async ({ page, context }) => {
   await resetDb(page)
   await newProject(page, 'Concurrence')
   const other = await context.newPage()
