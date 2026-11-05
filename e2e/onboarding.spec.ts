@@ -18,6 +18,12 @@ test('guide accessible et refermable à l’accueil et dans l’éditeur', async
     }
     await page.getByRole('button', { name: 'Fermer le guide' }).click()
     await expect(page.getByTestId('guide')).toBeHidden()
+    if (editor) {
+      await page.getByTestId('toggle-shortcuts').click()
+      const shortcuts = page.getByTestId('shortcuts-panel')
+      await shortcuts.evaluate((el) => { el.scrollTop = el.scrollHeight })
+      await shortcuts.locator('li').last().locator('.keys').click({ trial: true })
+    }
   }
 })
 
