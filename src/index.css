@@ -680,7 +680,7 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
   .editor { height: 100dvh; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: 'top' 'notice' 'stage'; }
   .editor .toolbar, .editor > .side-panel { display: none; }
   .editor .topbar { flex-wrap: wrap; padding: 6px; }
-  .editor .topbar > .title, .editor .topbar > .split-btn, .editor .topbar > .save-state,
+  .editor .topbar .title strong, .editor .topbar .variant-title, .editor .topbar .title-sep, .editor .topbar > .split-btn, .editor .topbar > .save-state,
   .editor .topbar > .btn-group, .editor .topbar > [data-testid=toggle-shortcuts],
   .editor .topbar > [data-testid=open-settings] { display: none; }
   .mobile-notice { display: block; grid-area: notice; padding: 6px 12px; margin: 0; background: var(--panel); color: var(--ink-2); }
