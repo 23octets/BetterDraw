@@ -762,7 +762,7 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
   .room-page .plan-editor, .room-page .room-3d { min-height: 280px; }
   .room-page .room-splitter { display: none; }
   .room-page .plan-svg, .room-page .room-3d { pointer-events: none; touch-action: auto; }
-  .room-page .plan-tools, .room-page .plan-help, .room-page .room-3d-bar, .room-page .room-3d-tip, .room-page .room-3d-help, .room-page > .side-panel,
+  .room-page .plan-tools, .room-page .plan-placing-tip, .room-page .plan-help, .room-page .room-3d-bar, .room-page .room-3d-tip, .room-page .room-3d-help, .room-page > .side-panel,
   .room-page .topbar > .btn-group { display: none; }
   .editor:has(.consult-overlay) .editor-guide { display: none; }
   .compare-grid.n2, .compare-grid.n3, .compare-grid.n4 { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
