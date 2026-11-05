@@ -22,6 +22,12 @@ test('les dialogues confinent et restaurent le focus', async ({ page }) => {
     await expect(modal).toHaveCount(0)
     await expect(page.getByTestId(trigger)).toBeFocused()
   }
+  const summary = page.locator('.editor-guide summary')
+  await summary.click()
+  await page.getByRole('button', { name: 'Fermer le guide' }).focus()
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('guide')).not.toBeVisible()
+  await expect(summary).toBeFocused()
 })
 
 for (const width of [375, 768]) {
