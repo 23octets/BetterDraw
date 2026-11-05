@@ -1,3 +1,4 @@
+import { COMPACT_QUERY } from './compact'
 import { gridLayout } from '../geometry/grid'
 import { storageError } from '../store/storage'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
@@ -20,7 +21,7 @@ export function fitView(wall: { w: number; h: number; x?: number; y?: number }, 
 }
 
 function fitCanvas(wall: Parameters<typeof fitView>[0], size: Parameters<typeof fitView>[1], margin = 70) {
-  const compact = window.matchMedia('(max-width: 1000px)').matches
+  const compact = window.matchMedia(COMPACT_QUERY).matches
   return fitView(wall, size, margin, compact ? { top: 24, bottom: 60 } : undefined)
 }
 
@@ -65,7 +66,7 @@ export function Canvas() {
 
   // Une rotation ou le retour du plein écran réajuste la case consultée.
   useEffect(() => {
-    if (!window.matchMedia('(max-width: 1000px)').matches) return
+    if (!window.matchMedia(COMPACT_QUERY).matches) return
     const st = useEditor.getState()
     const cell = gridLayout(st.doc.wall, st.doc.grid).cells.find((c) => c.id === st.consultCell)
     setView(fitCanvas(cell ?? st.doc.wall, size, cell ? 90 : 70))

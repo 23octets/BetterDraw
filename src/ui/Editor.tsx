@@ -1,3 +1,4 @@
+import { COMPACT_QUERY } from './compact'
 import { gridLayout } from '../geometry/grid'
 import { neighborCell, zoomToCell } from '../tools/consult'
 import { Guide } from './Guide'
@@ -74,7 +75,7 @@ export function Editor({ variantId }: { variantId: string }) {
   }, [variantId, load])
 
   useEffect(() => {
-    const query = window.matchMedia('(max-width: 1000px)')
+    const query = window.matchMedia(COMPACT_QUERY)
     const consult = () => { if (query.matches) useEditor.getState().setMode('consult') }
     consult()
     query.addEventListener('change', consult)
@@ -149,10 +150,12 @@ function MobileConsult() {
       <button key={key} aria-label={['Case à gauche', 'Case au-dessus', 'Case en dessous', 'Case à droite'][i]}
         onClick={() => zoomToCell(id ? neighborCell(id, key) ?? id : 'A1')}>{['←', '↑', '↓', '→'][i]}</button>)}
     <button onClick={() => zoomToCell(null)} aria-label="Vue d’ensemble">⤢</button>
-    <button aria-label="Plein écran" onClick={() => {
-      if (document.fullscreenElement) void document.exitFullscreen()
-      else void document.querySelector('.editor')?.requestFullscreen?.()
-    }}>⛶</button>
+    <>{document.fullscreenEnabled && <button aria-label="Plein écran" onClick={() => {
+      const request = document.fullscreenElement
+        ? document.exitFullscreen()
+        : document.querySelector('.editor')?.requestFullscreen()
+      void request?.catch(() => useEditor.getState().flash('Le plein écran n’a pas pu être activé.', 'error'))
+    }}>⛶</button>}</>
   </nav>
 }
 

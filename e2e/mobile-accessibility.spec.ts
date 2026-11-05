@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { newProject, resetDb, wallToPage } from './helpers'
+import { clickWall, newProject, resetDb, wallToPage } from './helpers'
 
 test('les dialogues confinent et restaurent le focus', async ({ page }) => {
   await resetDb(page)
@@ -94,5 +94,65 @@ test.describe('petits écrans : paysage et page projet', () => {
     await expect(page.getByTestId('variant-card')).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375)
     await page.screenshot({ path: 'docs/screenshots/mobile-projet.png' })
+  })
+})
+
+
+test('les raccourcis ne modifient pas la sélection sous une modale', async ({ page }) => {
+  await resetDb(page)
+  await newProject(page)
+  await page.getByTestId('tool-polyline').click()
+  await clickWall(page, 50, 50)
+  await clickWall(page, 150, 50)
+  await page.keyboard.press('Enter')
+  await page.getByTestId('tool-select').click()
+  await clickWall(page, 100, 50)
+  const shape = page.getByTestId('shapes').locator('path')
+  const before = await shape.getAttribute('d')
+  for (const [trigger, dialog] of [['open-settings', 'settings-modal'], ['export', 'export-dialog']]) {
+    await page.getByTestId(trigger).click()
+    for (const key of ['Delete', 'Backspace', 'ArrowRight']) await page.keyboard.press(key)
+    await expect(shape).toHaveCount(1)
+    await expect(shape).toHaveAttribute('d', before!)
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId(dialog)).toHaveCount(0)
+    await expect(page.getByTestId('selection-section')).toBeVisible()
+  }
+})
+
+test.describe('consultation tactile des pièces et tablettes', () => {
+  test.use({ viewport: { width: 375, height: 812 }, hasTouch: true })
+  test('la pièce oriente vers la consultation des murs', async ({ page }) => {
+    await resetDb(page)
+    await page.getByTestId('kind-room').click()
+    await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
+    const nav = page.getByRole('navigation', { name: 'Consulter les murs' })
+    await expect(nav).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375)
+    await nav.getByRole('button').first().click()
+    await expect(page.getByTestId('mode-consult')).toHaveClass('on')
+    await page.getByTestId('back-to-room').click()
+    await expect(nav).toBeVisible()
+  })
+
+  test('la tablette paysage reste en consultation et les refus du plein écran sont expliqués', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 1024 })
+    await page.addInitScript(() => {
+      Object.defineProperty(document, 'fullscreenEnabled', { value: true })
+      Element.prototype.requestFullscreen = () => Promise.reject(new Error('Refus simulé'))
+    })
+    await resetDb(page)
+    await newProject(page)
+    await expect(page.getByTestId('mode-consult')).toHaveClass('on')
+    expect((await page.getByTestId('canvas').boundingBox())!.width).toBe(1366)
+    await page.getByRole('button', { name: 'Plein écran', exact: true }).click()
+    await expect(page.getByRole('status')).toContainText('Le plein écran n’a pas pu être activé.')
+  })
+
+  test('le plein écran indisponible ne propose pas de bouton inactif', async ({ page }) => {
+    await page.addInitScript(() => Object.defineProperty(document, 'fullscreenEnabled', { value: false }))
+    await resetDb(page)
+    await newProject(page)
+    await expect(page.getByRole('button', { name: 'Plein écran', exact: true })).toHaveCount(0)
   })
 })
