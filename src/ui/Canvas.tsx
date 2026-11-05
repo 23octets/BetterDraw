@@ -1,3 +1,4 @@
+import { gridLayout } from '../geometry/grid'
 import { storageError } from '../store/storage'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useEditor } from '../store/editor'
@@ -8,13 +9,19 @@ import { DocLayers } from './DocLayers'
 import { importImageFiles } from './ImagesSection'
 import { openingRect, windowBars } from '../room/geometry'
 
-export function fitView(wall: { w: number; h: number; x?: number; y?: number }, size: { w: number; h: number }, margin = 70) {
+export function fitView(wall: { w: number; h: number; x?: number; y?: number }, size: { w: number; h: number }, margin = 70, vertical?: { top: number; bottom: number }) {
   const ox = wall.x ?? 0
   const oy = wall.y ?? 0
-  // marge du bas plus grande : les contrôles de zoom flottent en bas à droite
-  const bottomExtra = 36
-  const zoom = Math.max(0.05, Math.min((size.w - margin * 2) / wall.w, (size.h - margin * 2 - bottomExtra) / wall.h))
-  return { zoom, panX: (size.w - wall.w * zoom) / 2 - ox * zoom, panY: (size.h - bottomExtra - wall.h * zoom) / 2 - oy * zoom }
+  // Les marges verticales réservent la place des cotes et des contrôles.
+  const top = vertical?.top ?? margin
+  const bottom = vertical?.bottom ?? margin + 36
+  const zoom = Math.max(0.05, Math.min((size.w - margin * 2) / wall.w, (size.h - top - bottom) / wall.h))
+  return { zoom, panX: (size.w - wall.w * zoom) / 2 - ox * zoom, panY: top + (size.h - top - bottom - wall.h * zoom) / 2 - oy * zoom }
+}
+
+function fitCanvas(wall: Parameters<typeof fitView>[0], size: Parameters<typeof fitView>[1], margin = 70) {
+  const compact = window.matchMedia('(max-width: 1000px)').matches
+  return fitView(wall, size, margin, compact ? { top: 24, bottom: 60 } : undefined)
 }
 
 export function Canvas() {
@@ -40,7 +47,7 @@ export function Canvas() {
       setSize({ w: r.width, h: r.height })
       if (!fitted.current && r.width > 0) {
         fitted.current = true
-        setView(fitView(useEditor.getState().doc.wall, { w: r.width, h: r.height }))
+        setView(fitCanvas(useEditor.getState().doc.wall, { w: r.width, h: r.height }))
       }
     })
     ro.observe(el)
@@ -50,10 +57,18 @@ export function Canvas() {
   useEffect(() => {
     const onFit = (e: Event) => {
       const rect = (e as CustomEvent<{ x: number; y: number; w: number; h: number } | null>).detail
-      setView(rect ? fitView(rect, size, 90) : fitView(useEditor.getState().doc.wall, size))
+      setView(rect ? fitCanvas(rect, size, 90) : fitCanvas(useEditor.getState().doc.wall, size))
     }
     window.addEventListener('bd:fit', onFit)
     return () => window.removeEventListener('bd:fit', onFit)
+  }, [size, setView])
+
+  // Une rotation ou le retour du plein écran réajuste la case consultée.
+  useEffect(() => {
+    if (!window.matchMedia('(max-width: 1000px)').matches) return
+    const st = useEditor.getState()
+    const cell = gridLayout(st.doc.wall, st.doc.grid).cells.find((c) => c.id === st.consultCell)
+    setView(fitCanvas(cell ?? st.doc.wall, size, cell ? 90 : 70))
   }, [size, setView])
 
   // la taille du mur change : on réajuste la vue
@@ -62,7 +77,7 @@ export function Canvas() {
   useEffect(() => {
     if (lastWall.current === wallKey) return
     lastWall.current = wallKey
-    setView(fitView(doc.wall, size))
+    setView(fitCanvas(doc.wall, size))
   }, [wallKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const tool = useActiveTool()

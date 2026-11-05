@@ -737,3 +737,15 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
   .editor-guide { left: 8px; bottom: 60px; }
   .editor-guide .guide-content { left: 8px; width: calc(100vw - 16px); bottom: 104px; max-height: calc(100dvh - 180px); }
 }
+
+@media (max-width: 1000px) {
+  .mobile-consult { position: static; order: -1; flex-shrink: 0; padding: 6px 8px; }
+  .consult-badge { display: none; } /* le repère reste dans la navigation */
+  .project-head { flex-wrap: wrap; min-width: 0; }
+  .project-head .project-title { min-width: 0; max-width: 100%; flex: 1 1 180px; }
+  .project-head .spacer { display: none; }
+  .project-head .muted { overflow-wrap: anywhere; }
+}
+@media (max-width: 1000px) {
+  .mode-consult:has(.consult-overlay) .grid-labels { display: none; } /* les cotes de détail remplacent celles du mur entier */
+}
