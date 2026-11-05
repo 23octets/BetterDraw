@@ -1,3 +1,4 @@
+import { Guide } from './Guide'
 import { storageError } from '../store/storage'
 import { downloadRecovery } from '../export/recovery'
 import { useEffect, useRef, useState } from 'react'
@@ -107,6 +108,7 @@ export function Editor({ variantId }: { variantId: string }) {
         } catch (e) { useEditor.getState().flash(storageError(e), 'error') }
       }}>Sauvegarder l’état affiché (historique de cette variante exclu)</button><button title="Ouvrir l’accueil dans un nouvel onglet en conservant ce dessin" onClick={() => window.open(location.pathname + location.search + '#/', '_blank')}>Gérer l’espace depuis l’accueil</button><button onClick={() => { if (confirm('Recharger abandonne les modifications non enregistrées. Avez-vous téléchargé la sauvegarde de secours ?')) location.reload() }}>Recharger</button></div>}
       <Toolbar />
+      <div className="editor-guide"><Guide /></div>
       <main className="stage">
         <Canvas />
         <CanvasOverlay />
@@ -121,8 +123,10 @@ export function Editor({ variantId }: { variantId: string }) {
 }
 
 function SidePanelContent() {
+  const tool = useEditor((s) => s.tool)
   return (
     <>
+      {tool === 'fill' && <p className="hint paint-help">Zone mal fermée ? Les cercles indiquent les trous. Zoome, puis avec Sélection déplace une extrémité sur l’autre pour les raccorder, ou relie-les avec Ligne. Pour fermer une nouvelle forme, clique sur son premier point. Alt+clic force la peinture mais peut remplir les zones voisines.</p>}
       <SelectionSection />
       <PaletteSection />
       <BackgroundSection />

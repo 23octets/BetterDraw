@@ -217,7 +217,7 @@ export function cellPageSvg(doc: DocState, cell: GridCell, meta: ExportMeta, roo
   const mini = wallBlock(doc, 232, 120, 56, 50, { lines: false, highlight: [cell.id], fontMm: 2, room })
   body += `<text x="236" y="118" font-family="${FONT}" font-size="3" fill="#4a4d52">Position sur le mur</text>` + mini.svg
   body += `<text x="236" y="40" font-family="${FONT}" font-size="3" fill="#4a4d52">Case ${esc(cell.id)} : ${fmt(cell.w)} × ${fmt(cell.h)} cm</text>`
-  body += `<text x="236" y="46" font-family="${FONT}" font-size="2.8" fill="#4a4d52">Reporter le dessin à l’œil,</text><text x="236" y="50.5" font-family="${FONT}" font-size="2.8" fill="#4a4d52">case par case.</text>`
+  body += `<text x="236" y="46" font-family="${FONT}" font-size="2.8" fill="#4a4d52">Reporter le dessin à l’œil,</text><text x="236" y="50.5" font-family="${FONT}" font-size="2.8" fill="#4a4d52">case par case.</text><text x="236" y="58" font-family="${FONT}" font-size="2.8" fill="#4a4d52">Référence agrandie,</text><text x="236" y="62.5" font-family="${FONT}" font-size="2.8" fill="#4a4d52">pas un patron 1:1.</text>`
   return wrap(body)
 }
 

@@ -1,3 +1,5 @@
+import { Guide } from './Guide'
+import { exampleDoc } from '../model/example'
 import { StorageNotice } from './StorageNotice'
 import { storageError } from '../store/storage'
 import { serializeProject } from '../export/project'
@@ -22,6 +24,7 @@ export function Home() {
   const [importing, setImporting] = useState(false)
   const [projects, setProjects] = useState<Row[] | null>(null)
   const [name, setName] = useState('')
+  const [exampleBusy, setExampleBusy] = useState(false)
   const [w, setW] = useState(DEFAULT_WALL.w)
   const [h, setH] = useState(DEFAULT_WALL.h)
   const [importMsg, setImportMsg] = useState<string | null>(null)
@@ -71,6 +74,19 @@ export function Home() {
           </div>
         </div>
       </header>
+      <div className="welcome-actions">
+        <button disabled={exampleBusy} onClick={async () => {
+          setExampleBusy(true)
+          try {
+            const { variant } = await repo.createProject('Exemple — Paysage géométrique', undefined, exampleDoc())
+            navigate(`/v/${variant.id}`)
+          } catch (e) {
+            setError(storageError(e))
+            setExampleBusy(false)
+          }
+        }}>Créer un projet exemple</button>
+        <Guide />
+      </div>
 
       <StorageNotice revision={projects?.map((p) => p.id).join()} />
       {error && <div role="alert"><p>{error}</p><button onClick={refresh}>Réessayer</button></div>}
