@@ -26,3 +26,6 @@ vite.config.*.timestamp-*
 # journaux et fichiers macOS
 *.log
 .DS_Store
+
+# Cloudflare Wrangler
+.wrangler/
