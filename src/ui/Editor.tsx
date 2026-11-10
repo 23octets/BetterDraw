@@ -248,8 +248,8 @@ function VariantSwitcher() {
           useEditor.setState((s) => (s.variant ? { variant: { ...s.variant, name } } : {}))
         }}
       />
-      <button className={`icon-btn${open ? ' on' : ''}`} data-testid="variants-page" onClick={() => setOpen(true)} title="Variantes : créer une copie pour essayer une autre idée, passer de l'une à l'autre, comparer">
-        <Icon name="layers" /> Variantes{count > 1 ? <span className="btn-badge">{count}</span> : null}
+      <button className={`icon-btn${open ? ' on' : ''}`} data-testid="variants-page" onClick={() => setOpen(true)} title="Variantes : créer une copie pour essayer une autre idée, passer de l'une à l'autre, comparer" aria-label={count > 1 ? `Variantes (${count})` : 'Variantes'}>
+        <Icon name="layers" /> <span className="btn-label">Variantes</span>{count > 1 ? <span className="btn-badge">{count}</span> : null}
       </button>
       {open && <VariantsOverlay onClose={() => setOpen(false)} />}
     </div>
@@ -287,10 +287,10 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
       <div className="spacer" />
       <span className={`save-state${failed ? ' error' : saving ? ' busy' : ''}`} data-testid="save-state">{failed ? 'Non enregistré' : saving ? 'Enregistrement…' : 'Enregistré'}</span>
       <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier" aria-label="Raccourcis clavier">
-        <Icon name="keyboard" /> Raccourcis
+        <Icon name="keyboard" /> <span className="btn-label">Raccourcis</span>
       </button>
       <button className="icon-btn" onClick={() => setSettings(true)} data-testid="open-settings" title="Réglages : taille du mur, origine, lignes de la grille" aria-label="Réglages">
-        <Icon name="sliders" /> Réglages
+        <Icon name="sliders" /> <span className="btn-label">Réglages</span>
       </button>
       {settings && <SettingsModal onClose={() => setSettings(false)} />}
       <div className="btn-group">
