@@ -147,7 +147,7 @@ test('consultation avec Mesure déjà actif : ⌥ + clic imprime, le clic mesure
   await expect(page.getByTestId('pick-print')).not.toBeChecked()
 })
 
-test('export PDF chantier, PNG, SVG et sauvegarde JSON réimportable', async ({ page }) => {
+test('export PDF chantier, PNG, SVG et sauvegarde JSON réimportable', { tag: '@essentiel' }, async ({ page }) => {
   await resetDb(page)
   await newProject(page, 'Fresque')
   await drawScene(page)

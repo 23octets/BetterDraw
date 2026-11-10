@@ -63,9 +63,12 @@ le rechargement et le retour à l’accueil.
 npm run typecheck
 npm test             # tests unitaires (Vitest)
 npm run test:e2e     # tests de bout en bout (Playwright), captures dans docs/screenshots
+npm run test:e2e:essentiel  # socle @essentiel lancé sur chaque PR
 npm run test:all
 npm run size         # budget de taille du bundle, après npm run build (.size-limit.json)
 ```
+
+En CI, une PR ne lance que les E2E taggés `@essentiel` : dessin, peinture, historique, exports, sauvegardes et récupération. La suite complète tourne dans la merge queue, avant que le code n'entre dans `main`, puis sur `main`. Ajouter ce tag seulement à un test qui protège les données de l'utilisateur ou un parcours central.
 
 Les icônes de `public/` se régénèrent depuis les SVG de `assets/icon/` avec `assets/icon/generer.sh` (Chrome sur macOS et ImageMagick).
 

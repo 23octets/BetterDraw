@@ -15,7 +15,7 @@ test.beforeEach(async ({ page }) => {
   await newProject(page, 'Peinture')
 })
 
-test('peindre des zones, surfaces et litres, rendu en consultation', async ({ page }) => {
+test('peindre des zones, surfaces et litres, rendu en consultation', { tag: '@essentiel' }, async ({ page }) => {
   // un soleil couchant : horizon + demi-disque + rayons
   await poly(page, [[0, 170], [300, 170]])
   await page.getByTestId('tool-arc').click()

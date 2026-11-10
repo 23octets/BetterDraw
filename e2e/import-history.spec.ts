@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { defaultDoc } from '../src/model/defaults'
 
-test('récupérer une sauvegarde dont seul l’historique est corrompu', async ({ page }) => {
+test('récupérer une sauvegarde dont seul l’historique est corrompu', { tag: '@essentiel' }, async ({ page }) => {
   await page.goto('/')
   const file = { format: 'betterdraw-project', version: 1, project: { id: 'p', name: 'Récupéré', createdAt: 1 },
     variants: [{ id: 'v', projectId: 'p', name: 'A', createdAt: 1, updatedAt: 1, headSeq: 1, maxSeq: 1, state: defaultDoc() }],

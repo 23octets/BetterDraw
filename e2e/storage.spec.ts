@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { openRoomsOnPlan } from './helpers'
 
 test('explique le stockage et sauvegarde depuis l’accueil', async ({ page }) => {
   await page.goto('/')
@@ -12,7 +13,7 @@ test('explique le stockage et sauvegarde depuis l’accueil', async ({ page }) =
   expect((await download).suggestedFilename()).toContain('.frsque.json')
 })
 
-test('propose une issue quand IndexedDB est inaccessible', async ({ page }) => {
+test('propose une issue quand IndexedDB est inaccessible', { tag: '@essentiel' }, async ({ page }) => {
   await page.addInitScript(() => {
     IDBFactory.prototype.open = function () { throw new DOMException('Refus', 'SecurityError') }
   })
@@ -48,7 +49,7 @@ test('réduit une grande image en conservant son placement proportionnel', async
   expect(result.placed.x).toBeCloseTo(30)
 })
 
-test('un quota atteint laisse une alerte durable et une sauvegarde de secours', async ({ page }) => {
+test('un quota atteint laisse une alerte durable et une sauvegarde de secours', { tag: '@essentiel' }, async ({ page }) => {
   await page.setViewportSize({ width: 1000, height: 600 })
   await page.goto('/')
   await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
@@ -125,10 +126,10 @@ test('explique les fichiers qui ne sont pas des sauvegardes JSON', async ({ page
 
 test('un quota après scission du plan permet une sauvegarde réimportable', async ({ page }) => {
   await page.goto('/')
+  await openRoomsOnPlan(page)
   await page.getByTestId('kind-room').click()
   await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
   await expect(page.getByTestId('plan')).toBeVisible()
-  await page.getByTestId('layout-plan').click()
   await page.evaluate(() => {
     const put = IDBObjectStore.prototype.put
     const add = IDBObjectStore.prototype.add
@@ -205,12 +206,12 @@ test('une sauvegarde incomplète demande confirmation et conserve son avertissem
   await expect(page.getByTestId('import-msg')).toContainText('images sont absentes')
 })
 
-test('la sortie attend un enregistrement de pièce encore en cours avant de signaler son échec', async ({ page }) => {
+test('la sortie attend un enregistrement de pièce encore en cours avant de signaler son échec', { tag: '@essentiel' }, async ({ page }) => {
   await page.goto('/')
+  await openRoomsOnPlan(page)
   await page.getByTestId('kind-room').click()
   await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
   await expect(page.getByTestId('plan')).toBeVisible()
-  await page.getByTestId('layout-plan').click()
   await page.evaluate(async () => {
     const path = '/src/store/db.ts'
     const { db } = await import(/* @vite-ignore */ path)

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { clickWall, resetDb, setField, SHOTS, wallToPage } from './helpers'
+import { clickWall, openRoomsOnPlan, resetDb, setField, SHOTS, wallToPage } from './helpers'
 
 async function poly(page: Page, pts: [number, number][]) {
   await page.getByTestId('tool-polyline').click()
@@ -132,7 +132,7 @@ test('pièce : plan, portes et fenêtres, peinture des murs, vue 3D', async ({ p
   await page.screenshot({ path: `${SHOTS}/step19-04-accueil.png` })
 })
 
-test('transformer un mur seul en pièce', async ({ page }) => {
+test('transformer un mur seul en pièce', { tag: '@essentiel' }, async ({ page }) => {
   await page.getByTestId('new-project-form').locator('input[name=name]').fill('Salon')
   await page.getByRole('button', { name: 'Créer le projet' }).click()
   await page.getByTestId('canvas').waitFor()
@@ -144,6 +144,7 @@ test('transformer un mur seul en pièce', async ({ page }) => {
 })
 
 test('pièce en L, porte et fenêtre posées au clic sur le plan, décroché', async ({ page }) => {
+  await openRoomsOnPlan(page)
   await page.getByTestId('kind-room').click()
   await page.getByTestId('shape-L').click()
   await page.locator('input[name=name]').fill('Séjour')
@@ -181,6 +182,7 @@ test('pièce en L, porte et fenêtre posées au clic sur le plan, décroché', a
 })
 
 test('verrouiller un mur, choisir le sens d’agrandissement, carreaux et soubassement vitré', async ({ page }) => {
+  await openRoomsOnPlan(page)
   await page.getByTestId('kind-room').click()
   await page.getByRole('button', { name: 'Créer le projet' }).click()
   await expect(page.getByTestId('room-wall-item')).toHaveCount(4)
@@ -301,6 +303,7 @@ test('lier des murs : un seul dessin continu sur plusieurs murs', async ({ page 
 })
 
 test('exporter un mur de pièce avec sa fenêtre', async ({ page }) => {
+  await openRoomsOnPlan(page)
   await page.getByTestId('kind-room').click()
   await page.getByRole('button', { name: 'Créer le projet' }).click()
   await page.getByTestId('plan-wall-0').click({ force: true })
@@ -326,6 +329,7 @@ test('exporter un mur de pièce avec sa fenêtre', async ({ page }) => {
 
 
 test('les variantes de pièce comparent les surfaces nettes', async ({ page }) => {
+  await openRoomsOnPlan(page)
   await page.getByTestId('kind-room').click()
   await page.getByRole('button', { name: 'Créer le projet' }).click()
   await page.getByTestId('plan-wall-0').click({ force: true })
