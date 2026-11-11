@@ -128,6 +128,10 @@ input[type='checkbox'], input[type='radio'] { width: 15px; height: 15px; margin:
   border-bottom: 1px solid var(--line); background: var(--panel); position: relative; z-index: 30;
 }
 .topbar .title { display: flex; gap: 10px; align-items: center; margin: 0 6px; min-width: 0; overflow: hidden; }
+/* Seul le titre rétrécit : les boutons et le sélecteur de mode gardent leur largeur. */
+.topbar > :not(.title):not(.spacer) { flex-shrink: 0; }
+/* Entre le format mobile et 1360 px, ces boutons n'affichent que leur icône pour laisser la place au titre. */
+@media (max-width: 1360px) { .editor .topbar .btn-label { display: none; } }
 .topbar .title strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; flex: 0 1 auto; min-width: 50px; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; height: var(--ctl); }
 .seg button { border: 0; border-radius: 0; height: 100%; padding: 0 12px; background: transparent; }
@@ -303,7 +307,7 @@ input[type='checkbox'], input[type='radio'] { width: 15px; height: 15px; margin:
 .variant-name { font-weight: 600; font-size: 14.5px; height: 28px !important; border-color: transparent !important; background: transparent !important; padding: 0 4px !important; margin-left: -4px; }
 .variant-name:hover { border-color: var(--line) !important; }
 .variant-name:focus { background: #fff !important; }
-.variant-switcher { display: flex; gap: 6px; align-items: center; min-width: 0; flex: 0 1 auto; }
+.variant-switcher { display: flex; gap: 6px; align-items: center; flex: 0 0 auto; }
 .variant-switcher select { width: auto; max-width: 160px; }
 .small { font-size: 12px; }
 p.small { margin: 0; }
@@ -516,7 +520,7 @@ button.swatch { padding: 0; height: 26px; }
 
 /* ---------- Variantes (en-tête et panneau) ---------- */
 .title-sep { color: var(--muted); }
-.variant-title { width: auto !important; field-sizing: content; min-width: 40px; max-width: 200px; flex: 0 1 auto; font-weight: 500; border-color: transparent !important; background: transparent !important; }
+.variant-title { width: auto !important; field-sizing: content; min-width: 72px !important; max-width: 200px; flex: 0 0 auto; font-weight: 500; border-color: transparent !important; background: transparent !important; }
 .variant-title:hover { border-color: var(--line) !important; }
 .variant-title:focus { background: #fff !important; border-color: var(--primary) !important; }
 .modal.variants-overlay { width: min(1180px, 94vw); height: min(780px, 90vh); }
