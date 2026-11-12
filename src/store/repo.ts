@@ -3,20 +3,35 @@ import { nanoid } from 'nanoid'
 import { applyPatches, enablePatches, type Patch } from 'immer'
 import { db } from './db'
 import { defaultDoc } from '../model/defaults'
-import type { DocState, HistoryEntry, Project, Variant } from '../model/types'
+import type { DocState, HistoryEntry, Project, ProjectKind, Variant, Wall } from '../model/types'
 
 enablePatches()
 
 const now = () => Date.now()
 
-export async function listProjects(): Promise<(Project & { variants: Variant[] })[]> {
+/** Murs 2D indépendants d'un projet (hors du plan de la pièce). */
+export const standaloneWalls = (walls: Wall[]) => walls.filter((w) => w.standalone && !w.group)
+
+/** Une pièce 3D, un mur 2D seul, ou les deux. */
+export function projectKind(project: Pick<Project, 'room'>, walls: Wall[]): ProjectKind {
+  const has2d = standaloneWalls(walls).length > 0
+  if (!project.room) return 'wall'
+  return has2d ? 'both' : 'room'
+}
+
+export async function listProjects(): Promise<(Project & { variants: Variant[]; walls: Wall[]; kind: ProjectKind })[]> {
   const projects = await db.projects.orderBy('updatedAt').reverse().toArray()
   const out = []
   for (const p of projects) {
     const variants = await db.variants.where('projectId').equals(p.id).sortBy('createdAt')
-    out.push({ ...p, variants })
+    const walls = await db.walls.where('projectId').equals(p.id).toArray()
+    out.push({ ...p, variants, walls, kind: projectKind(p, walls) })
   }
   return out
+}
+
+export async function listWalls(projectId: string) {
+  return db.walls.where('projectId').equals(projectId).toArray()
 }
 
 export async function createProject(name: string, wall?: { w: number; h: number }, initialState?: DocState) {
@@ -31,7 +46,7 @@ export async function createProject(name: string, wall?: { w: number; h: number 
   }
   await db.transaction('rw', db.projects, db.walls, db.variants, async () => {
     await db.projects.add(project)
-    await db.walls.add({ id: wallId, projectId: project.id, name: 'Mur 1' })
+    await db.walls.add({ id: wallId, projectId: project.id, name: 'Mur 1', standalone: true })
     await db.variants.add(variant)
   })
   return { project, variant }

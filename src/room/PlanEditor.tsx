@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { OpeningKind, RoomPlan, Vec } from '../model/types'
-import { bounds, outerPts, pointOnWall, wallSeg, clampOpening, openingAt, isConvexCorner, defaultNotchCorner, moveCorner, type GrowSide } from './geometry'
+import { bounds, outerPts, pointOnWall, wallSeg, clampOpening, openingAt, notchTargetFor, moveCorner, type GrowSide } from './geometry'
 import { Icon } from '../ui/icons'
 
 export type RoomSelection =
@@ -241,7 +241,12 @@ export function PlanEditor(props: {
     props.onPreview(null)
   }
 
-  const notchTarget = selection?.kind === 'corner' && isConvexCorner(room, selection.j) ? selection.j : defaultNotchCorner(room)
+  const notchTarget = notchTargetFor(room, selection)
+  const notchTitle = selection?.kind === 'corner'
+    ? (notchTarget < 0 ? 'Cet angle est rentrant : choisis un angle saillant' : 'Entailler l’angle sélectionné')
+    : selection
+      ? (notchTarget < 0 ? 'Aucun angle saillant sur ce mur' : `Entailler un angle de ${props.names[selection.i] ?? 'ce mur'}`)
+      : 'Entailler un angle de la pièce pour faire un L (ou sélectionne d’abord un mur ou un angle)'
   const outer = outerPts(room)
   const k = room.pts.length
   const poly = (ps: Vec[]) => 'M' + ps.map((p) => `${p.x} ${p.y}`).join('L') + 'Z'
@@ -266,7 +271,7 @@ export function PlanEditor(props: {
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden><path d="M1 6H15M1 10H15M3 6V10M13 6V10" /></svg> Fenêtre
         </button>
         <span className="sep" />
-        <button onClick={() => props.onNotch(notchTarget)} disabled={notchTarget < 0} data-testid="tool-notch" title={selection?.kind === 'corner' ? 'Entailler l’angle sélectionné' : 'Entailler un angle de la pièce pour faire un L (ou sélectionne d’abord un angle)'}>
+        <button onClick={() => props.onNotch(notchTarget)} disabled={notchTarget < 0} data-testid="tool-notch" title={notchTitle} data-corner={notchTarget}>
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden><path d="M2 2H14V8H8V14H2Z" /></svg> Décroché en L
         </button>
       </div>

@@ -1,7 +1,7 @@
 import { applyPatches, enablePatches, type Patch } from 'immer'
 import { flushPersistence } from '../store/editor'
 import { nanoid } from 'nanoid'
-import { db } from '../store/db'
+import { db, markStandaloneWalls } from '../store/db'
 import type { DocState, GridSettings, HistoryEntry, ImageEdit, Opening, Project, Rect, RoomPlan, Segment, Shape, StoredImage, Variant, Vec, Wall } from '../model/types'
 
 export interface ProjectFile {
@@ -277,11 +277,14 @@ export async function importProject(data: unknown, options: { withoutHistory?: b
   const walls: Wall[] = wallsIn.map((w) => ({
     id: wallIds.get(w.id as string)!, projectId: pid, name: str(w.name, 'nom'),
     ...(w.group === true ? { group: true } : {}),
+    ...(w.standalone === true && w.group !== true ? { standalone: true } : {}),
     ...(typeof w.variantId === 'string' && varIds.has(w.variantId) ? { variantId: varIds.get(w.variantId) } : {}),
   }))
   if (p0.room !== undefined) project.room = sanitizeRoom(p0.room, (id) => wallIds.get(id))
   const fallbackWall = walls[0]?.id ?? nanoid(10)
   if (!walls.length) walls.push({ id: fallbackWall, projectId: pid, name: 'Mur 1' })
+  // anciennes sauvegardes : un projet sans pièce est un mur 2D seul
+  walls.splice(0, walls.length, ...markStandaloneWalls(project, walls))
   let historyError = false
   const variants: Variant[] = variantsIn.map((v) => {
     const maxSeq = options.withoutHistory ? 0 : v.maxSeq as number

@@ -128,11 +128,11 @@ test('pièce : plan, portes et fenêtres, peinture des murs, vue 3D', async ({ p
 
   // l'accueil affiche la pièce
   await page.getByRole('button', { name: 'Projets' }).click()
-  await expect(page.getByTestId('project-card')).toContainText('Pièce · 4 murs')
+  await expect(page.getByTestId('project-card')).toContainText('Pièce 3D · 4 murs')
   await page.screenshot({ path: `${SHOTS}/step19-04-accueil.png` })
 })
 
-test('transformer un mur seul en pièce', { tag: '@essentiel' }, async ({ page }) => {
+test('ajouter une pièce 3D à un mur seul (le mur 2D est conservé)', { tag: '@essentiel' }, async ({ page }) => {
   await page.getByTestId('new-project-form').locator('input[name=name]').fill('Salon')
   await page.getByRole('button', { name: 'Créer le projet' }).click()
   await page.getByTestId('canvas').waitFor()
@@ -141,6 +141,12 @@ test('transformer un mur seul en pièce', { tag: '@essentiel' }, async ({ page }
   await expect(page.getByTestId('plan')).toBeVisible()
   await expect(page.getByTestId('room-wall-item')).toHaveCount(4)
   await expect(page.getByTestId('plan-label-0')).toContainText('300 cm')
+  await page.getByRole('button', { name: 'Projets' }).click()
+  const card = page.getByTestId('project-card')
+  await expect(card).toHaveAttribute('data-kind', 'both')
+  await expect(card).toContainText('Pièce 3D + mur 2D')
+  await card.getByTestId('open-wall').click()
+  await expect(page.getByTestId('canvas')).toBeVisible()
 })
 
 test('pièce en L, porte et fenêtre posées au clic sur le plan, décroché', async ({ page }) => {
