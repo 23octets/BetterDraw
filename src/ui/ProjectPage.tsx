@@ -3,7 +3,8 @@ import type { WallContext } from '../geometry/paintable'
 import { storageError } from '../store/storage'
 import { useEffect, useState } from 'react'
 import * as repo from '../store/repo'
-import type { Project, Variant } from '../model/types'
+import type { Project, Variant, Wall } from '../model/types'
+import { FrescoImportDialog } from './FrescoImportDialog'
 import { navigate } from './router'
 import { Thumb } from './DocPreview'
 import { Icon } from './icons'
@@ -14,10 +15,15 @@ export function ProjectPage({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null | undefined>(undefined)
   const [variants, setVariants] = useState<(Variant & { context: WallContext | null })[]>([])
   const [picked, setPicked] = useState<string[]>([])
+  const [flatWall, setFlatWall] = useState<Wall | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [msg, setMsg] = useState('')
 
   const refresh = async () => {
     const p = await repo.getProject(projectId)
     setProject(p ?? null)
+    const flat = repo.standaloneWalls(await repo.listWalls(projectId))
+    setFlatWall(flat[0] ?? null)
     const vs = await repo.listVariants(projectId)
     setVariants(await Promise.all(vs.map(async (v) => ({ ...v, context: await roomContext(v) }))))
   }
@@ -46,12 +52,27 @@ export function ProjectPage({ projectId }: { projectId: string }) {
           refresh()
         }} />
         <span className="muted">{variants.length} variante{variants.length > 1 ? 's' : ''}</span>
+        {project.room && <button className="small" onClick={() => navigate(`/r/${project.id}`)} data-testid="project-open-3d"><Icon name="cube" size={14} /> Pièce 3D</button>}
+        {flatWall && <button className="small" onClick={() => setImporting(true)} data-testid="import-fresco" title="Copier ici une fresque d’un autre mur ou d’un autre projet (nouvelle variante)"><Icon name="copy" size={14} /> Importer une fresque…</button>}
         <div className="spacer" />
         <span className="muted small">{picked.length ? `${picked.length} sélectionnée${picked.length > 1 ? 's' : ''} (max 4)` : 'Coche 2 à 4 variantes pour les comparer'}</span>
         <button className="primary" disabled={picked.length < 2} data-testid="compare" onClick={() => navigate(`/compare/${picked.join(',')}`)}>
           <Icon name="compare" size={15} /> Comparer côte à côte
         </button>
       </header>
+      {msg && <p className="hint project-msg" role="status" data-testid="project-msg">{msg}</p>}
+      {importing && flatWall && (
+        <FrescoImportDialog
+          target={{ projectId, wallId: flatWall.id }}
+          targetName={flatWall.name}
+          onClose={() => setImporting(false)}
+          onDone={(v) => {
+            setImporting(false)
+            setMsg(`Fresque copiée : variante « ${v.name} »`)
+            refresh()
+          }}
+        />
+      )}
       <ul className="card-grid variants">
         {variants.map((v) => {
           const parent = v.parentId ? byId.get(v.parentId) : undefined

@@ -112,6 +112,9 @@ test('unités : jamais coupées de leur valeur, même dans une modale étroite',
 
 test('top bar : rien n’est rogné entre 1001 et 1920 px', async ({ page }) => {
   await openRoomWall(page, 'Salon du rez-de-chaussée')
+  // Une variante longue exerce aussi la contrainte avec les polices moins larges de macOS.
+  await page.getByTestId('variant-name-input').fill('Essai des couleurs sur le grand mur du salon')
+  await page.getByTestId('variant-name-input').press('Enter')
   for (const width of [1001, 1100, 1280, 1440, 1920]) {
     await page.setViewportSize({ width, height: 800 })
     const clipped = await page.evaluate(() => {

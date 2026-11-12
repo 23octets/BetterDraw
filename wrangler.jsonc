@@ -4,8 +4,9 @@
   "name": "betterdraw",
   "compatibility_date": "2026-11-10",
   "assets": { "directory": "./dist" },
-  "routes": [{ "pattern": "betterdraw.yohan.one", "custom_domain": true }],
+  "routes": [{ "pattern": "betterdraw.yohan.one", "custom_domain": true, "previews_enabled": true }],
   // URL workers.dev et previews par branche gardées, comme lors du premier déploiement
+  // Domaine ajouté dans Cloudflare pour les previews ; garder la configuration versionnée.
   "workers_dev": true,
   "preview_urls": true,
   // Requis par `npx wrangler preview`, lancé par Workers Builds sur les branches hors production

@@ -13,7 +13,8 @@
     "test:e2e": "playwright test",
     "test:e2e:essentiel": "playwright test --grep @essentiel",
     "test:all": "npm run typecheck && vitest run && playwright test",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "check:cloudflare": "node scripts/check-cloudflare.mjs && wrangler deploy --dry-run"
   },
   "dependencies": {
     "dexie": "^4.4.7",
@@ -43,6 +44,7 @@
     "size-limit": "^14.3.0",
     "typescript": "~7.0.2",
     "vite": "^8.3.6",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "wrangler": "4.160.1"
   }
 }
