@@ -44,7 +44,10 @@ Le Worker expose `/api/accounts/admit`. Le gestionnaire Dexie doit avoir :
 - `userPolicy.unknownUserAction` : `web-hook` ;
 - `webHooks.unknownUser` : URL HTTPS de ce webhook, avec le paramètre `key` secret ;
 - aucune création automatique de comptes d’évaluation ;
-- un seul pack de 25 places et aucune augmentation automatique de l’abonnement.
+- en recette : offre gratuite, 3 places de production, et refus des nouvelles inscriptions
+  quand les places Dexie sont épuisées (aucun compte d’évaluation de secours) ;
+- après décision d’ouverture à 25 utilisateurs : un seul pack de 25 places, sans
+  augmentation automatique vers des packs supplémentaires.
 
 Le webhook réserve une identité dans D1. Un trigger SQLite interdit atomiquement la
 26e identité, même en présence de requêtes simultanées. Les répétitions d’une même
@@ -95,3 +98,13 @@ du code email est simulée : le test demande de vrais jetons liés aux clés pub
 des navigateurs, puis utilise la synchronisation et les permissions réelles de Dexie.
 Il ne doit jamais tourner sur une base de production. Sans ce fichier, cette recette
 est ignorée ; les tests de panne et de fonctionnement local tournent normalement.
+
+## État de la recette au 2026-11-12
+
+La base `z20z3177s` est activée sur dev et les previews configurées. Sa politique
+utilise le webhook d’admission sur le domaine dev stable. Le refus lorsque les
+places Dexie sont épuisées est activé ; aucune souscription payante n’a été créée.
+Le gratuit accepte donc au maximum 3 utilisateurs de production. Le plafond D1 de
+25 reste prêt pour une future souscription. La chaîne réelle authentification →
+webhook → attribution `prod` a été vérifiée avec un compte de recette, ensuite
+supprimé de Dexie et de D1.

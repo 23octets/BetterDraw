@@ -8,6 +8,7 @@
   "workers_dev": true,
   "preview_urls": true,
   "previews": {
+    "vars": { "DEXIE_DATABASE_URL": "https://z20z3177s.dexie.cloud" },
     "d1_databases": [
         {
             "binding": "ACCOUNTS",
