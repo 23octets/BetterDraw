@@ -40,7 +40,7 @@ export function Toolbar() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [setTool])
-  if (mode === 'consult') return <nav className="toolbar" />
+  if (mode === 'consult') return null
   return (
     <nav className={`toolbar${warm ? ' warm' : ''}`} aria-label="Outils" onMouseLeave={leave} data-testid="toolbar">
       {TOOLS.map((t, i) => (

@@ -132,7 +132,7 @@ export function BackgroundSection() {
   return (
     <Section title="Peinture" testId="surfaces-section">
       <button className="wide" onClick={() => setOpen(true)} data-testid="open-estimate">
-        <Icon name="drop" size={15} /> Estimer la peinture{s.colors.length ? ` · ${L(totalL)} L` : ''}
+        <Icon name="drop" size={15} /> Estimer la peinture{s.colors.length ? `\u00a0· ${L(totalL)}\u00a0L` : ''}
       </button>
       {open && <EstimateModal onClose={() => setOpen(false)} />}
     </Section>
@@ -170,21 +170,21 @@ export function EstimateModal({ onClose }: { onClose: () => void }) {
               {s.colors.map((c) => (
                 <tr key={c.colorId} data-testid="surface-row">
                   <td><span className="dot" style={{ background: c.hex }} />{c.name}</td>
-                  <td className="num">{m2(c.area)} m²</td>
-                  <td className="num">{L(c.liters)} L</td>
+                  <td className="num">{m2(c.area)}&nbsp;m²</td>
+                  <td className="num">{L(c.liters)}&nbsp;L</td>
                 </tr>
               ))}
               <tr className="muted" data-testid="surface-background">
                 <td><span className="dot" style={{ background: doc.background.hex }} />Non peint</td>
-                <td className="num">{m2(s.background.area)} m²</td>
+                <td className="num">{m2(s.background.area)}&nbsp;m²</td>
                 <td className="num">—</td>
               </tr>
             </tbody>
             <tfoot>
               <tr>
                 <td>Total à peindre</td>
-                <td className="num" data-testid="surface-total">{m2(totalA)} m²</td>
-                <td className="num">{L(totalL)} L</td>
+                <td className="num" data-testid="surface-total">{m2(totalA)}&nbsp;m²</td>
+                <td className="num">{L(totalL)}&nbsp;L</td>
               </tr>
             </tfoot>
           </table>
@@ -193,7 +193,7 @@ export function EstimateModal({ onClose }: { onClose: () => void }) {
             Afficher les litres dans le PDF chantier
           </label>
           {room && (room.openings.length > 0 || !!room.masks?.length) && <p className="hint">Ouvertures et zones sans mur déduites.</p>}
-          <p className="hint">Estimation indicative : litres = surface × couches ÷ rendement. Prévois une marge de 10 %.</p>
+          <p className="hint">Estimation indicative : litres = surface × couches ÷ rendement. Prévois une marge de 10&nbsp;%.</p>
         </div>
       </div>
     </div>

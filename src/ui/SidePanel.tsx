@@ -24,7 +24,7 @@ export function WallSection() {
         <NumberField label="Hauteur" suffix="cm" min={10} max={5000} value={wall.h} testId="wall-h"
           onCommit={(h) => commit(`Hauteur du mur : ${h} cm`, (d) => { d.wall.h = h })} />
       </div>
-      <p className="hint">Surface : {((wall.w * wall.h) / 10000).toFixed(2)} m²</p>
+      <p className="hint">Surface&nbsp;: {((wall.w * wall.h) / 10000).toFixed(2)}&nbsp;m²</p>
     </Section>
   )
 }
@@ -77,11 +77,11 @@ export function GridSection() {
         data-testid="grid-summary"
         title={`${layout.cols} colonnes × ${layout.rows} lignes${restW ? ` · dernière colonne ${round(restW)} cm` : ''}${restH ? ` · dernière ligne ${round(restH)} cm` : ''}`}
       >
-        {layout.cols} × {layout.rows} cases
+        {layout.cols}&nbsp;×&nbsp;{layout.rows}&nbsp;cases
         {restW || restH ? ' + ' : null}
-        {restW ? <span>↔ {round(restW)} cm</span> : null}
+        {restW ? <span>↔&nbsp;{round(restW)}&nbsp;cm</span> : null}
         {restW && restH ? ' et ' : null}
-        {restH ? <span>↕ {round(restH)} cm</span> : null}
+        {restH ? <span>↕&nbsp;{round(restH)}&nbsp;cm</span> : null}
       </p>
     </Section>
   )
@@ -107,7 +107,7 @@ function StepSuggestions() {
           else if (axis === 'x' && !linked) d.grid.step = v.step
           else { d.grid.step = v.step; delete d.grid.stepY }
         })}>
-        {fmt(v.step)} cm <em>{v.count} {unit}</em>
+        {fmt(v.step)}&nbsp;cm <em>{v.count}&nbsp;{unit}</em>
       </button>
     )
   return (

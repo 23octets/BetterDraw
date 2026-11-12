@@ -30,10 +30,11 @@ export function GridMenu() {
         className={`icon-btn${open ? ' on' : ''}${grid.show ? '' : ' grid-off'}`}
         aria-expanded={open}
         data-testid="grid-menu"
+        aria-label="Grille"
         title="Réglages des lignes de la grille"
         onClick={() => setOpen((o) => !o)}
       >
-        <Icon name="grid" /> Grille
+        <Icon name="grid" /> <span className="btn-label lbl-md">Grille</span>
       </button>
       <button
         className={`icon-btn eye-btn${grid.show ? '' : ' off'}`}
