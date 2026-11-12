@@ -343,7 +343,8 @@ input[type='checkbox'], input[type='radio'] { width: 15px; height: 15px; margin:
 .variant-name { font-weight: 600; font-size: 14.5px; height: 28px !important; border-color: transparent !important; background: transparent !important; padding: 0 4px !important; margin-left: -4px; }
 .variant-name:hover { border-color: var(--line) !important; }
 .variant-name:focus { background: #fff !important; }
-.variant-switcher { display: flex; gap: 6px; align-items: center; flex: 0 0 auto; }
+/* Le nom peut rétrécir dans le titre ; le bouton Variantes garde sa largeur. */
+.variant-switcher { display: flex; gap: 6px; align-items: center; min-width: 0; flex: 0 1 auto; }
 .variant-switcher select { width: auto; max-width: 160px; }
 .small { font-size: 12px; }
 p.small { margin: 0; }
