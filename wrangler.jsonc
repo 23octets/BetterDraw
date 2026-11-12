@@ -8,7 +8,7 @@
   // URL workers.dev et previews par branche gardées, comme lors du premier déploiement
   "workers_dev": true,
   "preview_urls": true,
-  // Requis par `wrangler preview` pour les builds de branches et de PR.
+  // Requis par `npx wrangler preview`, lancé par Workers Builds sur les branches hors production
   "previews": {},
   "observability": { "enabled": true }
 }
