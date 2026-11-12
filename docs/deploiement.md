@@ -1,52 +1,63 @@
 # Déploiement et recette
 
-## Circuit actuel
+## Circuit
 
-- `main` déploie automatiquement la production sur https://betterdraw.yohan.one via Workers Builds.
-- Les autres branches déploient une preview Cloudflare, liée dans le commentaire de leur PR.
-- Les PR passent lint, types, tests unitaires, build, budget de taille, validation Cloudflare et le socle E2E `@essentiel`.
-- La merge queue et `main` passent la suite E2E complète, captures Linux comprises.
-- Le check Workers Builds n'est pas requis par GitHub : vérifier aussi la preview avant de demander le merge.
+1. Créer les branches de travail depuis `dev` et ouvrir leurs PR vers `dev` (Dependabot fait de même).
+2. Attendre les vérifications, les E2E complets et la preview Cloudflare. Fusionner vers `dev`.
+3. Faire la recette sur https://dev.betterdraw.yohan.one avec des données de test.
+4. Ouvrir une PR `dev` → `main`. Après les checks, le job **Recette** attend l'approbation
+   de `rocktane` dans Actions → exécution CI → **Review deployments** → `recette`.
+5. Approuver seulement après la recette de la révision proposée, puis mettre la PR dans la
+   merge queue. La suite complète y tourne avant la fusion. `main` déploie automatiquement
+   https://betterdraw.yohan.one via Workers Builds.
 
-Cloudflare est configuré avec `npm run build`, puis `npx wrangler deploy` en production et
-`npx wrangler preview` sur les autres branches. La version de Wrangler est verrouillée dans
-le projet. `npm run preview` lance seulement le serveur local Vite : ce n'est pas la commande
-pour publier une preview Cloudflare.
+Une modification de `dev` lance une nouvelle exécution et nécessite une nouvelle approbation.
+La validation manuelle est celle de la recette, pas une obligation d'avoir un second auteur.
+Le job **Branche de promotion** refuse une promotion vers `main` depuis une autre branche.
+Les protections de `main` doivent exiger **Vérifications**, **E2E**, **Branche de promotion** et
+**Recette** après installation de ce workflow ; `dev` exige les deux premiers et une PR.
+
+## Cloudflare
+
+Workers Builds utilise `npm run build`, puis `npx wrangler deploy` en production et
+`npx wrangler preview` sur les autres branches. Wrangler est verrouillé dans le projet.
+`npm run preview` lance seulement le serveur local Vite : il ne publie rien.
+
+Le domaine `betterdraw.yohan.one` accepte production et previews : Cloudflare ajoute le nom
+de branche devant, donc la branche `dev` donne `dev.betterdraw.yohan.one`. Le domaine de base
+`dev.betterdraw.yohan.one`, ajouté séparément pour les previews, produit des adresses sous
+`*.dev.betterdraw.yohan.one` ; ce n'est pas lui qui sert la recette stable.
+
+Les autres branches gardent leurs previews individuelles, liées dans le commentaire de PR.
+Le check Workers Builds n'est pas requis par GitHub : vérifier aussi son succès avant recette.
+Les certificats et le DNS sont gérés par Cloudflare ; vérifier l'accès HTTPS après activation.
 
 `npm run check:cloudflare`, après le build, vérifie le bloc `previews` requis puis effectue
 un déploiement à blanc avec Wrangler. Il ne publie rien et ne nécessite pas de token. Il ne
-remplace pas un déploiement réel : DNS, certificats, permissions et service Cloudflare restent
-à vérifier sur Workers Builds.
-
+remplace pas un déploiement réel : DNS, certificats et permissions restent à vérifier.
 Lorsqu'une ancienne branche échoue avec « missing a previews block », la mettre à jour depuis
-`main` ; relancer le build du même ancien commit conserve le problème.
+`main` ou `dev` ; relancer le build du même ancien commit conserve le problème.
 
-## État constaté le 12 novembre 2026
+## Recette d'une migration (notamment PR #23)
 
-`dev.betterdraw.yohan.one` renvoie NXDOMAIN. Cloudflare n'a que le domaine de production
-`betterdraw.yohan.one`, sans hébergement des previews sur ce domaine. Les previews des PR
-fonctionnent sur `workers.dev` après mise à jour des branches depuis `main`.
+Les projets sont locaux au navigateur et séparés par origine : ceux de production n'apparaissent
+pas sur une preview. Vider les données du site les efface. Garder les exports hors du navigateur.
 
-## Proposition de recette stable (à activer après décision)
+- Avant toute migration en production, exporter les projets importants en JSON depuis l'accueil.
+- Sur la preview, importer des copies : mur seul, pièce 3D, variantes, historique et images.
+- Vérifier dessin, peinture, annuler/rétablir, copie de fresque, passage 2D/3D et rechargement.
+- Exporter les projets depuis la preview puis les réimporter et vérifier leur contenu.
+- Vérifier la migration d'une base v1 existante avec les tests automatisés dédiés : importer un
+  JSON ne reproduit pas à lui seul la mise à niveau d'une base IndexedDB déjà présente.
 
-Les previews par PR permettent déjà de tester avant merge, sans branche supplémentaire.
-Pour une adresse de recette stable, créer une branche `dev` et activer les previews sur le
-domaine `betterdraw.yohan.one` (`previews_enabled: true` sur sa route Wrangler). Le nom de
-preview `dev` donne alors `dev.betterdraw.yohan.one`.
+La PR #23 passe IndexedDB de v1 à v2. Un retour arrière du code après migration peut empêcher
+l'ancienne version d'ouvrir la base plus récente (`VersionError`). Revenir à l'ancien code ne
+constitue donc pas un plan de restauration des données : garder les exports **avant migration**,
+et privilégier une correction compatible avec la v2 si une anomalie apparaît.
 
-Avant activation, vérifier la couverture TLS du sous-domaine de preview et les éventuels
-coûts de certificat avec Cloudflare ; ne pas créer un simple CNAME vers une URL workers.dev,
-car cela ne suffit pas à configurer le routage et le certificat.
-
-Circuit recommandé : PR de fonctionnalité vers `dev`, recette sur sa preview stable, puis PR
-`dev` vers `main` soumise à la merge queue. Si ce circuit est choisi : protéger `dev` avec les
-mêmes checks, lancer la suite E2E complète sur les PR vers `dev` et sur ses pushes, et garder
-la promotion vers `main` explicite. Sans ces règles, une branche `dev` ajoute une adresse,
-mais ne garantit aucune recette avant production.
-
-Les données sont locales au navigateur et séparées par origine : les projets de production
-n'apparaissent pas sur une preview. Utiliser des exports JSON de test pour vérifier les
-migrations et les imports, en conservant les sauvegardes originales.
+Le budget du bundle est un garde-fou de performance : 386 octets au-delà de 285 ko ne rendent
+pas le site inutilisable. Avant de relever le budget, différer le chargement des fonctions
+secondaires et revérifier le bundle combiné à la dernière version de `main`.
 
 Sources : [configuration des builds](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/),
 [configuration des previews](https://developers.cloudflare.com/workers/previews/configuration/),
