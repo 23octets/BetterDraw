@@ -78,7 +78,7 @@ jobs:
           if-no-files-found: ignore
 
   promotion:
-    name: Branche de promotion
+    name: ${{ (github.event_name == 'merge_group' || github.base_ref == 'main') && 'Branche de promotion' || 'Branche de promotion (hors promotion)' }}
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -91,7 +91,7 @@ jobs:
           test "$HEAD_REPOSITORY" = "$GITHUB_REPOSITORY"
 
   recette:
-    name: Recette
+    name: ${{ (github.event_name == 'merge_group' || github.base_ref == 'main') && 'Recette' || 'Recette (hors promotion)' }}
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
     needs: [checks, e2e, promotion]
     runs-on: ubuntu-latest
