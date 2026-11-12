@@ -71,7 +71,7 @@ npm run test:all
 npm run size         # budget de taille du bundle, après npm run build (.size-limit.json)
 ```
 
-En CI, une PR ne lance que les E2E taggés `@essentiel` : dessin, peinture, historique, exports, sauvegardes et récupération. La suite complète tourne dans la merge queue, avant que le code n'entre dans `main`, puis sur `main`. Ajouter ce tag seulement à un test qui protège les données de l'utilisateur ou un parcours central.
+En CI, les PR vers `dev` et `main`, les pushes de ces branches et la merge queue lancent les E2E complets. Les PR vers d’autres bases lancent le socle `@essentiel` : dessin, peinture, historique, exports, sauvegardes et récupération. Ajouter ce tag seulement à un test qui protège les données de l'utilisateur ou un parcours central.
 
 Les icônes de `public/` se régénèrent depuis les SVG de `assets/icon/` avec `assets/icon/generer.sh` (Chrome sur macOS et ImageMagick).
 
@@ -85,6 +85,11 @@ gh run download <id-du-run> -n captures -D /tmp/captures
 Relire les images, les copier dans `e2e/__screenshots__`, puis les committer (`gh run download` refuse d'écraser des fichiers existants). En cas d'échec, l'artefact `playwright-report` de la CI contient les différences.
 
 Les tests e2e génèrent des captures dans `docs/screenshots/` et un exemple de PDF chantier dans `docs/exemple-chantier.pdf` (non versionnés).
+
+## Déploiement
+
+Le [circuit de déploiement et de recette](docs/deploiement.md) décrit les previews Cloudflare,
+la merge queue et la recette obligatoire avant production.
 
 ## Données locales et sauvegardes
 
