@@ -11,6 +11,11 @@
    merge queue. La suite complète y tourne avant la fusion. `main` déploie automatiquement
    https://betterdraw.yohan.one via Workers Builds.
 
+Pour synchroniser `main` vers `dev`, passer par une PR de synchronisation et la fusionner
+avec **Create a merge commit**, sans squash ni rebase : cette ascendance évite de rejouer les
+mêmes modifications de dépendances à la promotion suivante. Après une promotion squashed par
+la merge queue, synchroniser de nouveau `main` vers `dev` avant les prochains développements.
+
 Une modification de `dev` lance une nouvelle exécution et nécessite une nouvelle approbation.
 La validation manuelle est celle de la recette, pas une obligation d'avoir un second auteur.
 Le job **Branche de promotion** refuse une promotion vers `main` depuis une autre branche.
