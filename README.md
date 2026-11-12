@@ -83,6 +83,11 @@ Relire les images, les copier dans `e2e/__screenshots__`, puis les committer (`g
 
 Les tests e2e génèrent des captures dans `docs/screenshots/` et un exemple de PDF chantier dans `docs/exemple-chantier.pdf` (non versionnés).
 
+## Déploiement
+
+Le [circuit de déploiement et de recette](docs/deploiement.md) décrit les previews Cloudflare,
+la merge queue et la proposition d’une recette stable avant production.
+
 ## Données locales et sauvegardes
 
 L’accueil permet de télécharger chaque projet en JSON avec ses variantes, son

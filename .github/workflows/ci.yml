@@ -29,6 +29,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Valider les configurations Cloudflare (sans déployer)
+        run: npm run check:cloudflare
       - run: npm run size
 
   e2e:
