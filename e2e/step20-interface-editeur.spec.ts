@@ -17,7 +17,7 @@ async function openRoomWall(page: Page, name = 'Salon') {
 
 const wallBox = (page: Page) => page.getByTestId('wall').boundingBox()
 
-test('pièce : renommer depuis la top bar, retour à la pièce et à l’accueil',, async ({ page }) => {
+test('pièce : renommer depuis la top bar, retour à la pièce et à l’accueil', async ({ page }) => {
   await openRoomWall(page)
   const title = page.getByTestId('project-name')
   await expect(title).toHaveValue('Salon')
