@@ -1,6 +1,7 @@
 import { storageError } from './storage'
 import { create } from 'zustand'
-import { produceWithPatches, type Draft, type Patch } from 'immer'
+import { current, isDraft, produceWithPatches, type Draft, type Patch } from 'immer'
+import { clipShapesToWall } from '../geometry/clip'
 import type { DocState, GridLineStyle, Opening, RefImage, Shape, Variant, Vec, Rect } from '../model/types'
 import { defaultDoc } from '../model/defaults'
 import * as repo from './repo'
@@ -102,6 +103,8 @@ export interface EditorState {
   load: (variantId: string) => Promise<boolean>
   unload: () => void
   commit: (label: string, recipe: (d: Draft<DocState>) => void) => void
+  /** Réglage d'affichage ou préférence (grille, estimation, cases à imprimer) : enregistré, hors historique. */
+  setSettings: (recipe: (d: Draft<DocState>) => void) => void
   undo: () => Promise<void>
   redo: () => Promise<void>
   goTo: (seq: number) => Promise<void>
@@ -114,14 +117,15 @@ export interface EditorState {
   screenToWorld: (p: Vec) => Vec
 }
 
-type Pending = { variantId: string; label: string; next: DocState; patches: Patch[]; inverse: Patch[] }
+/** `settings` : état enregistré sans entrée d'historique (réglages d'affichage, préférences). */
+type Pending = { variantId: string; label: string; next: DocState; patches: Patch[]; inverse: Patch[]; settings?: boolean }
 const pending: Pending[] = []
 let durable: Variant | null = null
 let loading = 0
 let loadingCount = 0
 let historyTarget: number | null = null
 let historyRun: Promise<void> | null = null
-const deferred: { label: string; recipe: (d: Draft<DocState>) => void }[] = []
+const deferred: { label: string; recipe: (d: Draft<DocState>) => void; settings?: boolean }[] = []
 let scheduled = false
 function persist(verify = false) {
   if (scheduled) return queue
@@ -137,6 +141,12 @@ function persist(verify = false) {
       while (pending.length && durable) {
         const item = pending[0]
         if (item.variantId !== durable.id) throw new Error('Variante différente')
+        if (item.settings) {
+          await repo.saveSettings(durable.id, item.next, durable)
+          durable = { ...durable, state: item.next }
+          pending.shift()
+          continue
+        }
         const seq = await repo.recordChange(durable.id, item.label, item.next, item.patches, item.inverse, durable)
         durable = { ...durable, state: item.next, headSeq: seq, maxSeq: seq }
         pending.shift()
@@ -148,6 +158,14 @@ function persist(verify = false) {
       useEditor.setState({ saving: 0 })
     }
   })
+}
+
+/** Rien n'est dessiné hors du mur : un trait ajouté ou modifié qui en sort est coupé à son bord. */
+function clipChangedShapes(before: DocState, d: Draft<DocState>) {
+  const prev = new Set(before.shapes)
+  const shapes = d.shapes.map((s) => (isDraft(s) ? current(s) : s)) as Shape[]
+  const clipped = clipShapesToWall(shapes, d.wall, (s) => !prev.has(s))
+  if (clipped) d.shapes = clipped
 }
 
 let flashTimer: ReturnType<typeof setTimeout> | undefined
@@ -234,6 +252,7 @@ export const useEditor = create<EditorState>((set, get) => ({
     if (get().historyBusy) { deferred.push({ label, recipe }); return }
     const [next, patches, inverse] = produceWithPatches(doc, (d) => {
       recipe(d)
+      clipChangedShapes(doc, d)
       for (const h of afterChangeHooks) h(doc, d)
     })
     if (!patches.length) return
@@ -242,6 +261,19 @@ export const useEditor = create<EditorState>((set, get) => ({
     set((s) => ({ doc: next, headSeq: seq, maxSeq: seq, rev: s.rev + 1 }))
     set({ saving: 1 })
     pending.push({ variantId: variant.id, label, next, patches, inverse })
+    void persist()
+  },
+
+  setSettings(recipe) {
+    const { doc, variant } = get()
+    if (!variant) return
+    if (loadingCount) { get().flash('Chargement du dessin en cours. Réessayez ce réglage après le chargement.', 'error'); return }
+    // pendant un déplacement dans l'historique, le réglage s'applique à l'état d'arrivée
+    if (get().historyBusy) { deferred.push({ label: '', recipe, settings: true }); return }
+    const [next, patches] = produceWithPatches(doc, recipe)
+    if (!patches.length) return
+    set({ doc: next, saving: 1 })
+    pending.push({ variantId: variant.id, label: '', next, patches: [], inverse: [], settings: true })
     void persist()
   },
 
@@ -280,7 +312,10 @@ export const useEditor = create<EditorState>((set, get) => ({
         historyTarget = null
         historyRun = null
         set({ historyBusy: false })
-        for (const item of deferred.splice(0)) get().commit(item.label, item.recipe)
+        for (const item of deferred.splice(0)) {
+          if (item.settings) get().setSettings(item.recipe)
+          else get().commit(item.label, item.recipe)
+        }
       }
     })
     return historyRun

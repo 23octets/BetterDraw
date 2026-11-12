@@ -132,7 +132,7 @@ export function BackgroundSection() {
   return (
     <Section title="Peinture" testId="surfaces-section">
       <button className="wide" onClick={() => setOpen(true)} data-testid="open-estimate">
-        <Icon name="drop" size={15} /> Estimer la peinture{s.colors.length ? ` · ${L(totalL)} L` : ''}
+        <Icon name="drop" size={15} /> Estimer la peinture{s.colors.length ? `\u00a0· ${L(totalL)}\u00a0L` : ''}
       </button>
       {open && <EstimateModal onClose={() => setOpen(false)} />}
     </Section>
@@ -142,7 +142,7 @@ export function BackgroundSection() {
 export function EstimateModal({ onClose }: { onClose: () => void }) {
   useModal('[data-testid=estimate-modal]', onClose)
   const doc = useEditor((s) => s.doc)
-  const commit = useEditor((s) => s.commit)
+  const setSettings = useEditor((s) => s.setSettings)
   const room = useEditor((s) => s.room)
   const s = surfaces(doc, room)
   const totalA = s.colors.reduce((a, c) => a + c.area, 0)
@@ -158,9 +158,9 @@ export function EstimateModal({ onClose }: { onClose: () => void }) {
         <div className="modal-pad">
           <div className="row">
             <NumberField label="Rendement" suffix="m²/L" min={1} max={50} value={doc.paint.coverage}
-              onCommit={(v) => commit(`Rendement : ${v} m²/L`, (d) => { d.paint.coverage = v })} />
+              onCommit={(v) => setSettings((d) => { d.paint.coverage = v })} />
             <NumberField label="Couches" min={1} max={5} value={doc.paint.coats}
-              onCommit={(v) => commit(`Couches : ${v}`, (d) => { d.paint.coats = Math.round(v) })} />
+              onCommit={(v) => setSettings((d) => { d.paint.coats = Math.round(v) })} />
           </div>
           <table className="surf-table" data-testid="surfaces-table">
             <thead>
@@ -170,30 +170,30 @@ export function EstimateModal({ onClose }: { onClose: () => void }) {
               {s.colors.map((c) => (
                 <tr key={c.colorId} data-testid="surface-row">
                   <td><span className="dot" style={{ background: c.hex }} />{c.name}</td>
-                  <td className="num">{m2(c.area)} m²</td>
-                  <td className="num">{L(c.liters)} L</td>
+                  <td className="num">{m2(c.area)}&nbsp;m²</td>
+                  <td className="num">{L(c.liters)}&nbsp;L</td>
                 </tr>
               ))}
               <tr className="muted" data-testid="surface-background">
                 <td><span className="dot" style={{ background: doc.background.hex }} />Non peint</td>
-                <td className="num">{m2(s.background.area)} m²</td>
+                <td className="num">{m2(s.background.area)}&nbsp;m²</td>
                 <td className="num">—</td>
               </tr>
             </tbody>
             <tfoot>
               <tr>
                 <td>Total à peindre</td>
-                <td className="num" data-testid="surface-total">{m2(totalA)} m²</td>
-                <td className="num">{L(totalL)} L</td>
+                <td className="num" data-testid="surface-total">{m2(totalA)}&nbsp;m²</td>
+                <td className="num">{L(totalL)}&nbsp;L</td>
               </tr>
             </tfoot>
           </table>
           <label className="check">
-            <input type="checkbox" checked={doc.paint.showLiters} onChange={(e) => commit('Litres dans le PDF', (d) => { d.paint.showLiters = e.target.checked })} />
+            <input type="checkbox" checked={doc.paint.showLiters} onChange={(e) => setSettings((d) => { d.paint.showLiters = e.target.checked })} />
             Afficher les litres dans le PDF chantier
           </label>
           {room && (room.openings.length > 0 || !!room.masks?.length) && <p className="hint">Ouvertures et zones sans mur déduites.</p>}
-          <p className="hint">Estimation indicative : litres = surface × couches ÷ rendement. Prévois une marge de 10 %.</p>
+          <p className="hint">Estimation indicative : litres = surface × couches ÷ rendement. Prévois une marge de 10&nbsp;%.</p>
         </div>
       </div>
     </div>
