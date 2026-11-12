@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "dexie": "^4.4.7",
+    "dexie-cloud-addon": "^4.4.16",
     "immer": "^11.2.9",
     "jspdf": "^4.2.1",
     "nanoid": "^6.0.2",

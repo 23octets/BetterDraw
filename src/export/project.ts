@@ -1,7 +1,7 @@
 import { applyPatches, enablePatches, type Patch } from 'immer'
 import { flushPersistence } from '../store/editor'
 import { nanoid } from 'nanoid'
-import { db, markStandaloneWalls } from '../store/db'
+import { db, FrsqueDB, markStandaloneWalls } from '../store/db'
 import type { DocState, GridSettings, HistoryEntry, ImageEdit, Opening, Project, Rect, RoomPlan, Segment, Shape, StoredImage, Variant, Vec, Wall } from '../model/types'
 
 export interface ProjectFile {
@@ -19,6 +19,11 @@ export interface ProjectFile {
 /** Exporte un projet complet : variantes, historique et images. */
 export async function serializeProject(projectId: string): Promise<ProjectFile> {
   await flushPersistence()
+  return captureProject(db, projectId)
+}
+
+/** Lecture cohérente, également utilisée pour synchroniser une base sans changer de compte. */
+export async function captureProject(db: FrsqueDB, projectId: string): Promise<ProjectFile> {
   return db.transaction('r', [db.projects, db.walls, db.variants, db.entries, db.images], async () => {
     const project = await db.projects.get(projectId)
     if (!project) throw new Error('Projet introuvable')
@@ -260,19 +265,19 @@ export async function validateHistory(variants: Variant[], entries: HistoryEntry
 /** Formats lisibles à l'import : les sauvegardes faites sous l'ancien nom de l'app restent valables. */
 const PROJECT_FORMATS: unknown[] = ['frsque-project', 'betterdraw-project']
 
-/** Importe un fichier projet comme nouveau projet (nouveaux identifiants, rien n'est écrasé). */
-export async function importProject(data: unknown, options: { withoutHistory?: boolean } = {}): Promise<{ project: Project; variants: Variant[] }> {
+/** Valide une sauvegarde avant toute écriture ; la synchronisation conserve ses identifiants. */
+export async function parseProject(data: unknown, options: { withoutHistory?: boolean; preserveIds?: boolean } = {}) {
   const root = data && typeof data === 'object' ? (data as Record<string, unknown>) : null
   if (!root || !PROJECT_FORMATS.includes(root.format) || !root.project || !Array.isArray(root.variants)) throw new ImportError('Ce fichier n’est pas un projet frsque')
   if (root.version !== 1) throw new ImportError('Version de sauvegarde non prise en charge : ' + String(root.version))
   const p0 = obj(root.project, 'projet')
   const now = Date.now()
-  const pid = nanoid(10)
-  const project: Project = { id: pid, name: str(p0.name, 'nom'), createdAt: num(p0.createdAt, 'date', 0, 1e14), updatedAt: now }
+  const pid = options.preserveIds ? str(p0.id, 'id', 40) : nanoid(10)
+  const project: Project = { id: pid, name: str(p0.name, 'nom'), createdAt: num(p0.createdAt, 'date', 0, 1e14), updatedAt: options.preserveIds ? num(p0.updatedAt, 'date', 0, 1e14) : now }
   const wallsIn = arr(root.walls ?? [], 'murs', 500).map((w) => obj(w, 'mur'))
-  const wallIds = new Map(wallsIn.map((w) => [str(w.id, 'id', 40), nanoid(10)]))
+  const wallIds = new Map(wallsIn.map((w) => [str(w.id, 'id', 40), options.preserveIds ? str(w.id, 'id', 40) : nanoid(10)]))
   const variantsIn = arr(root.variants, 'variantes', 5000).map((v) => obj(v, 'variante'))
-  const varIds = new Map(variantsIn.map((v) => [str(v.id, 'id', 40), nanoid(10)]))
+  const varIds = new Map(variantsIn.map((v) => [str(v.id, 'id', 40), options.preserveIds ? str(v.id, 'id', 40) : nanoid(10)]))
   if (wallIds.size !== wallsIn.length || varIds.size !== variantsIn.length) fail('identifiants dupliqués')
   const walls: Wall[] = wallsIn.map((w) => ({
     id: wallIds.get(w.id as string)!, projectId: pid, name: str(w.name, 'nom'),
@@ -354,6 +359,12 @@ export async function importProject(data: unknown, options: { withoutHistory?: b
   } catch {
     throw new InvalidHistoryError()
   }
+  return { project, walls, variants, entries, images }
+}
+
+/** Import utilisateur : copie indépendante, sans écraser un projet existant. */
+export async function importProject(data: unknown, options: { withoutHistory?: boolean } = {}): Promise<{ project: Project; variants: Variant[] }> {
+  const { project, walls, variants, entries, images } = await parseProject(data, options)
   await db.transaction('rw', [db.projects, db.walls, db.variants, db.entries, db.images], async () => {
     await db.projects.add(project)
     await db.walls.bulkAdd(walls)

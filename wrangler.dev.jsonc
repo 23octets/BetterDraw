@@ -1,0 +1,27 @@
+// Configuration de recette uniquement. Aucune base de production n’est liée ici.
+{
+  "name": "betterdraw",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-10",
+  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
+  "routes": [{ "pattern": "betterdraw.yohan.one", "custom_domain": true, "previews_enabled": true }],
+  "workers_dev": true,
+  "preview_urls": true,
+  "previews": {
+    "d1_databases": [
+        {
+            "binding": "ACCOUNTS",
+            "database_name": "betterdraw-accounts-dev",
+            "database_id": "b7724059-6aea-4605-9b2f-f7b54dd7ac14",
+            "migrations_dir": "migrations"
+        }
+    ]
+},
+  "observability": { "enabled": true },
+  "d1_databases": [{
+    "binding": "ACCOUNTS",
+    "database_name": "betterdraw-accounts-dev",
+    "database_id": "b7724059-6aea-4605-9b2f-f7b54dd7ac14",
+    "migrations_dir": "migrations"
+  }]
+}

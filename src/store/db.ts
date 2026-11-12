@@ -17,8 +17,11 @@ export class FrsqueDB extends Dexie {
   entries!: Dexie.Table<HistoryEntry, [string, number]>
   images!: EntityTable<StoredImage, 'id'>
 
+  imports!: EntityTable<{ sourceId: string; targetId: string }, 'sourceId'>
+  syncHeads!: EntityTable<{ projectId: string; heads: string[]; fingerprint: string }, 'projectId'>
+
   // Nom de la base inchangé après le renommage de l'app : le modifier viderait les projets déjà enregistrés.
-  constructor(name = 'betterdraw') {
+  constructor(name = 'betterdraw', account = false) {
     super(name)
     this.version(1).stores({
       projects: 'id, updatedAt',
@@ -37,7 +40,14 @@ export class FrsqueDB extends Dexie {
         })
       }
     })
+    if (account) this.version(3).stores({ syncHeads: 'projectId', imports: 'sourceId' })
   }
 }
 
-export const db = new FrsqueDB()
+export let db = new FrsqueDB()
+
+/** Choisi avant de monter l’éditeur ; les bases des comptes et des invités restent séparées. */
+export function setDatabase(database: FrsqueDB) {
+  db.close()
+  db = database
+}

@@ -829,3 +829,16 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .fresco-name { font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .project-msg { max-width: 1400px; width: 100%; margin: 12px auto 0; padding: 0 20px; }
 [data-testid=flat-wall] .thumb-frame { margin-bottom: 8px; }
+
+/* Compte : les outils de dessin conservent leur mise en page en mode local. */
+.account-bar { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; padding:8px 16px; border-bottom:1px solid var(--border, #ddd); font-size:13px; }
+.account-bar [role="status"] { flex:1; }
+.account-notice { padding:12px 20px; margin:0; background:#fff4dc; color:#43361e; border-bottom:1px solid #e4d2af; font-size:14px; }
+.account-notice p { margin:6px 0; }
+.account-notice button { margin:4px; }
+.account-login { max-width:640px; margin:auto; padding:48px 24px; }
+.account-login button { margin:8px 8px 8px 0; }
+.account-dialog { width:min(440px, calc(100vw - 32px)); padding:24px; }
+.account-dialog label { display:flex; flex-direction:column; gap:8px; }
+.account-dialog input { padding:10px; width:100%; box-sizing:border-box; }
+.account-actions { display:flex; gap:8px; margin-top:20px; }
