@@ -44,6 +44,7 @@ const P: Record<string, React.ReactNode> = {
   cube: <><path d="M11 2.5l7.5 4.2v8.6L11 19.5l-7.5-4.2V6.7z" /><path d="M3.5 6.7L11 11l7.5-4.3M11 11v8.5" /></>,
   chevronLeft: <path d="M13 6l-5 5 5 5" />,
   chevronRight: <path d="M9 6l5 5-5 5" />,
+  panelRight: <><rect x="3" y="4" width="16" height="14" rx="1.5" /><path d="M13.5 4v14" /></>,
   export: <path d="M11 3v11M6 9l5 5 5-5M4 18h14" />,
 }
 

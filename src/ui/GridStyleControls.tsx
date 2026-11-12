@@ -51,7 +51,7 @@ export function GridStyleControls({ compact }: { compact?: boolean }) {
         </div>
       </div>
       <label className="range-field">
-        <span>Épaisseur <b>{lw.toFixed(1)} px</b></span>
+        <span>Épaisseur <b>{lw.toFixed(1)}&nbsp;px</b></span>
         <input type="range" min={0.5} max={4} step={0.1} value={lw} data-testid="grid-width"
           onChange={(e) => setPreview({ lineWidth: +e.target.value })} onPointerUp={save} onKeyUp={save} />
       </label>

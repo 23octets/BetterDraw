@@ -4,7 +4,7 @@ import { neighborCell, zoomToCell } from '../tools/consult'
 import { Guide } from './Guide'
 import { storageError } from '../store/storage'
 import { downloadRecovery } from '../export/recovery'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useEditor, flushPersistence, hasUnsavedWork } from '../store/editor'
 import * as repo from '../store/repo'
 import { Canvas } from './Canvas'
@@ -97,6 +97,12 @@ export function Editor({ variantId }: { variantId: string }) {
   const mode = useEditor((s) => s.mode)
   const [exporting, setExporting] = useState(false)
   const [shortcuts, setShortcuts] = useState(false)
+  const [sideOpen, setSideOpen] = useState(() => localStorage.getItem(SIDE_KEY) !== 'hidden')
+  const toggleSide = () => setSideOpen((open) => {
+    localStorage.setItem(SIDE_KEY, open ? 'hidden' : 'shown')
+    return !open
+  })
+  const stageRef = useStableStage([mode, sideOpen, status])
 
   if (error) return <div role="alert" className="missing"><p>{error}</p><button onClick={() => navigate('/')}>Retour aux projets et sauvegardes</button><button onClick={() => location.reload()}>Réessayer</button></div>
   if (status === 'missing') {
@@ -110,8 +116,8 @@ export function Editor({ variantId }: { variantId: string }) {
   if (status === 'loading' || !variant) return <div className="loading">Chargement…</div>
 
   return (
-    <div className="editor">
-      <TopBar projectName={project?.name ?? ''} onExport={() => setExporting(true)} onShortcuts={() => setShortcuts((x) => !x)} shortcutsOpen={shortcuts} />
+    <div className={`editor${mode === 'consult' ? ' tools-hidden' : ''}${sideOpen ? '' : ' side-hidden'}`}>
+      <TopBar project={project} onRenamed={setProject} onExport={() => setExporting(true)} onShortcuts={() => setShortcuts((x) => !x)} shortcutsOpen={shortcuts} sideOpen={sideOpen} onToggleSide={toggleSide} />
       <p className="mobile-notice">L’édition avancée nécessite un ordinateur. Sur cet écran, consultez le dessin : touchez une case, pincez pour zoomer, glissez à deux doigts.</p>
       {saveError && <div className="storage-failure" role="alert"><button onClick={() => useEditor.getState().retry()}>Réessayer</button><button onClick={() => { void downloadRecovery().catch((e) => useEditor.getState().flash(storageError(e), 'error')) }}>Exporter le secours</button>{rescueMessage && <p>{rescueMessage}</p>}<p>{saveError} Les dernières modifications ne sont pas enregistrées.</p><button onClick={async () => {
         try {
@@ -124,18 +130,40 @@ export function Editor({ variantId }: { variantId: string }) {
       }}>Sauvegarder l’état affiché (historique de cette variante exclu)</button><button title="Ouvrir l’accueil dans un nouvel onglet en conservant ce dessin" onClick={() => window.open(location.pathname + location.search + '#/', '_blank')}>Gérer l’espace depuis l’accueil</button><button onClick={() => { if (confirm('Recharger abandonne les modifications non enregistrées. Avez-vous téléchargé la sauvegarde de secours ?')) location.reload() }}>Recharger</button></div>}
       <Toolbar />
       <div className="editor-guide"><Guide /></div>
-      <main className="stage">
+      <main className="stage" ref={stageRef}>
         <Canvas />
         <CanvasOverlay />
         <MobileConsult />
         {shortcuts && <ShortcutsPanel />}
       </main>
-      <aside className="side-panel">
+      {sideOpen && <aside className="side-panel" id="editor-side-panel">
         {mode === 'consult' ? <ConsultPanel onExport={() => setExporting(true)} /> : <SidePanelContent />}
-      </aside>
+      </aside>}
       {exporting && <ExportDialog meta={{ project: project?.name ?? 'Projet', variant: variant.name, date: new Date().toLocaleDateString('fr-FR') }} onClose={() => setExporting(false)} />}
     </div>
   )
+}
+
+const SIDE_KEY = 'bd:editor-side-panel'
+
+/**
+ * Quand une barre latérale apparaît ou disparaît, l'espace de travail change de bord gauche :
+ * on décale la vue d'autant pour que le dessin reste exactement à sa place, à la même échelle.
+ */
+function useStableStage(deps: unknown[]) {
+  const ref = useRef<HTMLElement>(null)
+  const left = useRef<number | null>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) { left.current = null; return }
+    const next = el.getBoundingClientRect().left
+    const prev = left.current
+    left.current = next
+    if (prev === null || prev === next) return
+    const st = useEditor.getState()
+    st.setView({ panX: st.view.panX + prev - next })
+  }, deps) // eslint-disable-line react-hooks/exhaustive-deps
+  return ref
 }
 
 function MobileConsult() {
@@ -145,7 +173,7 @@ function MobileConsult() {
   const cell = gridLayout(doc.wall, doc.grid).cells.find((c) => c.id === id)
   if (mode !== 'consult') return null
   return <nav className="mobile-consult" aria-label="Cases du mur">
-    <span>{cell ? `${id} · ${cell.w} × ${cell.h} cm` : 'Vue d’ensemble'}</span>
+    <span>{cell ? `${id} · ${cell.w}\u00a0×\u00a0${cell.h}\u00a0cm` : 'Vue d’ensemble'}</span>
     {(['ArrowLeft', 'ArrowUp', 'ArrowDown', 'ArrowRight'] as const).map((key, i) =>
       <button key={key} aria-label={['Case à gauche', 'Case au-dessus', 'Case en dessous', 'Case à droite'][i]}
         onClick={() => zoomToCell(id ? neighborCell(id, key) ?? id : 'A1')}>{['←', '↑', '↓', '→'][i]}</button>)}
@@ -229,6 +257,22 @@ function WallSwitcher() {
   )
 }
 
+/** Nom du projet (ou de la pièce), renommable depuis la top bar comme la variante. */
+function ProjectTitle({ project, onRenamed }: { project: Project | null; onRenamed: (p: Project) => void }) {
+  if (!project) return null
+  return (
+    <TextField
+      className="topbar-project-title"
+      value={project.name}
+      testId="project-name"
+      onCommit={async (name) => {
+        try { await repo.renameProject(project.id, name) } catch (e) { useEditor.getState().flash(storageError(e), 'error'); return }
+        onRenamed({ ...project, name })
+      }}
+    />
+  )
+}
+
 function VariantSwitcher() {
   const variant = useEditor((s) => s.variant)!
   const [open, setOpen] = useState(false)
@@ -248,15 +292,15 @@ function VariantSwitcher() {
           useEditor.setState((s) => (s.variant ? { variant: { ...s.variant, name } } : {}))
         }}
       />
-      <button className={`icon-btn${open ? ' on' : ''}`} data-testid="variants-page" onClick={() => setOpen(true)} title="Variantes : créer une copie pour essayer une autre idée, passer de l'une à l'autre, comparer">
-        <Icon name="layers" /> Variantes{count > 1 ? <span className="btn-badge">{count}</span> : null}
+      <button className={`icon-btn${open ? ' on' : ''}`} data-testid="variants-page" aria-label={count > 1 ? `Variantes (${count})` : 'Variantes'} onClick={() => setOpen(true)} title="Variantes : créer une copie pour essayer une autre idée, passer de l'une à l'autre, comparer">
+        <Icon name="layers" /> <span className="btn-label lbl-lg">Variantes</span>{count > 1 ? <span className="btn-badge">{count}</span> : null}
       </button>
       {open && <VariantsOverlay onClose={() => setOpen(false)} />}
     </div>
   )
 }
 
-function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { projectName: string; onExport: () => void; onShortcuts: () => void; shortcutsOpen: boolean }) {
+function TopBar({ project, onRenamed, onExport, onShortcuts, shortcutsOpen, sideOpen, onToggleSide }: { project: Project | null; onRenamed: (p: Project) => void; onExport: () => void; onShortcuts: () => void; shortcutsOpen: boolean; sideOpen: boolean; onToggleSide: () => void }) {
   const saving = useEditor((s) => s.saving)
   const failed = useEditor((s) => s.saveError)
   const headSeq = useEditor((s) => s.headSeq)
@@ -269,13 +313,12 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
   const room = useEditor((s) => s.room)
   return (
     <header className="topbar">
-      {room ? (
-        <button className="icon-btn ghost" onClick={() => flushPersistence().then(() => navigate(`/r/${room.projectId}`))} title="Retour au plan et à la vue 3D de la pièce" data-testid="back-to-room"><Icon name="cube" size={16} /> Pièce</button>
-      ) : (
-        <button className="icon-btn ghost" onClick={() => navigate('/')} title="Retour aux projets"><Icon name="arrowLeft" size={16} /> Projets</button>
-      )}
+      <nav className="topbar-back" aria-label="Retour">
+        <button className="icon-btn ghost" onClick={() => flushPersistence().then(() => navigate('/'))} title="Retour à l’accueil et à la liste des projets" data-testid="back-to-home"><Icon name="arrowLeft" size={16} /> Projets</button>
+        {room && <button className="icon-btn ghost" onClick={() => flushPersistence().then(() => navigate(`/r/${room.projectId}`))} title="Retour au plan et à la vue 3D de la pièce" data-testid="back-to-room"><Icon name="arrowLeft" size={16} /> Pièce</button>}
+      </nav>
       <div className="title">
-        <strong data-testid="project-name">{projectName}</strong>
+        <ProjectTitle project={project} onRenamed={onRenamed} />
         {room && <WallSwitcher />}
         <VariantSwitcher />
       </div>
@@ -285,12 +328,12 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
       </div>
       <GridMenu />
       <div className="spacer" />
-      <span className={`save-state${failed ? ' error' : saving ? ' busy' : ''}`} data-testid="save-state">{failed ? 'Non enregistré' : saving ? 'Enregistrement…' : 'Enregistré'}</span>
+      <span className={`save-state${failed ? ' error' : saving ? ' busy' : ''}`} data-testid="save-state" title={failed ? 'Non enregistré' : saving ? 'Enregistrement…' : 'Enregistré'}><span className="btn-label lbl-lg">{failed ? 'Non enregistré' : saving ? 'Enregistrement…' : 'Enregistré'}</span></span>
       <button className={`icon-btn${shortcutsOpen ? ' on' : ''}`} onClick={onShortcuts} aria-pressed={shortcutsOpen} data-testid="toggle-shortcuts" title="Raccourcis clavier" aria-label="Raccourcis clavier">
-        <Icon name="keyboard" /> Raccourcis
+        <Icon name="keyboard" /> <span className="btn-label lbl-xl">Raccourcis</span>
       </button>
       <button className="icon-btn" onClick={() => setSettings(true)} data-testid="open-settings" title="Réglages : taille du mur, origine, lignes de la grille" aria-label="Réglages">
-        <Icon name="sliders" /> Réglages
+        <Icon name="sliders" /> <span className="btn-label lbl-xl">Réglages</span>
       </button>
       {settings && <SettingsModal onClose={() => setSettings(false)} />}
       <div className="btn-group">
@@ -298,7 +341,9 @@ function TopBar({ projectName, onExport, onShortcuts, shortcutsOpen }: { project
         <button className="icon-btn" onClick={() => undo()} disabled={headSeq <= 0} title="Annuler (⌘Z)" aria-label="Annuler" data-testid="undo"><Icon name="undo" /></button>
         <button className="icon-btn" onClick={() => redo()} disabled={headSeq >= maxSeq} title="Rétablir (⇧⌘Z)" aria-label="Rétablir" data-testid="redo"><Icon name="redo" /></button>
       </div>
-      <button className="icon-btn" onClick={onExport} data-testid="export"><Icon name="export" /> Exporter</button>
+      <button className="icon-btn" onClick={onExport} data-testid="export" title="Exporter en PDF ou en image" aria-label="Exporter"><Icon name="export" /> <span className="btn-label lbl-md">Exporter</span></button>
+      <button className="icon-btn side-toggle" onClick={onToggleSide} aria-pressed={sideOpen} aria-controls="editor-side-panel" data-testid="toggle-side-panel"
+        title={sideOpen ? 'Masquer le panneau de droite' : 'Afficher le panneau de droite'} aria-label="Panneau de droite"><Icon name="panelRight" /></button>
     </header>
   )
 }
@@ -321,7 +366,7 @@ function CanvasOverlay() {
       <MeasureBar />
       <div className="zoom-controls hud-pill">
         <button className="icon-btn" onClick={() => zoomBy(1 / 1.25)} aria-label="Dézoomer"><Icon name="minus" /></button>
-        <span className="zoom-value" data-testid="zoom">{Math.round(view.zoom * 100) / 100} px/cm</span>
+        <span className="zoom-value" data-testid="zoom">{Math.round(view.zoom * 100) / 100}&nbsp;px/cm</span>
         <button className="icon-btn" onClick={() => zoomBy(1.25)} aria-label="Zoomer"><Icon name="plus" /></button>
         <button className="icon-btn" onClick={() => window.dispatchEvent(new CustomEvent('bd:fit', { detail: null }))} data-testid="fit" title="Ajuster à l’écran"><Icon name="fit" /></button>
       </div>
@@ -348,7 +393,7 @@ export function ShortcutsPanel() {
   const mode = useEditor((s) => s.mode)
   const tips = mode === 'edit' ? TOOL_TIPS[tool] : undefined
   const row = (keys: React.ReactNode, label: string, k: string | number) => (
-    <li key={k}><span className="keys">{keys}</span><span>{label}</span></li>
+    <li key={k}><span className="label">{label}</span><span className="keys">{keys}</span></li>
   )
   return (
     <aside className="shortcuts" data-testid="shortcuts-panel" aria-label="Raccourcis clavier">
