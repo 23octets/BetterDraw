@@ -80,6 +80,14 @@ input[type='checkbox'], input[type='radio'] { width: 15px; height: 15px; margin:
 
 /* ---------- Accueil ---------- */
 .home { max-width: 1120px; margin: 0 auto; padding: 44px 28px 80px; }
+.home-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+.home-account { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.account-guest { font-size: 12px; color: var(--ink-2); }
+.account-guest span { white-space: nowrap; }
+@media (max-width: 600px) {
+  .home-account { width: 100%; justify-content: space-between; gap: 12px; }
+  .account-guest span { display: block; margin-top: 3px; }
+}
 .brand { display: flex; gap: 16px; align-items: center; }
 .brand-mark { font-size: 42px; color: var(--accent); line-height: 1; }
 .brand h1 { margin: 0; font-size: 30px; letter-spacing: -0.02em; }

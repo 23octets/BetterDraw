@@ -6,7 +6,10 @@ const ConnectedAccount = lazy(() => import('./ConnectedAccount'))
 const AccountContext = createContext<(() => void) | null>(null)
 export function AccountButton() {
   const connect = useContext(AccountContext)
-  return connect ? <button onClick={connect}>Se connecter</button> : null
+  return connect ? <div className="home-account">
+    <span className="account-guest">Mode invité <span>— sur cet appareil</span></span>
+    <button className="primary" onClick={connect} title="Se connecter pour retrouver ses projets sur plusieurs appareils">Se connecter</button>
+  </div> : null
 }
 
 export function AccountGate({ children }: { children: ReactNode }) {
