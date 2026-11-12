@@ -10,8 +10,11 @@ export function LegalInfo() {
     ['Hébergeur', legal.host],
   ]
   return <>
-    <button type="button" className="icon-btn ghost" onClick={() => dialog.current?.showModal()}>Mentions légales</button>
-    {createPortal(<dialog ref={dialog} className="legal-dialog" aria-labelledby="legal-title" onKeyDown={(e) => e.stopPropagation()}>
+    <button type="button" className="icon-btn ghost" onClick={() => {
+      dialog.current?.setAttribute('aria-modal', 'true')
+      dialog.current?.showModal()
+    }}>Mentions légales</button>
+    {createPortal(<dialog ref={dialog} className="legal-dialog" onClose={() => dialog.current?.removeAttribute('aria-modal')} aria-labelledby="legal-title" onKeyDown={(e) => e.stopPropagation()}>
       <header className="modal-head">
         <h2 id="legal-title">{legal.productName} — Mentions légales et confidentialité</h2>
         <button type="button" autoFocus onClick={() => dialog.current?.close()} aria-label="Fermer les mentions légales">Fermer</button>
