@@ -3,7 +3,9 @@
 Dessiner à l'échelle un décor mural, le peindre zone par zone, puis le reporter sur le vrai mur
 grâce à une grille de carroyage cotée.
 
-100 % local : tout est enregistré dans le navigateur (IndexedDB), à chaque modification.
+En mode invité, tout est enregistré dans le navigateur (IndexedDB), à chaque modification.
+Les comptes et la synchronisation Dexie Cloud sont activables par environnement ; voir
+[comptes et synchronisation](docs/comptes.md).
 
 ## Lancer
 

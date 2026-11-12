@@ -1,3 +1,5 @@
+import { AccountButton } from '../account/AccountGate'
+import { liveQuery } from 'dexie'
 import { Guide } from './Guide'
 import { exampleDoc } from '../model/example'
 import { StorageNotice } from './StorageNotice'
@@ -51,7 +53,11 @@ export function Home() {
     } catch (e) { setError(storageError(e)) }
   }
   useEffect(() => {
-    refresh()
+    const subscription = liveQuery(() => repo.listProjects()).subscribe({
+      next: (rows) => { setProjects(rows); setError('') },
+      error: (e) => setError(storageError(e)),
+    })
+    return () => subscription.unsubscribe()
   }, [])
 
   async function create(e: React.FormEvent) {
@@ -76,6 +82,7 @@ export function Home() {
             <p>Dessiner à l'échelle, peindre au mur.</p>
           </div>
         </div>
+        <AccountButton />
       </header>
       <div className="welcome-actions">
         <button disabled={exampleBusy} onClick={async () => {

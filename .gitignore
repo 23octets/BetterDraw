@@ -29,3 +29,8 @@ vite.config.*.timestamp-*
 
 # Cloudflare Wrangler
 .wrangler/
+
+# Clés et recherches Dexie Cloud
+.firecrawl/
+dexie-cloud.key
+.dev.vars
