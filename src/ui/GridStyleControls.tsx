@@ -2,11 +2,11 @@ import { useEditor } from '../store/editor'
 import { dashArray, LINE_STYLES } from '../geometry/grid'
 import type { GridLineStyle } from '../model/types'
 
-/** Réglages des lignes de grille : type de trait, épaisseur, opacité (aperçu en direct, une entrée d'historique par réglage). */
+/** Réglages des lignes de grille : type de trait, épaisseur, opacité (aperçu en direct ; réglage d'affichage, hors historique). */
 export function GridStyleControls({ compact }: { compact?: boolean }) {
   const grid = useEditor((s) => s.doc.grid)
   const preview = useEditor((s) => s.gridPreview)
-  const commit = useEditor((s) => s.commit)
+  const setSettings = useEditor((s) => s.setSettings)
   const lw = preview?.lineWidth ?? grid.lineWidth ?? 1
   const lo = preview?.lineOpacity ?? grid.lineOpacity ?? 1
   const ls = preview?.lineStyle ?? grid.lineStyle ?? 'dashed'
@@ -16,14 +16,14 @@ export function GridStyleControls({ compact }: { compact?: boolean }) {
   const save = () => {
     const p = useEditor.getState().gridPreview
     if (!p) return
-    commit(`Style de la grille : ${p.lineWidth} px, ${Math.round(p.lineOpacity * 100)} %`, (d) => {
+    setSettings((d) => {
       d.grid.lineWidth = p.lineWidth
       d.grid.lineOpacity = p.lineOpacity
     })
     useEditor.setState({ gridPreview: null })
   }
   const setStyle = (style: GridLineStyle) =>
-    commit(`Trait de la grille : ${LINE_STYLES.find((s) => s.id === style)?.label}`, (d) => {
+    setSettings((d) => {
       d.grid.lineStyle = style
     })
 
@@ -70,7 +70,7 @@ export function GridStyleControls({ compact }: { compact?: boolean }) {
           <line x1={0} x2={120} y1={20} y2={20} stroke="rgba(20,20,22,0.6)" strokeWidth={lw} strokeDasharray={dashArray(ls, lw)} />
         </svg>
       </div>
-      <button className="ghost small" onClick={() => commit('Style de la grille par défaut', (d) => { d.grid.lineWidth = 1; d.grid.lineOpacity = 1; d.grid.lineStyle = 'dashed' })}>
+      <button className="ghost small" onClick={() => setSettings((d) => { d.grid.lineWidth = 1; d.grid.lineOpacity = 1; d.grid.lineStyle = 'dashed' })}>
         Réinitialiser
       </button>
     </div>

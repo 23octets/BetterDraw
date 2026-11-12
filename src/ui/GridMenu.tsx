@@ -6,7 +6,7 @@ import { GridStyleControls } from './GridStyleControls'
 /** Bouton « Grille » du header : afficher / masquer + menu épaisseur et opacité des lignes. */
 export function GridMenu() {
   const grid = useEditor((s) => s.doc.grid)
-  const commit = useEditor((s) => s.commit)
+  const setSettings = useEditor((s) => s.setSettings)
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -41,7 +41,7 @@ export function GridMenu() {
         aria-label={grid.show ? 'Masquer la grille' : 'Afficher la grille'}
         data-testid="toggle-grid"
         title={grid.show ? 'Masquer la grille' : 'Afficher la grille'}
-        onClick={() => commit(grid.show ? 'Masquer la grille' : 'Afficher la grille', (d) => { d.grid.show = !grid.show })}
+        onClick={() => setSettings((d) => { d.grid.show = !grid.show })}
       >
         <Icon name={grid.show ? 'eye' : 'eyeOff'} size={16} />
       </button>

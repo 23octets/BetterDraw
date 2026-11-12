@@ -11,6 +11,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   useModal('[data-testid=settings-modal]', onClose)
   const doc = useEditor((s) => s.doc)
   const commit = useEditor((s) => s.commit)
+  const setSettings = useEditor((s) => s.setSettings)
   const { wall, grid } = doc
   const room = useEditor((s) => s.room)
   const layout = gridLayout(wall, grid)
@@ -58,7 +59,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                   const [cx, cy] = corner[o.id]
                   const on = grid.origin === o.id
                   return (
-                    <g key={o.id} className={`op-corner${on ? ' on' : ''}`} onClick={() => commit('Origine de la grille', (d) => { d.grid.origin = o.id })} data-testid={`origin-${o.id}`} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.dispatchEvent(new MouseEvent('click', { bubbles: true })) } }} role="button" aria-pressed={on} aria-label={o.label}>
+                    <g key={o.id} className={`op-corner${on ? ' on' : ''}`} onClick={() => setSettings((d) => { d.grid.origin = o.id })} data-testid={`origin-${o.id}`} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.dispatchEvent(new MouseEvent('click', { bubbles: true })) } }} role="button" aria-pressed={on} aria-label={o.label}>
                       <circle cx={cx} cy={cy} r={on ? 11 : 8} />
                       {on && <text x={cx} y={cy + 4} textAnchor="middle">0</text>}
                     </g>
@@ -83,7 +84,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
               <div className="origin-list" role="radiogroup">
                 {ORIGINS.map((o) => (
                   <label key={o.id} className="check">
-                    <input type="radio" name="origin" checked={grid.origin === o.id} onChange={() => commit('Origine de la grille', (d) => { d.grid.origin = o.id })} />
+                    <input type="radio" name="origin" checked={grid.origin === o.id} onChange={() => setSettings((d) => { d.grid.origin = o.id })} />
                     {o.label}
                   </label>
                 ))}
@@ -95,7 +96,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             <p className="hint">Pas de la grille fine sur laquelle s’accrochent les points tracés et les mesures (en plus des traits et de la grille de carroyage). Alt désactive l’aimantage.</p>
             <div className="row">
               <NumberField label="Pas d’aimantage" suffix="cm" min={0.5} max={100} value={grid.snapStep} testId="snap-step"
-                onCommit={(v) => commit(`Aimantage : ${v} cm`, (d) => { d.grid.snapStep = v })} />
+                onCommit={(v) => setSettings((d) => { d.grid.snapStep = v })} />
               <span />
             </div>
           </section>

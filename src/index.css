@@ -171,8 +171,6 @@ input[type='checkbox'], input[type='radio'] { width: 15px; height: 15px; margin:
 .wall-outline { fill: none; stroke: var(--ink); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .grid-lines line { stroke-width: var(--gw, 1); vector-effect: non-scaling-stroke; stroke-dasharray: var(--gd, 4 3); stroke-linecap: round; pointer-events: none; }
 .grid-lines .grid-cover line { stroke-width: calc(var(--gw, 1) * 2.5); stroke-dasharray: none; stroke-linecap: butt; }
-.grid-lines.strong line { stroke-width: calc(var(--gw, 1) * 1.4); }
-.grid-lines.strong .grid-cover line { stroke-width: calc(var(--gw, 1) * 3); }
 .preview-grid line { stroke-width: 0.8; }
 .grid-label { font-size: 12px; font-weight: 600; fill: var(--accent-ink); pointer-events: none; }
 .cote { font-size: 10.5px; fill: var(--ink-2); font-variant-numeric: tabular-nums; pointer-events: none; }
@@ -650,7 +648,9 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .opening-bar { stroke: #3b3d42; stroke-width: 2; vector-effect: non-scaling-stroke; opacity: 0.7; }
 
 /* Murs liés (peinture continue) */
-.group-seam line { stroke: var(--primary); stroke-width: 1.5; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; opacity: 0.7; }
+.seams-layer { pointer-events: none; }
+/* trait plein, au-dessus de la grille : il reste distinct d'une ligne de grille posée au même endroit */
+.group-seam line { stroke: var(--primary); stroke-width: 2; vector-effect: non-scaling-stroke; }
 .link-box { display: grid; gap: 6px; padding-top: 4px; }
 .link-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 260px; overflow: auto; }
 .link-strip svg { width: 100%; height: 90px; display: block; }

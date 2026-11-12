@@ -142,7 +142,7 @@ export function BackgroundSection() {
 export function EstimateModal({ onClose }: { onClose: () => void }) {
   useModal('[data-testid=estimate-modal]', onClose)
   const doc = useEditor((s) => s.doc)
-  const commit = useEditor((s) => s.commit)
+  const setSettings = useEditor((s) => s.setSettings)
   const room = useEditor((s) => s.room)
   const s = surfaces(doc, room)
   const totalA = s.colors.reduce((a, c) => a + c.area, 0)
@@ -158,9 +158,9 @@ export function EstimateModal({ onClose }: { onClose: () => void }) {
         <div className="modal-pad">
           <div className="row">
             <NumberField label="Rendement" suffix="m²/L" min={1} max={50} value={doc.paint.coverage}
-              onCommit={(v) => commit(`Rendement : ${v} m²/L`, (d) => { d.paint.coverage = v })} />
+              onCommit={(v) => setSettings((d) => { d.paint.coverage = v })} />
             <NumberField label="Couches" min={1} max={5} value={doc.paint.coats}
-              onCommit={(v) => commit(`Couches : ${v}`, (d) => { d.paint.coats = Math.round(v) })} />
+              onCommit={(v) => setSettings((d) => { d.paint.coats = Math.round(v) })} />
           </div>
           <table className="surf-table" data-testid="surfaces-table">
             <thead>
@@ -189,7 +189,7 @@ export function EstimateModal({ onClose }: { onClose: () => void }) {
             </tfoot>
           </table>
           <label className="check">
-            <input type="checkbox" checked={doc.paint.showLiters} onChange={(e) => commit('Litres dans le PDF', (d) => { d.paint.showLiters = e.target.checked })} />
+            <input type="checkbox" checked={doc.paint.showLiters} onChange={(e) => setSettings((d) => { d.paint.showLiters = e.target.checked })} />
             Afficher les litres dans le PDF chantier
           </label>
           {room && (room.openings.length > 0 || !!room.masks?.length) && <p className="hint">Ouvertures et zones sans mur déduites.</p>}
