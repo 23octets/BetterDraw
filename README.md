@@ -3,7 +3,9 @@
 Dessiner à l'échelle un décor mural, le peindre zone par zone, puis le reporter sur le vrai mur
 grâce à une grille de carroyage cotée.
 
-100 % local : tout est enregistré dans le navigateur (IndexedDB), à chaque modification.
+En mode invité, tout est enregistré dans le navigateur (IndexedDB), à chaque modification.
+Les comptes et la synchronisation Dexie Cloud sont activables par environnement ; voir
+[comptes et synchronisation](docs/comptes.md).
 
 ## Lancer
 
@@ -118,13 +120,17 @@ ont été autorisées par le propriétaire. Faire confirmer le texte selon le st
 de l’éditeur, et le revoir lors d’un changement de traitement ou d’hébergement.
 
 La notice est fondée sur `src/store/db.ts`, `images.ts`, `storage.ts`, les réglages
-localStorage de l’éditeur et des pièces, et les exports locaux (`src/export/`).
-Aucun appel réseau applicatif, traceur, cookie ni police distante n’a été trouvé
-dans `src`, `public` et `index.html`. Les sauvegardes JSON incluent les images ;
+localStorage de l’éditeur et des pièces, les exports locaux (`src/export/`),
+`src/account/` (authentification et synchronisation facultatives Dexie Cloud),
+et `worker/index.ts` (configuration des comptes, admission dans D1). Le mode invité
+reste local ; le compte connecté transmet ses projets et images à Dexie Cloud.
+Aucun outil d’audience, traceur publicitaire ni police distante n’a été trouvé
+dans le code de l’application. La connexion nécessaire à la synchronisation
+est distincte du parcours invité et n’est pas présentée comme du stockage local seul. Les sauvegardes JSON incluent les images ;
 les exports PDF, PNG et SVG les excluent. Le nettoyage des images inutilisées
 reste distinct de la suppression des projets.
 
-Les sources officielles Cloudflare sont liées dans la configuration (consultation
+Les sources officielles Cloudflare et Dexie Cloud sont liées dans la configuration (consultation
 le 12 novembre 2026). Sa politique ne fixe pas une durée unique pour tous ses
 traitements. La limite de 7 jours documentée pour Workers Logs ne doit pas être
 présentée comme la durée de tous les journaux Cloudflare ni comme une vérification
@@ -132,6 +138,6 @@ du paramétrage réel du compte. Aucune configuration d’hébergement n’est m
 
 `e2e/legal.spec.ts` vérifie l’accès depuis l’accueil et l’éditeur, la navigation au
 clavier, et l’absence de tentative HTTP(S) ou WebSocket vers une autre origine sur
-le parcours création, import d’image, dessin, peinture, consultation et exports.
+le parcours invité (même si les comptes sont proposés) : création, import d’image, dessin, peinture, consultation et exports.
 Ce contrôle couvre ce parcours ; il ne remplace pas l’examen des autres parcours,
 des dépendances ni de la configuration d’hébergement.

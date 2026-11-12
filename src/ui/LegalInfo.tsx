@@ -26,7 +26,7 @@ export function LegalInfo() {
         <a href={`mailto:${legal.contactEmail}`}>{legal.contactEmail}</a>
         <h3>Notice de confidentialité</h3>
         {legal.privacy.map(([title, text]) => <section key={title}><h4>{title}</h4><p>{text}</p></section>)}
-        <h3>Sources de l’hébergeur</h3>
+        <h3>Sources des prestataires</h3>
         <ul>{legal.sources.map(({ label, url }) => <li key={url}><a href={url} target="_blank" rel="noreferrer">{label}</a></li>)}</ul>
       </div>
     </dialog>, document.body)}

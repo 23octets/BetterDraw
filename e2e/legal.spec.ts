@@ -16,10 +16,15 @@ test('@essentiel mentions accessibles et parcours principal sans réseau tiers',
   page.on('websocket', (socket) => {
     if (new URL(socket.url()).host !== new URL(origin).host) external.push(socket.url())
   })
+  await page.route('**/api/cloud', (route) => route.fulfill({ json: { databaseUrl: 'https://compte-test.dexie.cloud' } }))
   await page.goto('/')
+  await expect(page.getByRole('button', { name: 'Se connecter', exact: true })).toBeVisible()
   const link = page.getByRole('button', { name: 'Mentions légales', exact: true })
   await link.click()
   await expect(page.getByRole('dialog')).toContainText('IndexedDB')
+  await expect(page.getByRole('dialog')).toContainText('En mode invité')
+  await expect(page.getByRole('dialog')).toContainText('En mode connecté')
+  await expect(page.getByRole('dialog')).toContainText('Cloudflare D1')
   await expect(page.getByRole('dialog')).toContainText('98434012500017')
   await expect(page.getByRole('dialog').getByRole('link', { name: 'contact@23o.dev' })).toHaveAttribute('href', 'mailto:contact@23o.dev')
   await page.keyboard.press('Escape')
@@ -78,4 +83,16 @@ test('@essentiel titre du produit servi sans JavaScript', async ({ browser, base
   } finally {
     await context.close()
   }
+})
+
+
+test('@essentiel notice accessible avant de saisir son email', async ({ page }) => {
+  await page.route('**/api/cloud', (route) => route.fulfill({ json: { databaseUrl: 'https://compte-test.dexie.cloud' } }))
+  await page.route('https://compte-test.dexie.cloud/**', (route) => route.abort())
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Se connecter', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Se connecter par email' })).toBeVisible()
+  await page.getByRole('button', { name: 'Mentions légales', exact: true }).click()
+  await expect(page.getByRole('dialog')).toContainText('Compte et synchronisation')
+  await expect(page.getByRole('dialog')).toContainText('Dexie Cloud')
 })

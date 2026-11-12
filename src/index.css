@@ -80,6 +80,14 @@ input[type='checkbox'], input[type='radio'] { width: 15px; height: 15px; margin:
 
 /* ---------- Accueil ---------- */
 .home { max-width: 1120px; margin: 0 auto; padding: 44px 28px 80px; }
+.home-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+.home-account { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.account-guest { font-size: 12px; color: var(--ink-2); }
+.account-guest span { white-space: nowrap; }
+@media (max-width: 600px) {
+  .home-account { width: 100%; justify-content: space-between; gap: 12px; }
+  .account-guest span { display: block; margin-top: 3px; }
+}
 .brand { display: flex; gap: 16px; align-items: center; }
 .brand-mark { font-size: 42px; color: var(--accent); line-height: 1; }
 .brand h1 { margin: 0; font-size: 30px; letter-spacing: -0.02em; }
@@ -839,3 +847,15 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .home-head { flex-wrap: wrap; gap: 16px; }
 
 .editor-guide { display: flex; align-items: center; gap: 12px; }
+/* Compte : les outils de dessin conservent leur mise en page en mode local. */
+.account-bar { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; padding:8px 16px; border-bottom:1px solid var(--border, #ddd); font-size:13px; }
+.account-bar [role="status"] { flex:1; }
+.account-notice { padding:12px 20px; margin:0; background:#fff4dc; color:#43361e; border-bottom:1px solid #e4d2af; font-size:14px; }
+.account-notice p { margin:6px 0; }
+.account-notice button { margin:4px; }
+.account-login { max-width:640px; margin:auto; padding:48px 24px; }
+.account-login button { margin:8px 8px 8px 0; }
+.account-dialog { width:min(440px, calc(100vw - 32px)); padding:24px; }
+.account-dialog label { display:flex; flex-direction:column; gap:8px; }
+.account-dialog input { padding:10px; width:100%; box-sizing:border-box; }
+.account-actions { display:flex; gap:8px; margin-top:20px; }

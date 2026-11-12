@@ -9,7 +9,10 @@ export default defineConfig({
     transformIndexHtml: () => [{ tag: 'title', children: legal.productName, injectTo: 'head' }],
   }],
   server: { port: 5199, strictPort: true },
-  build: { chunkSizeWarningLimit: 1000 },
+  build: { chunkSizeWarningLimit: 1000, rolldownOptions: { output: {
+    // Ne pas confondre le store commun et le chunk de l’éditeur dans les budgets.
+    chunkFileNames: (chunk) => chunk.name === 'editor' ? 'assets/persistence-[hash].js' : 'assets/[name]-[hash].js',
+  } } },
   test: {
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     environment: 'node',

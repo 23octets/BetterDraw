@@ -1,5 +1,5 @@
 import { legal } from './config/legal'
-import { StorageGate } from './ui/StorageGate'
+import { AccountGate } from './account/AccountGate'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
@@ -10,6 +10,6 @@ document.title = legal.productName
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-<RecoveryBoundary><StorageGate><App /></StorageGate></RecoveryBoundary>
+<RecoveryBoundary><AccountGate><App /></AccountGate></RecoveryBoundary>
   </StrictMode>,
 )

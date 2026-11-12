@@ -1,3 +1,4 @@
+import { db } from '../store/db'
 import { useEffect, useState } from 'react'
 import { cleanOrphanImages, storageError } from '../store/storage'
 
@@ -12,7 +13,7 @@ export function StorageNotice({ revision }: { revision?: string }) {
   }
   useEffect(() => { void estimate() }, [revision])
   return <section className="storage-notice">
-    <p>Vos projets restent uniquement dans ce navigateur, sur cet appareil (IndexedDB). Effacer ses données efface aussi vos projets.</p>
+    <p>{db.name.startsWith('betterdraw-account-') ? 'Les projets de votre compte sont enregistrés sur cet appareil puis synchronisés en ligne. Vérifiez le statut « Synchronisé » avant de fermer ou d’effacer les données du site.' : 'Vos projets restent uniquement dans ce navigateur, sur cet appareil (IndexedDB). Effacer ses données efface aussi vos projets.'}</p>
     <p>Pensez à télécharger régulièrement une sauvegarde JSON, surtout après une séance de dessin. Elle contient les variantes, l’historique et les images ; vous pouvez la réimporter depuis l’accueil.</p>
     <p>{space}</p>
     {navigator.storage?.persist && <button onClick={async () => {
