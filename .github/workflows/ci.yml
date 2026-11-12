@@ -76,31 +76,3 @@ jobs:
             e2e/__screenshots__/
           retention-days: 14
           if-no-files-found: ignore
-
-  promotion:
-    name: Branche de promotion
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - env:
-          HEAD_BRANCH: ${{ github.head_ref }}
-          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
-        run: |
-          test "$HEAD_BRANCH" = dev
-          test "$HEAD_REPOSITORY" = "$GITHUB_REPOSITORY"
-
-  recette:
-    name: Recette
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
-    needs: [checks, e2e, promotion]
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    environment:
-      name: recette
-      url: https://dev.betterdraw.yohan.one
-    steps:
-      - name: Recette approuvée pour cette révision
-        env:
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: echo "Recette approuvée pour $HEAD_SHA"

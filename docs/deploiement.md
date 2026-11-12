@@ -6,7 +6,8 @@
 2. Attendre les vérifications, les E2E complets et la preview Cloudflare. Fusionner vers `dev`.
 3. Faire la recette sur https://dev.betterdraw.yohan.one avec des données de test.
 4. Ouvrir une PR `dev` → `main`. Après les checks, le job **Recette** attend l'approbation
-   de `rocktane` dans Actions → exécution CI → **Review deployments** → `recette`.
+   de `rocktane` dans Actions → **Promotion et recette** → **Review deployments** → `recette`.
+   Ce workflow tourne en parallèle du CI : attendre aussi les checks verts avant d’approuver.
 5. Approuver seulement après la recette de la révision proposée, puis mettre la PR dans la
    merge queue. La suite complète y tourne avant la fusion. `main` déploie automatiquement
    https://betterdraw.yohan.one via Workers Builds.
