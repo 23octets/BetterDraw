@@ -1,3 +1,4 @@
+import { useModal } from './useModal'
 import { useEffect, useRef, useState } from 'react'
 
 /** Nuanciers proposés (tons de peinture murale courants). */
@@ -43,6 +44,7 @@ type Tab = 'swatches' | 'hsl' | 'rgb'
  * `onPreview` pendant le réglage, `onChange` pour valider (une entrée d'historique).
  */
 export function ColorPicker({ value, onChange, onPreview, onClose, anchor }: { value: string; onChange: (hex: string) => void; onPreview?: (hex: string | null) => void; onClose: () => void; anchor: HTMLElement | null }) {
+  useModal('[data-testid=color-picker]', () => { onPreview?.(null); onClose() })
   const [tab, setTab] = useState<Tab>('swatches')
   const [hex, setHex] = useState(value)
   const [hexTxt, setHexTxt] = useState(value)
@@ -56,18 +58,9 @@ export function ColorPicker({ value, onChange, onPreview, onClose, anchor }: { v
     const close = (e: PointerEvent) => {
       if (!ref.current?.contains(e.target as Node) && !anchor?.contains(e.target as Node)) done()
     }
-    const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopImmediatePropagation()
-        onPreview?.(null)
-        onClose()
-      }
-    }
     window.addEventListener('pointerdown', close)
-    window.addEventListener('keydown', esc, true)
     return () => {
       window.removeEventListener('pointerdown', close)
-      window.removeEventListener('keydown', esc, true)
     }
   })
 

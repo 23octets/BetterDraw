@@ -1,28 +1,44 @@
+import { cleanOrphanImagesBestEffort } from './storage'
 import { nanoid } from 'nanoid'
 import { applyPatches, enablePatches, type Patch } from 'immer'
 import { db } from './db'
 import { defaultDoc } from '../model/defaults'
-import type { DocState, HistoryEntry, Project, Variant } from '../model/types'
+import type { DocState, HistoryEntry, Project, ProjectKind, Variant, Wall } from '../model/types'
 
 enablePatches()
 
 const now = () => Date.now()
 
-export async function listProjects(): Promise<(Project & { variants: Variant[] })[]> {
+/** Murs 2D indépendants d'un projet (hors du plan de la pièce). */
+export const standaloneWalls = (walls: Wall[]) => walls.filter((w) => w.standalone && !w.group)
+
+/** Une pièce 3D, un mur 2D seul, ou les deux. */
+export function projectKind(project: Pick<Project, 'room'>, walls: Wall[]): ProjectKind {
+  const has2d = standaloneWalls(walls).length > 0
+  if (!project.room) return 'wall'
+  return has2d ? 'both' : 'room'
+}
+
+export async function listProjects(): Promise<(Project & { variants: Variant[]; walls: Wall[]; kind: ProjectKind })[]> {
   const projects = await db.projects.orderBy('updatedAt').reverse().toArray()
   const out = []
   for (const p of projects) {
     const variants = await db.variants.where('projectId').equals(p.id).sortBy('createdAt')
-    out.push({ ...p, variants })
+    const walls = await db.walls.where('projectId').equals(p.id).toArray()
+    out.push({ ...p, variants, walls, kind: projectKind(p, walls) })
   }
   return out
 }
 
-export async function createProject(name: string, wall?: { w: number; h: number }) {
+export async function listWalls(projectId: string) {
+  return db.walls.where('projectId').equals(projectId).toArray()
+}
+
+export async function createProject(name: string, wall?: { w: number; h: number }, initialState?: DocState) {
   const t = now()
   const project: Project = { id: nanoid(10), name, createdAt: t, updatedAt: t }
   const wallId = nanoid(10)
-  const state = defaultDoc()
+  const state = initialState ?? defaultDoc()
   if (wall) state.wall = { ...wall }
   const variant: Variant = {
     id: nanoid(10), projectId: project.id, wallId, name: 'Variante A',
@@ -30,7 +46,7 @@ export async function createProject(name: string, wall?: { w: number; h: number 
   }
   await db.transaction('rw', db.projects, db.walls, db.variants, async () => {
     await db.projects.add(project)
-    await db.walls.add({ id: wallId, projectId: project.id, name: 'Mur 1' })
+    await db.walls.add({ id: wallId, projectId: project.id, name: 'Mur 1', standalone: true })
     await db.variants.add(variant)
   })
   return { project, variant }
@@ -41,13 +57,14 @@ export async function renameProject(id: string, name: string) {
 }
 
 export async function deleteProject(id: string) {
-  await db.transaction('rw', [db.projects, db.walls, db.variants, db.entries], async () => {
+  await db.transaction('rw', [db.projects, db.walls, db.variants, db.entries, db.images], async () => {
     const variants = await db.variants.where('projectId').equals(id).toArray()
     for (const v of variants) await db.entries.where('variantId').equals(v.id).delete()
     await db.variants.where('projectId').equals(id).delete()
     await db.walls.where('projectId').equals(id).delete()
     await db.projects.delete(id)
   })
+  await cleanOrphanImagesBestEffort()
 }
 
 export async function listVariants(projectId: string) {
@@ -62,15 +79,25 @@ export async function getProject(id: string) {
   return db.projects.get(id)
 }
 
+export class ConflictError extends Error {
+  constructor() { super('Cette variante a été modifiée dans un autre onglet. Exportez votre dessin de secours, puis rechargez la page. Le fichier peut être importé depuis l’accueil comme nouveau projet.') }
+}
+
+function checkExpected(v: Variant, expected: Variant) {
+  // Toute écriture du dessin ajoute une séquence ; les déplacements ne changent que la tête.
+  if (v.headSeq !== expected.headSeq || v.maxSeq !== expected.maxSeq) throw new ConflictError()
+}
+
 /**
  * Enregistre une modification : nouvelle entrée d'historique + état courant.
  * Si on avait remonté le temps, rien n'est perdu : une entrée « Retour à l'état #k »
  * est d'abord ajoutée (elle annule la suite), puis la nouvelle modification.
  */
-export async function recordChange(variantId: string, label: string, state: DocState, patches: Patch[], inverse: Patch[]) {
+export async function recordChange(variantId: string, label: string, state: DocState, patches: Patch[], inverse: Patch[], expected: Variant) {
   return db.transaction('rw', db.variants, db.entries, db.projects, async () => {
     const v = await db.variants.get(variantId)
     if (!v) throw new Error('variante introuvable')
+    checkExpected(v, expected)
     const ts = now()
     let seq = v.maxSeq + 1
     if (v.maxSeq > v.headSeq) {
@@ -89,6 +116,18 @@ export async function recordChange(variantId: string, label: string, state: DocS
   })
 }
 
+/** Enregistre un réglage (affichage, préférence) dans l'état courant, sans entrée d'historique. */
+export async function saveSettings(variantId: string, state: DocState, expected: Variant) {
+  await db.transaction('rw', db.variants, db.projects, async () => {
+    const v = await db.variants.get(variantId)
+    if (!v) throw new Error('variante introuvable')
+    checkExpected(v, expected)
+    const ts = now()
+    await db.variants.update(variantId, { state, updatedAt: ts })
+    await db.projects.update(v.projectId, { updatedAt: ts })
+  })
+}
+
 export async function listEntries(variantId: string) {
   return db.entries.where('variantId').equals(variantId).sortBy('seq')
 }
@@ -97,10 +136,11 @@ export async function listEntries(variantId: string) {
  * Déplace la tête d'historique vers `target` en appliquant les patches inverses (retour)
  * ou directs (avance). Renvoie le nouvel état.
  */
-export async function moveHead(variantId: string, target: number): Promise<Variant> {
+export async function moveHead(variantId: string, target: number, expected: Variant): Promise<Variant> {
   return db.transaction('rw', db.variants, db.entries, async () => {
     const v = await db.variants.get(variantId)
     if (!v) throw new Error('variante introuvable')
+    checkExpected(v, expected)
     target = Math.max(0, Math.min(v.maxSeq, target))
     let state = v.state
     if (target < v.headSeq) {
@@ -157,8 +197,9 @@ export async function renameVariant(id: string, name: string) {
 }
 
 export async function deleteVariant(id: string) {
-  await db.transaction('rw', db.variants, db.entries, async () => {
+  await db.transaction('rw', db.variants, db.entries, db.images, async () => {
     await db.entries.where('variantId').equals(id).delete()
     await db.variants.delete(id)
   })
+  await cleanOrphanImagesBestEffort()
 }

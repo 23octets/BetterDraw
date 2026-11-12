@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { clickWall, newProject } from './helpers'
 
-test('mentions accessibles et parcours principal sans réseau tiers', async ({ page, context, baseURL }) => {
+test('@essentiel mentions accessibles et parcours principal sans réseau tiers', async ({ page, context, baseURL }) => {
   const external: string[] = []
   const origin = new URL(baseURL!).origin
   // Observer les tentatives, même si la requête échoue ; inclut polices, scripts et images.
@@ -19,6 +19,8 @@ test('mentions accessibles et parcours principal sans réseau tiers', async ({ p
   const link = page.getByRole('button', { name: 'Mentions légales', exact: true })
   await link.click()
   await expect(page.getByRole('dialog')).toContainText('IndexedDB')
+  await expect(page.getByRole('dialog')).toContainText('98434012500017')
+  await expect(page.getByRole('dialog').getByRole('link', { name: 'contact@23o.dev' })).toHaveAttribute('href', 'mailto:contact@23o.dev')
   await page.keyboard.press('Escape')
   await expect(link).toBeFocused()
   await newProject(page, 'Confidentialité')

@@ -5,7 +5,7 @@ import { legal } from '../config/legal'
 export function LegalInfo() {
   const dialog = useRef<HTMLDialogElement>(null)
   const fields = [
-    ['Éditeur', legal.publisher], ['Statut', legal.status],
+    ['Éditeur', legal.publisher], ['Adresse', legal.address], ['Statut', legal.status],
     ['Immatriculation', legal.registration], ['Directeur de la publication', legal.publicationDirector],
     ['Hébergeur', legal.host],
   ]
@@ -17,13 +17,14 @@ export function LegalInfo() {
         <button type="button" autoFocus onClick={() => dialog.current?.close()} aria-label="Fermer les mentions légales">Fermer</button>
       </header>
       <div className="modal-pad">
-        <p role="note">Document en préparation : les informations légales doivent être complétées et confirmées avant toute publication.</p>
         <h3>Mentions légales</h3>
-        <dl>{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ?? 'Non renseigné — publication bloquée'}</dd></div>)}</dl>
+        <dl>{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
         <h3>Contact</h3>
-        {legal.contactEmail ? <a href={`mailto:${legal.contactEmail}`}>{legal.contactEmail}</a> : <p>Non renseigné — publication bloquée</p>}
+        <a href={`mailto:${legal.contactEmail}`}>{legal.contactEmail}</a>
         <h3>Notice de confidentialité</h3>
         {legal.privacy.map(([title, text]) => <section key={title}><h4>{title}</h4><p>{text}</p></section>)}
+        <h3>Sources de l’hébergeur</h3>
+        <ul>{legal.sources.map(({ label, url }) => <li key={url}><a href={url} target="_blank" rel="noreferrer">{label}</a></li>)}</ul>
       </div>
     </dialog>, document.body)}
   </>

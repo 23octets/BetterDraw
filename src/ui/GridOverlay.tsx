@@ -3,22 +3,6 @@ import type { DocState } from '../model/types'
 import { gridLayout } from '../geometry/grid'
 import type { View } from '../store/editor'
 
-/** Lignes de grille (en coordonnées monde, trait non mis à l'échelle). */
-export function GridLines({ doc, strong }: { doc: DocState; strong?: boolean }) {
-  const layout = useMemo(() => gridLayout(doc.wall, doc.grid), [doc.wall, doc.grid])
-  if (!doc.grid.show) return null
-  return (
-    <g className={`grid-lines${strong ? ' strong' : ''}`} data-testid="grid-lines">
-      {layout.vLines.map((l, i) => (
-        <line key={`v${i}`} x1={l.pos} x2={l.pos} y1={0} y2={doc.wall.h} />
-      ))}
-      {layout.hLines.map((l, i) => (
-        <line key={`h${i}`} x1={0} x2={doc.wall.w} y1={l.pos} y2={l.pos} />
-      ))}
-    </g>
-  )
-}
-
 /** Repères (A, B… / 1, 2…) et cotes, dessinés en coordonnées écran. */
 export function GridLabels({ doc, view }: { doc: DocState; view: View }) {
   const layout = useMemo(() => gridLayout(doc.wall, doc.grid), [doc.wall, doc.grid])

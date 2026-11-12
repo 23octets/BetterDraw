@@ -1,4 +1,4 @@
-# BetterDraw
+# frsque
 
 Dessiner à l'échelle un décor mural, le peindre zone par zone, puis le reporter sur le vrai mur
 grâce à une grille de carroyage cotée.
@@ -15,10 +15,13 @@ npm run dev          # http://localhost:5199
 ## Fonctionnalités
 
 - **Projets et mur** : mur rectangulaire en cm (300 × 250 cm par défaut), redimensionnable.
-- **Pièces en 3D** : un projet peut être une pièce (« Une pièce (3D) » à la création, ou bouton cube pour transformer un mur seul).
+- **Types de projet** : un mur 2D seul, une pièce 3D, ou les deux (« Pièce 3D + mur 2D »). On ajoute la partie manquante ensuite : bouton cube sur la carte d’un mur seul (le mur 2D est gardé, le premier mur de la pièce reçoit une copie de son dessin), « Ajouter un mur 2D » sur une pièce.
+- **Import de fresques** : « Importer une fresque… » (panneau d’un mur de la pièce, ou page des variantes du mur 2D) copie le dessin d’un autre mur, de ce projet ou d’un autre, en nouvelle variante. Sur un mur de pièce, la copie prend la taille du mur et reste posée au sol.
+- **Pièces en 3D** :
   - Plan 2D : angles déplaçables, aimantés sur une grille de 5 cm et sur l'alignement des autres angles (`⌥` = libre). Double-clic sur un mur pour ajouter un angle. Longueurs, hauteur sous plafond et épaisseur se règlent au clavier. Annuler / rétablir.
   - Portes et fenêtres : position depuis la gauche, largeur, hauteur, allège. On les glisse le long du mur sur le plan.
   - Chaque mur se peint dans l'éditeur habituel (vu de l'intérieur, ouvertures hachurées, taille fixée par le plan), avec passage au mur voisin ‹ ›. Les variantes sont propres à chaque mur ; la dernière ouverte est celle montrée en 3D.
+  - Affichage Plan, Plan + 3D, 3D, et « 2D » : ouvre en 2D le mur sélectionné (sinon le mur 2D du projet). « Décroché en L » entaille un angle du mur ou de l’angle sélectionné.
   - Vue 3D (Three.js) : orbite « maison de poupée » (murs côté caméra coupés), double-clic sur un mur pour le peindre, visite à la première personne (ZQSD, souris).
 - **Grille de carroyage** : pas réglable, repères A1, B2… et cotes depuis le coin choisi (bas-gauche par défaut),
   dernière case partielle si besoin.
@@ -34,10 +37,28 @@ npm run dev          # http://localhost:5199
 - **Historique illimité et persistant** : annuler/rétablir, frise navigable ; rien n'est perdu après un retour en arrière.
 - **Variantes** : snapshot → variante indépendante, galerie, comparaison côte à côte (2 à 4, zoom synchronisé).
 - **Images en filigrane** : plusieurs images, déplacement, agrandissement proportionnel, opacité, verrouillage ;
-  absentes des exports PDF, PNG et SVG, incluses dans la sauvegarde JSON.
+  jamais exportées.
 - **Consultation** : le rendu sans les traits ni les images, avec réglage des teintes ; zoom case par case avec les cotes de la case, choix des cases à imprimer.
 - **Exports** : PDF chantier (vue d'ensemble cotée + cases choisies en grand), PNG, SVG,
   sauvegarde du projet en JSON (réimportable depuis l'accueil).
+
+## Enregistrement et récupération
+
+Après un échec d’enregistrement, le dessin reste en mémoire et affiche « Non enregistré ».
+Réessayer rejoue les modifications dans leur ordre, sans sauter d’entrée d’historique.
+Avant de fermer ou recharger la page, « Exporter le secours » produit un JSON réimportable
+depuis l’accueil comme nouveau projet. Le dessin en mémoire y remplace sa version enregistrée,
+avec un historique remis à zéro ; les autres variantes gardent leur historique.
+Si le stockage est inaccessible, seul le dessin sans images peut être récupéré.
+
+Deux onglets peuvent ouvrir une variante, mais une écriture vérifie dans la même transaction
+la position et la dernière séquence de son historique. Un onglet périmé ne peut pas écraser
+les modifications de l’autre : il faut exporter son secours, puis recharger.
+Les déplacements dans l’historique sont également contrôlés. La navigation et la création
+de copies restent bloquées tant qu’un échec n’est pas résolu.
+
+Une erreur de rendu affiche un écran de récupération proposant le secours du dessin ouvert,
+le rechargement et le retour à l’accueil.
 
 ## Tests
 
@@ -45,9 +66,14 @@ npm run dev          # http://localhost:5199
 npm run typecheck
 npm test             # tests unitaires (Vitest)
 npm run test:e2e     # tests de bout en bout (Playwright), captures dans docs/screenshots
+npm run test:e2e:essentiel  # socle @essentiel lancé sur chaque PR
 npm run test:all
 npm run size         # budget de taille du bundle, après npm run build (.size-limit.json)
 ```
+
+En CI, les PR vers `dev` et `main`, les pushes de ces branches et la merge queue lancent les E2E complets. Les PR vers d’autres bases lancent le socle `@essentiel` : dessin, peinture, historique, exports, sauvegardes et récupération. Ajouter ce tag seulement à un test qui protège les données de l'utilisateur ou un parcours central.
+
+Les icônes de `public/` se régénèrent depuis les SVG de `assets/icon/` avec `assets/icon/generer.sh` (Chrome sur macOS et ImageMagick).
 
 La régression visuelle (`e2e/visual.spec.ts`) ne tourne qu'en CI, car ses images de référence dépendent du rendu Linux. Après un changement visuel voulu, ou une mise à jour de Playwright qui change le rendu :
 
@@ -60,25 +86,52 @@ Relire les images, les copier dans `e2e/__screenshots__`, puis les committer (`g
 
 Les tests e2e génèrent des captures dans `docs/screenshots/` et un exemple de PDF chantier dans `docs/exemple-chantier.pdf` (non versionnés).
 
+## Déploiement
+
+Le [circuit de déploiement et de recette](docs/deploiement.md) décrit les previews Cloudflare,
+la merge queue et la recette obligatoire avant production.
+
+## Données locales et sauvegardes
+
+L’accueil permet de télécharger chaque projet en JSON avec ses variantes, son
+historique et ses images, puis de le réimporter. Garder ces fichiers en dehors du
+navigateur : vider ses données efface les projets. La protection de stockage
+persistant, si le navigateur l’accorde, ne protège pas d’un effacement manuel.
+
+L’espace affiché est l’estimation du navigateur pour ce site. Les nouvelles images
+de référence sont réduites à 2 048 pixels sur leur plus grand côté. Les images
+sans référence sont nettoyées à l’ouverture, à la suppression d’un projet ou
+d’une variante, et par le bouton de nettoyage. Les ajouts de moins de 24 heures
+restent conservés pour protéger les enregistrements en cours dans un autre onglet.
+Les états courants et les deux sens de l’historique de toutes les variantes
+protègent leurs images, y compris les sources des retouches et les images partagées.
+
+Si un enregistrement échoue, l’éditeur le signale durablement et permet de
+sauvegarder l’état affiché en JSON de secours ; cette sauvegarde exclut l’historique
+de la variante courante, dont les dernières écritures ne sont pas garanties.
+
 ## Mentions légales et confidentialité
 
 Les informations publiées et le nom affiché du produit sont centralisés dans
-`src/config/legal.ts`. **Cette branche est un brouillon : ne pas fusionner ni publier
-avant la réponse du propriétaire et la confirmation du texte selon son statut.**
-Les champs `null` ne sont pas des valeurs publiables. Le propriétaire doit également
-confirmer les modalités des journaux techniques de l’hébergeur ; la notice actuelle
-signale cette information encore manquante.
+`src/config/legal.ts`. Les coordonnées de l’éditeur et du directeur de publication
+ont été autorisées par le propriétaire. Faire confirmer le texte selon le statut
+de l’éditeur, et le revoir lors d’un changement de traitement ou d’hébergement.
 
-Vérification du code pour cette notice : `src/store/db.ts` et `images.ts` (IndexedDB,
-lecture locale des images), `src/ui/Editor.tsx` et `src/room/RoomPage.tsx`
-(localStorage), `src/export/project.ts` (JSON avec images), `src/export/pdf.ts` et
-`svg.ts` (exports locaux sans images de référence), `src/index.css` (polices système).
-Aucun appel réseau applicatif, traceur, cookie ou chargement de police distante n’a
-été trouvé dans les sources, `public` et `index.html`. Le chargement des ressources
-du site reste nécessaire ; les journaux du futur hébergement ne sont pas vérifiables ici.
+La notice est fondée sur `src/store/db.ts`, `images.ts`, `storage.ts`, les réglages
+localStorage de l’éditeur et des pièces, et les exports locaux (`src/export/`).
+Aucun appel réseau applicatif, traceur, cookie ni police distante n’a été trouvé
+dans `src`, `public` et `index.html`. Les sauvegardes JSON incluent les images ;
+les exports PDF, PNG et SVG les excluent. Le nettoyage des images inutilisées
+reste distinct de la suppression des projets.
 
-`e2e/legal.spec.ts` vérifie l’accès aux informations depuis l’accueil et l’éditeur,
-et échoue si une requête HTTP(S) ou une connexion WebSocket vers une autre origine
-est tentée pendant création, import d’image, dessin, peinture, consultation et exports.
-Ce contrôle porte sur ce parcours, pas sur les futures configurations d’hébergement
-ni sur des fonctionnalités non parcourues.
+Les sources officielles Cloudflare sont liées dans la configuration (consultation
+le 12 novembre 2026). Sa politique ne fixe pas une durée unique pour tous ses
+traitements. La limite de 7 jours documentée pour Workers Logs ne doit pas être
+présentée comme la durée de tous les journaux Cloudflare ni comme une vérification
+du paramétrage réel du compte. Aucune configuration d’hébergement n’est modifiée.
+
+`e2e/legal.spec.ts` vérifie l’accès depuis l’accueil et l’éditeur, la navigation au
+clavier, et l’absence de tentative HTTP(S) ou WebSocket vers une autre origine sur
+le parcours création, import d’image, dessin, peinture, consultation et exports.
+Ce contrôle couvre ce parcours ; il ne remplace pas l’examen des autres parcours,
+des dépendances ni de la configuration d’hébergement.

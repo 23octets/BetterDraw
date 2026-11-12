@@ -1,3 +1,6 @@
+import { COMPACT_QUERY } from './compact'
+import { gridLayout } from '../geometry/grid'
+import { storageError } from '../store/storage'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useEditor } from '../store/editor'
 import { GridLabels } from './GridOverlay'
@@ -7,13 +10,19 @@ import { DocLayers } from './DocLayers'
 import { importImageFiles } from './ImagesSection'
 import { openingRect, windowBars } from '../room/geometry'
 
-export function fitView(wall: { w: number; h: number; x?: number; y?: number }, size: { w: number; h: number }, margin = 70) {
+export function fitView(wall: { w: number; h: number; x?: number; y?: number }, size: { w: number; h: number }, margin = 70, vertical?: { top: number; bottom: number }) {
   const ox = wall.x ?? 0
   const oy = wall.y ?? 0
-  // marge du bas plus grande : les contrôles de zoom flottent en bas à droite
-  const bottomExtra = 36
-  const zoom = Math.max(0.05, Math.min((size.w - margin * 2) / wall.w, (size.h - margin * 2 - bottomExtra) / wall.h))
-  return { zoom, panX: (size.w - wall.w * zoom) / 2 - ox * zoom, panY: (size.h - bottomExtra - wall.h * zoom) / 2 - oy * zoom }
+  // Les marges verticales réservent la place des cotes et des contrôles.
+  const top = vertical?.top ?? margin
+  const bottom = vertical?.bottom ?? margin + 36
+  const zoom = Math.max(0.05, Math.min((size.w - margin * 2) / wall.w, (size.h - top - bottom) / wall.h))
+  return { zoom, panX: (size.w - wall.w * zoom) / 2 - ox * zoom, panY: top + (size.h - top - bottom - wall.h * zoom) / 2 - oy * zoom }
+}
+
+function fitCanvas(wall: Parameters<typeof fitView>[0], size: Parameters<typeof fitView>[1], margin = 70) {
+  const compact = window.matchMedia(COMPACT_QUERY).matches
+  return fitView(wall, size, margin, compact ? { top: 24, bottom: 60 } : undefined)
 }
 
 export function Canvas() {
@@ -27,6 +36,9 @@ export function Canvas() {
   const panning = useRef<{ x: number; y: number; px: number; py: number } | null>(null)
   const [spaceDown, setSpaceDown] = useState(false)
   const fitted = useRef(false)
+  const touches = useRef(new Map<number, { x: number; y: number }>())
+  const gesture = useRef(false)
+  const tap = useRef<{ x: number; y: number } | null>(null)
 
   useLayoutEffect(() => {
     const el = ref.current
@@ -36,7 +48,7 @@ export function Canvas() {
       setSize({ w: r.width, h: r.height })
       if (!fitted.current && r.width > 0) {
         fitted.current = true
-        setView(fitView(useEditor.getState().doc.wall, { w: r.width, h: r.height }))
+        setView(fitCanvas(useEditor.getState().doc.wall, { w: r.width, h: r.height }))
       }
     })
     ro.observe(el)
@@ -46,10 +58,18 @@ export function Canvas() {
   useEffect(() => {
     const onFit = (e: Event) => {
       const rect = (e as CustomEvent<{ x: number; y: number; w: number; h: number } | null>).detail
-      setView(rect ? fitView(rect, size, 90) : fitView(useEditor.getState().doc.wall, size))
+      setView(rect ? fitCanvas(rect, size, 90) : fitCanvas(useEditor.getState().doc.wall, size))
     }
     window.addEventListener('bd:fit', onFit)
     return () => window.removeEventListener('bd:fit', onFit)
+  }, [size, setView])
+
+  // Une rotation ou le retour du plein écran réajuste la case consultée.
+  useEffect(() => {
+    if (!window.matchMedia(COMPACT_QUERY).matches) return
+    const st = useEditor.getState()
+    const cell = gridLayout(st.doc.wall, st.doc.grid).cells.find((c) => c.id === st.consultCell)
+    setView(fitCanvas(cell ?? st.doc.wall, size, cell ? 90 : 70))
   }, [size, setView])
 
   // la taille du mur change : on réajuste la vue
@@ -58,7 +78,7 @@ export function Canvas() {
   useEffect(() => {
     if (lastWall.current === wallKey) return
     lastWall.current = wallKey
-    setView(fitView(doc.wall, size))
+    setView(fitCanvas(doc.wall, size))
   }, [wallKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const tool = useActiveTool()
@@ -121,6 +141,12 @@ export function Canvas() {
 
   function onPointerDown(e: React.PointerEvent) {
     ref.current?.setPointerCapture(e.pointerId)
+    if (e.pointerType === 'touch' && mode === 'consult') {
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (touches.current.size === 1) { tap.current = { x: e.clientX, y: e.clientY }; gesture.current = false }
+      else { gesture.current = true; tap.current = null }
+      return
+    }
     if (e.button === 1 || e.button === 2 || spaceDown) {
       const v = useEditor.getState().view
       panning.current = { x: e.clientX, y: e.clientY, px: v.panX, py: v.panY }
@@ -129,6 +155,22 @@ export function Canvas() {
     tool.onPointerDown?.(toPointer(e))
   }
   function onPointerMove(e: React.PointerEvent) {
+    if (touches.current.has(e.pointerId)) {
+      const before = [...touches.current.values()]
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      const after = [...touches.current.values()]
+      if (tap.current && Math.hypot(e.clientX - tap.current.x, e.clientY - tap.current.y) > 8) tap.current = null
+      if (before.length === 2) {
+        const mid = (p: typeof before) => ({ x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 })
+        const distance = (p: typeof before) => Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y)
+        const a = mid(before), b = mid(after), r = ref.current!.getBoundingClientRect()
+        const v = useEditor.getState().view
+        const zoom = Math.max(0.05, Math.min(80, v.zoom * distance(after) / Math.max(1, distance(before))))
+        setView({ zoom, panX: b.x - r.left - (a.x - r.left - v.panX) / v.zoom * zoom,
+          panY: b.y - r.top - (a.y - r.top - v.panY) / v.zoom * zoom })
+      }
+      return
+    }
     if (panning.current) {
       const p = panning.current
       setView({ panX: p.px + e.clientX - p.x, panY: p.py + e.clientY - p.y })
@@ -137,6 +179,12 @@ export function Canvas() {
     tool.onPointerMove?.(toPointer(e))
   }
   function onPointerUp(e: React.PointerEvent) {
+    if (touches.current.has(e.pointerId)) {
+      touches.current.delete(e.pointerId)
+      if (!gesture.current && tap.current) tool.onPointerDown?.(toPointer(e))
+      tap.current = null
+      return
+    }
     if (panning.current) {
       panning.current = null
       return
@@ -154,13 +202,14 @@ export function Canvas() {
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onPointerCancel={(e) => { touches.current.delete(e.pointerId); tap.current = null; gesture.current = true }}
       onPointerLeave={() => tool.onPointerLeave?.()}
       onDoubleClick={(e) => tool.onDoubleClick?.(toPointer(e))}
       onContextMenu={(e) => e.preventDefault()}
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault()
-        if (e.dataTransfer.files.length) importImageFiles(e.dataTransfer.files)
+        if (e.dataTransfer.files.length) importImageFiles(e.dataTransfer.files).catch((err) => useEditor.getState().flash(storageError(err), 'error'))
       }}
     >
       <g transform={t} data-testid="world">
@@ -168,7 +217,8 @@ export function Canvas() {
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} fill={doc.background.hex} className="wall" data-testid="wall" />
         <DocLayers doc={doc} mode={mode} />
         <OpeningsLayer wallH={doc.wall.h} />
-        <GridLinesAdaptive doc={doc} strong={mode === 'consult'} idPrefix="cv" style={gridPreview} />
+        <GridLinesAdaptive doc={doc} idPrefix="cv" style={gridPreview} />
+        <SeamsLayer wallH={doc.wall.h} />
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} className="wall-outline" />
         {tool.renderWorld?.()}
       </g>
@@ -178,10 +228,28 @@ export function Canvas() {
   )
 }
 
+/**
+ * Jonctions entre murs liés. Posées au-dessus de la grille : dans une zone peinte, la grille repeint
+ * chaque ligne de la couleur de l'aplat, ce qui masquait une jonction tombant sur une ligne de grille.
+ */
+function SeamsLayer({ wallH }: { wallH: number }) {
+  const seams = useEditor((s) => s.room?.seams)
+  if (!seams?.length) return null
+  return (
+    <g className="seams-layer" data-testid="seams-layer">
+      {seams.map((s, k) => (
+        <g key={k} className="group-seam" data-testid="group-seam">
+          {s.x > 0 && <line x1={s.x} y1={0} x2={s.x} y2={wallH} />}
+        </g>
+      ))}
+    </g>
+  )
+}
+
 /** Portes et fenêtres de la pièce, en surimpression (on ne peint pas dedans en 3D). */
 function OpeningsLayer({ wallH }: { wallH: number }) {
   const room = useEditor((s) => s.room)
-  if (!room || (!room.openings.length && !room.masks?.length && !room.seams?.length)) return null
+  if (!room || (!room.openings.length && !room.masks?.length)) return null
   return (
     <g className="openings-layer" data-testid="openings-layer">
       <defs>
@@ -194,11 +262,6 @@ function OpeningsLayer({ wallH }: { wallH: number }) {
           <rect x={m.x} y={m.y} width={m.w} height={m.h} className="opening-fill" />
           <rect x={m.x} y={m.y} width={m.w} height={m.h} fill="url(#opening-hatch)" className="opening-hatch" />
           <text x={m.x + m.w / 2} y={Math.min(m.h / 2, 40)} textAnchor="middle" className="opening-label" fontSize={Math.max(6, Math.min(14, m.w / 5))}>Pas de mur</text>
-        </g>
-      ))}
-      {room.seams?.map((s, k) => (
-        <g key={`s${k}`} className="group-seam" data-testid="group-seam">
-          {s.x > 0 && <line x1={s.x} y1={0} x2={s.x} y2={wallH} />}
         </g>
       ))}
       {room.openings.map((o) => {

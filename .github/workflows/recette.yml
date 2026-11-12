@@ -1,0 +1,42 @@
+name: Promotion et recette
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recette-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  promotion:
+    name: Branche de promotion
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          test "$HEAD_BRANCH" = dev
+          test "$HEAD_REPOSITORY" = "$GITHUB_REPOSITORY"
+
+  recette:
+    name: Recette
+    if: github.event_name == 'pull_request'
+    needs: [promotion]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: recette
+      url: https://dev.betterdraw.yohan.one
+    steps:
+      - name: Recette approuvée pour cette révision
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: echo "Recette approuvée pour $HEAD_SHA"

@@ -1,13 +1,16 @@
+import { COMPACT_QUERY } from '../ui/compact'
+import { storageError } from '../store/storage'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { nanoid } from 'nanoid'
-import type { DocState, Opening, OpeningKind, Project, RoomGroup, RoomPlan, Vec } from '../model/types'
+import type { DocState, Opening, OpeningKind, Project, RoomGroup, RoomPlan, Variant, Vec, Wall } from '../model/types'
 import * as repo from '../store/repo'
 import * as rooms from '../store/rooms'
 import type { WallInfo } from '../store/rooms'
-import { navigate } from '../ui/router'
+import { navigate, registerNavigationGuard } from '../ui/router'
 import { Icon } from '../ui/icons'
 import { NumberField, TextField } from '../ui/fields'
-import { DocPreview } from '../ui/DocPreview'
+import { DocPreview, Thumb } from '../ui/DocPreview'
+import { FrescoImportDialog } from '../ui/FrescoImportDialog'
 import { PlanEditor, type RoomSelection } from './PlanEditor'
 import { Room3D } from './Room3D'
 import type { WallPaint } from './scene3d'
@@ -18,7 +21,21 @@ import {
 
 type Layout = 'plan' | 'split' | '3d'
 
+/** Mur 2D indépendant du projet (hors du plan), avec sa dernière variante. */
+interface FlatWall { wall: Wall; latest: Variant | null }
+
+async function loadFlatWall(projectId: string): Promise<FlatWall | null> {
+  const wall = repo.standaloneWalls(await repo.listWalls(projectId))[0]
+  if (!wall) return null
+  const vs = (await repo.listVariants(projectId)).filter((v) => v.wallId === wall.id)
+  return { wall, latest: [...vs].sort((a, b) => b.updatedAt - a.updatedAt)[0] ?? null }
+}
+
 let saveQueue: Promise<unknown> = Promise.resolve()
+async function flushRoomSaves() {
+  let pending: Promise<unknown>
+  do { pending = saveQueue; await pending } while (pending !== saveQueue)
+}
 /** Historique du plan, conservé pendant la session (aller peindre un mur puis revenir ne le perd pas). */
 const histories = new Map<string, { past: RoomPlan[]; future: RoomPlan[] }>()
 function historyOf(projectId: string) {
@@ -33,6 +50,9 @@ export function RoomPage({ projectId }: { projectId: string }) {
   const [preview, setPreview] = useState<RoomPlan | null>(null)
   const [walls, setWalls] = useState<WallInfo[]>([])
   const [groups, setGroups] = useState<Map<string, WallInfo>>(new Map())
+  const [flat, setFlat] = useState<FlatWall | null>(null)
+  /** Mur (ou groupe de murs liés) qui reçoit une fresque importée. */
+  const [importInto, setImportInto] = useState<number | null>(null)
   const live = useRef({ groups, walls })
   live.current = { groups, walls }
   /** Mode « lier des murs » : murs cochés, et groupe modifié (null = nouveau groupe). */
@@ -40,6 +60,17 @@ export function RoomPage({ projectId }: { projectId: string }) {
   const [sel, setSel] = useState<RoomSelection>(null)
   const [layout, setLayout] = useState<Layout>(() => (localStorage.getItem('bd:room-layout') as Layout) || 'split')
   const [saving, setSaving] = useState(0)
+  const [saveError, setSaveError] = useState('')
+  const [rescueMessage, setRescueMessage] = useState('')
+  const saveErrorRef = useRef('')
+  useEffect(() => {
+    const unregister = registerNavigationGuard(() => !!saveErrorRef.current, flushRoomSaves)
+    const guard = (e: BeforeUnloadEvent) => {
+      if (saveErrorRef.current) { e.preventDefault(); e.returnValue = '' }
+    }
+    window.addEventListener('beforeunload', guard)
+    return () => { unregister(); window.removeEventListener('beforeunload', guard) }
+  }, [])
   const [msg, setMsg] = useState<string | null>(null)
   /** Côté qui s'allonge quand on change la longueur d'un mur. */
   const [grow, setGrow] = useState<GrowSide>(() => (localStorage.getItem('bd:room-grow') as GrowSide) || 'right')
@@ -52,6 +83,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
     if (!p) return
     setWalls(await rooms.loadRoomWalls(p))
     setGroups(await rooms.loadRoomGroups(p))
+    setFlat(await loadFlatWall(projectId))
   }, [projectId])
 
   useEffect(() => {
@@ -63,6 +95,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
       setRoom(p.room)
       setWalls(await rooms.loadRoomWalls(p))
       setGroups(await rooms.loadRoomGroups(p))
+      setFlat(await loadFlatWall(projectId))
     })()
   }, [projectId])
 
@@ -102,10 +135,11 @@ export function RoomPage({ projectId }: { projectId: string }) {
     setSaving((s) => s + 1)
     saveQueue = saveQueue
       .then(() => rooms.saveRoom(projectId, next))
-      .then(refreshWalls)
+      .then(() => { saveErrorRef.current = ''; setSaveError(''); return refreshWalls() })
       .catch((e) => {
         console.error(e)
-        flash('Enregistrement impossible (voir la console)')
+        saveErrorRef.current = storageError(e)
+        setSaveError(saveErrorRef.current)
       })
       .finally(() => setSaving((s) => s - 1))
   }
@@ -153,6 +187,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
   keys.current = { undo, redo, sel, room, commit }
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
+      if (window.matchMedia(COMPACT_QUERY).matches) return
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || document.pointerLockElement) return
       const { undo, redo, sel, room, commit } = keys.current
       const mod = e.metaKey || e.ctrlKey
@@ -223,6 +258,26 @@ export function RoomPage({ projectId }: { projectId: string }) {
     })
   }
 
+  /** Vue 2D : le mur sélectionné, sinon le mur 2D du projet, sinon le premier mur. */
+  const open2d = () => {
+    if (selectedWall !== null) return openWall(selectedWall)
+    if (flat?.latest) return navigate(`/v/${flat.latest.id}`)
+    openWall(0)
+  }
+  const addFlatWall = async () => {
+    try {
+      const v = await rooms.addStandaloneWall(projectId)
+      navigate(`/v/${v.id}`)
+    } catch (e) { flash(storageError(e)) }
+  }
+  /** Surface peinte par le mur i (son groupe s'il est lié) : cible d'un import de fresque. */
+  const importTarget = (i: number) => {
+    const rw = room.walls[i]
+    const g = groupOf(room, rw.id)
+    if (g) return { id: g.id, name: groups.get(g.id)?.wall.name ?? 'Murs liés', size: { w: groupLayout(room, g.walls).width, h: room.height } }
+    return { id: rw.id, name: names[i], size: { w: Math.round(wallLength(room, i) * 10) / 10, h: room.height } }
+  }
+
   const startLink = (i: number) => {
     const g = groupOf(room, room.walls[i].id)
     setLinking({ ids: g ? [...g.walls] : [room.walls[i].id], groupId: g?.id ?? null })
@@ -247,7 +302,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
       try {
         await saveQueue
         group = await rooms.createWallGroup(projectId, room, ids)
-      } finally {
+      } catch (e) { flash(storageError(e)); return } finally {
         setSaving((x) => x - 1)
       }
     }
@@ -262,7 +317,7 @@ export function RoomPage({ projectId }: { projectId: string }) {
         <button className="icon-btn ghost" onClick={() => navigate('/')} title="Retour aux projets"><Icon name="arrowLeft" size={16} /> Projets</button>
         <div className="title">
           <TextField className="project-title" value={project.name} testId="room-title" onCommit={async (name) => {
-            await repo.renameProject(project.id, name)
+            try { await repo.renameProject(project.id, name) } catch (e) { alert(storageError(e)); return }
             setProject({ ...project, name })
           }} />
         </div>
@@ -270,14 +325,21 @@ export function RoomPage({ projectId }: { projectId: string }) {
           <button className={layout === 'plan' ? 'on' : ''} onClick={() => setLayout('plan')} data-testid="layout-plan">Plan</button>
           <button className={layout === 'split' ? 'on' : ''} onClick={() => setLayout('split')} data-testid="layout-split">Plan + 3D</button>
           <button className={layout === '3d' ? 'on' : ''} onClick={() => setLayout('3d')} data-testid="layout-3d">3D</button>
+          <button onClick={open2d} data-testid="layout-2d" title={selectedWall !== null ? `Dessiner ${names[selectedWall]} en 2D` : flat?.latest ? 'Ouvrir le mur 2D du projet' : `Dessiner ${names[0]} en 2D (ou sélectionne d’abord un mur)`}>2D</button>
         </div>
         <div className="spacer" />
-        <span className={`save-state${saving ? ' busy' : ''}`} data-testid="room-save-state">{saving ? 'Enregistrement…' : 'Enregistré'}</span>
+        <span className={`save-state${saveError ? ' error' : saving ? ' busy' : ''}`} data-testid="room-save-state">{saveError ? 'Échec de l’enregistrement' : saving ? 'Enregistrement…' : 'Enregistré'}</span>
         <div className="btn-group">
           <button className="icon-btn" onClick={undo} disabled={!hist.past.length} title="Annuler (⌘Z)" aria-label="Annuler" data-testid="room-undo"><Icon name="undo" /></button>
           <button className="icon-btn" onClick={redo} disabled={!hist.future.length} title="Rétablir (⇧⌘Z)" aria-label="Rétablir" data-testid="room-redo"><Icon name="redo" /></button>
         </div>
       </header>
+      <div className="mobile-notice">
+        <p>L’édition du plan et la vue 3D interactive nécessitent un ordinateur. Pour consulter le décor et ses cotes, ouvrez un mur :</p>
+        <nav className="mobile-room-walls" aria-label="Consulter les murs">
+          {names.map((name, i) => <button key={room.walls[i].id} onClick={() => openWall(i)}>Consulter {name}</button>)}
+        </nav>
+      </div>
       <main className="room-stage" ref={stageRef} style={layout === 'split' ? { gridTemplateColumns: `minmax(0, ${split}fr) 0px minmax(0, ${1 - split}fr)` } : undefined}>
         {layout !== '3d' && (
           <PlanEditor
@@ -352,7 +414,23 @@ export function RoomPage({ projectId }: { projectId: string }) {
             else setSel({ kind: 'wall', i })
           }} />
         )}
-        {msg && <div className="toast error" role="status" data-testid="room-flash">{msg}</div>}
+        {saveError && <div className="storage-failure" role="alert">
+          {rescueMessage && <p>{rescueMessage}</p>}
+          <p>{saveError} Les dernières modifications du plan ne sont pas enregistrées.</p>
+          <button onClick={() => { if (room) persist(room) }}>Réessayer l’enregistrement</button>
+          <button onClick={async () => {
+            try {
+              const { rescueRoom } = await import('../store/rescue')
+              const { data, warning } = await rescueRoom(project!, room!)
+              setRescueMessage(warning || 'Sauvegarde du plan affiché téléchargée.')
+              const { download, safeName } = await import('../export/pdf')
+              download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `${safeName(project?.name ?? 'Pièce')}.secours.frsque.json`)
+              flash('Sauvegarde du plan affiché téléchargée.')
+            } catch (e) { flash(storageError(e)) }
+          }}>Sauvegarder le plan affiché (.json)</button>
+          <button onClick={() => navigate('/')}>Accueil et sauvegardes</button>
+        </div>}
+        {msg && <div className="toast error"  role="status" data-testid="room-flash">{msg}</div>}
       </main>
       <aside className="side-panel">
         {linking ? (
@@ -382,27 +460,43 @@ export function RoomPage({ projectId }: { projectId: string }) {
             onClose={() => setSel(null)}
             onPaint={() => openWall(selectedWall)}
             onRename={async (name) => {
-              await rooms.renameWall(room.walls[selectedWall].id, name)
+              try { await rooms.renameWall(room.walls[selectedWall].id, name) } catch (e) { alert(storageError(e)); return }
               refreshWalls()
             }}
             onDisplay={async (vid) => {
-              await rooms.setDisplayVariant(room.walls[selectedWall].id, vid)
+              try { await rooms.setDisplayVariant(room.walls[selectedWall].id, vid) } catch (e) { alert(storageError(e)); return }
               refreshWalls()
             }}
             onSplit={() => {
               commit(splitWall(room, selectedWall, nanoid(10)))
               setSel({ kind: 'corner', j: selectedWall + 1 })
             }}
+            onImport={() => setImportInto(selectedWall)}
           />
         ) : (
-          <RoomSettings room={room} walls={wallsInOrder} wallView={wallView} names={names} onCommit={commit} onToggleLock={(i) => commit({ ...room, walls: room.walls.map((w, k) => (k === i ? { ...w, locked: !w.locked } : w)) })} onSelect={(i) => setSel({ kind: 'wall', i })} onPaint={openWall} />
+          <RoomSettings flat={flat} onOpenFlat={() => flat?.latest && navigate(`/v/${flat.latest.id}`)} onAddFlat={addFlatWall} room={room} walls={wallsInOrder} wallView={wallView} names={names} onCommit={commit} onToggleLock={(i) => commit({ ...room, walls: room.walls.map((w, k) => (k === i ? { ...w, locked: !w.locked } : w)) })} onSelect={(i) => setSel({ kind: 'wall', i })} onPaint={openWall} />
         )}
       </aside>
+      {importInto !== null && room.walls[importInto] && (() => {
+        const t = importTarget(importInto)
+        return (
+          <FrescoImportDialog
+            target={{ projectId, wallId: t.id, size: t.size }}
+            targetName={t.name}
+            onClose={() => setImportInto(null)}
+            onDone={async (v) => {
+              setImportInto(null)
+              await refreshWalls()
+              flash(`Fresque copiée dans ${t.name} (variante « ${v.name} »)`)
+            }}
+          />
+        )
+      })()}
     </div>
   )
 }
 
-function RoomSettings({ room, wallView, names, onCommit, onToggleLock, onSelect, onPaint }: { room: RoomPlan; walls: WallInfo[]; wallView: (i: number) => { doc: DocState; crop?: { x: number; w: number } } | null; names: string[]; onCommit: (r: RoomPlan) => void; onToggleLock: (i: number) => void; onSelect: (i: number) => void; onPaint: (i: number) => void }) {
+function RoomSettings({ flat, onOpenFlat, onAddFlat, room, wallView, names, onCommit, onToggleLock, onSelect, onPaint }: { flat: FlatWall | null; onOpenFlat: () => void; onAddFlat: () => void; room: RoomPlan; walls: WallInfo[]; wallView: (i: number) => { doc: DocState; crop?: { x: number; w: number } } | null; names: string[]; onCommit: (r: RoomPlan) => void; onToggleLock: (i: number) => void; onSelect: (i: number) => void; onPaint: (i: number) => void }) {
   const wallArea = room.walls.reduce((s, w, i) => s + wallLength(room, i) * room.height - w.openings.reduce((a, o) => a + o.w * o.h, 0), 0)
   return (
     <>
@@ -449,6 +543,21 @@ function RoomSettings({ room, wallView, names, onCommit, onToggleLock, onSelect,
             )
           })}
         </ul>
+      </section>
+      <section className="panel-section" data-testid="flat-wall">
+        <h3>Mur 2D</h3>
+        {flat ? (
+          <>
+            <p className="hint">Mur indépendant de la pièce, dessiné à plat.</p>
+            {flat.latest && <Thumb doc={flat.latest.state} onOpen={onOpenFlat} label={`Ouvrir ${flat.wall.name}`} />}
+            <button className="wide" onClick={onOpenFlat} disabled={!flat.latest} data-testid="open-flat-wall"><Icon name="fill" size={14} /> Ouvrir le mur 2D</button>
+          </>
+        ) : (
+          <>
+            <p className="hint">Ajoute un mur dessiné à plat, indépendant du plan : une fresque à essayer avant de la poser dans la pièce, par exemple.</p>
+            <button className="wide" onClick={onAddFlat} data-testid="add-flat-wall"><Icon name="plus" size={14} /> Ajouter un mur 2D</button>
+          </>
+        )}
       </section>
     </>
   )
@@ -499,6 +608,7 @@ function WallPanel(props: {
   onRename: (n: string) => void
   onDisplay: (variantId: string) => void
   onSplit: () => void
+  onImport: () => void
 }) {
   const { room, i, info } = props
   const rw = room.walls[i]
@@ -524,6 +634,7 @@ function WallPanel(props: {
           </button>
         )}
         <button className="primary wide" onClick={props.onPaint} disabled={!props.view} data-testid="paint-wall"><Icon name="fill" size={15} /> {props.group ? 'Peindre les murs liés' : 'Peindre ce mur'}</button>
+        <button className="small wide" onClick={props.onImport} data-testid="import-fresco" title="Copier ici une fresque d’un autre mur ou d’un autre projet (nouvelle variante)"><Icon name="copy" size={14} /> Importer une fresque…</button>
         <div className="link-box" data-testid="link-box">
           {props.group ? (
             <>

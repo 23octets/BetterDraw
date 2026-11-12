@@ -147,7 +147,7 @@ test('consultation avec Mesure déjà actif : ⌥ + clic imprime, le clic mesure
   await expect(page.getByTestId('pick-print')).not.toBeChecked()
 })
 
-test('export PDF chantier, PNG, SVG et sauvegarde JSON réimportable', async ({ page }) => {
+test('export PDF chantier, PNG, SVG et sauvegarde JSON réimportable', { tag: '@essentiel' }, async ({ page }) => {
   await resetDb(page)
   await newProject(page, 'Fresque')
   await drawScene(page)
@@ -174,10 +174,10 @@ test('export PDF chantier, PNG, SVG et sauvegarde JSON réimportable', async ({ 
   expect(svg.suggestedFilename()).toBe('fresque-variante-a.svg')
 
   const [json] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-json').click()])
-  const jsonPath = 'test-results/fresque.betterdraw.json'
+  const jsonPath = 'test-results/fresque.frsque.json'
   await json.saveAs(jsonPath)
   const data = JSON.parse(readFileSync(jsonPath, 'utf8'))
-  expect(data.format).toBe('betterdraw-project')
+  expect(data.format).toBe('frsque-project')
 
   // réimport sur l'accueil
   await page.keyboard.press('Escape')

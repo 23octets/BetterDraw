@@ -19,7 +19,9 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - name: Installer Chromium et ses dépendances
+        timeout-minutes: 12
+        run: bash .github/scripts/with-apt-retry.sh npx playwright install --with-deps chromium
       - run: npx playwright test e2e/visual.spec.ts --update-snapshots=all
       - uses: actions/upload-artifact@v7
         with:

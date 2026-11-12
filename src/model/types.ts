@@ -163,7 +163,7 @@ export interface Project {
   name: string
   createdAt: number
   updatedAt: number
-  /** Présent si le projet est une pièce (plusieurs murs). */
+  /** Présent si le projet contient une pièce 3D (plusieurs murs). Les murs 2D seuls sont marqués `Wall.standalone`. */
   room?: RoomPlan
 }
 
@@ -175,7 +175,12 @@ export interface Wall {
   variantId?: string
   /** Dessin d'un groupe de murs liés (pas un mur du plan). */
   group?: boolean
+  /** Mur 2D indépendant (hors du plan de la pièce). */
+  standalone?: boolean
 }
+
+/** Ce que contient un projet : une pièce 3D, un mur 2D seul, ou les deux. */
+export type ProjectKind = 'room' | 'wall' | 'both'
 
 export interface Variant {
   id: string
@@ -203,6 +208,7 @@ export interface HistoryEntry {
 }
 
 export interface StoredImage {
+  addedAt?: number
   id: string
   dataUrl: string
   width: number

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { clickWall, resetDb, setField, SHOTS, wallToPage } from './helpers'
+import { clickWall, openRoomsOnPlan, resetDb, setField, SHOTS, wallToPage } from './helpers'
 
 async function poly(page: Page, pts: [number, number][]) {
   await page.getByTestId('tool-polyline').click()
@@ -128,11 +128,11 @@ test('pièce : plan, portes et fenêtres, peinture des murs, vue 3D', async ({ p
 
   // l'accueil affiche la pièce
   await page.getByRole('button', { name: 'Projets' }).click()
-  await expect(page.getByTestId('project-card')).toContainText('Pièce · 4 murs')
+  await expect(page.getByTestId('project-card')).toContainText('Pièce 3D · 4 murs')
   await page.screenshot({ path: `${SHOTS}/step19-04-accueil.png` })
 })
 
-test('transformer un mur seul en pièce', async ({ page }) => {
+test('ajouter une pièce 3D à un mur seul (le mur 2D est conservé)', { tag: '@essentiel' }, async ({ page }) => {
   await page.getByTestId('new-project-form').locator('input[name=name]').fill('Salon')
   await page.getByRole('button', { name: 'Créer le projet' }).click()
   await page.getByTestId('canvas').waitFor()
@@ -141,9 +141,16 @@ test('transformer un mur seul en pièce', async ({ page }) => {
   await expect(page.getByTestId('plan')).toBeVisible()
   await expect(page.getByTestId('room-wall-item')).toHaveCount(4)
   await expect(page.getByTestId('plan-label-0')).toContainText('300 cm')
+  await page.getByRole('button', { name: 'Projets' }).click()
+  const card = page.getByTestId('project-card')
+  await expect(card).toHaveAttribute('data-kind', 'both')
+  await expect(card).toContainText('Pièce 3D + mur 2D')
+  await card.getByTestId('open-wall').click()
+  await expect(page.getByTestId('canvas')).toBeVisible()
 })
 
 test('pièce en L, porte et fenêtre posées au clic sur le plan, décroché', async ({ page }) => {
+  await openRoomsOnPlan(page)
   await page.getByTestId('kind-room').click()
   await page.getByTestId('shape-L').click()
   await page.locator('input[name=name]').fill('Séjour')
@@ -181,6 +188,7 @@ test('pièce en L, porte et fenêtre posées au clic sur le plan, décroché', a
 })
 
 test('verrouiller un mur, choisir le sens d’agrandissement, carreaux et soubassement vitré', async ({ page }) => {
+  await openRoomsOnPlan(page)
   await page.getByTestId('kind-room').click()
   await page.getByRole('button', { name: 'Créer le projet' }).click()
   await expect(page.getByTestId('room-wall-item')).toHaveCount(4)
@@ -298,4 +306,53 @@ test('lier des murs : un seul dessin continu sur plusieurs murs', async ({ page 
   await page.getByTestId('paint-wall').click()
   await expect(page.getByTestId('wall')).toHaveAttribute('width', '1040')
   await expect(page.getByTestId('group-gap')).toHaveCount(1)
+})
+
+test('exporter un mur de pièce avec sa fenêtre', async ({ page }) => {
+  await openRoomsOnPlan(page)
+  await page.getByTestId('kind-room').click()
+  await page.getByRole('button', { name: 'Créer le projet' }).click()
+  await page.getByTestId('plan-wall-0').click({ force: true })
+  await page.getByTestId('add-window').click()
+  await page.getByTestId('paint-wall').click()
+  await page.getByTestId('tool-fill').click()
+  await page.getByTestId('swatch-Terracotta').click()
+  await clickWall(page, 30, 30)
+  await page.getByTestId('export').click()
+  await page.getByTestId('pick-D4').click()
+  const source = await page.getByTestId('page-preview').first().locator('img').getAttribute('src')
+  expect(decodeURIComponent(source!)).toContain('Fenêtre')
+  expect(decodeURIComponent(source!)).toContain('Ouvertures et zones sans mur déduites')
+  const [pdf] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-pdf').click()])
+  await pdf.saveAs(`${SHOTS}/controle-piece.pdf`)
+  const [svg] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-svg').click()])
+  await svg.saveAs('test-results/mur-piece.svg')
+  const { readFileSync } = await import('node:fs')
+  expect(readFileSync('test-results/mur-piece.svg', 'utf8')).toContain('Fenêtre')
+  const [png] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-png').click()])
+  await png.saveAs(`${SHOTS}/controle-piece.png`)
+})
+
+
+test('les variantes de pièce comparent les surfaces nettes', async ({ page }) => {
+  await openRoomsOnPlan(page)
+  await page.getByTestId('kind-room').click()
+  await page.getByRole('button', { name: 'Créer le projet' }).click()
+  await page.getByTestId('plan-wall-0').click({ force: true })
+  await page.getByTestId('add-window').click()
+  await page.getByTestId('paint-wall').click()
+  await page.getByTestId('tool-fill').click()
+  await page.getByTestId('swatch-Terracotta').click()
+  await clickWall(page, 30, 30)
+  await page.getByTestId('variants-page').click()
+  await expect(page.locator('.mini-swatch').first()).toHaveAttribute('title', /8.50 m²/)
+  await page.getByTestId('snapshot').click()
+  await page.getByTestId('variants-page').click()
+  await page.getByTestId('pick-variant').nth(0).check()
+  await page.getByTestId('pick-variant').nth(1).check()
+  await page.getByTestId('compare').click()
+  await expect(page.getByTestId('compare-pane')).toHaveCount(2)
+  for (const pane of await page.getByTestId('compare-pane').all()) await expect(pane.locator('.compare-legend')).toContainText('8.50 m²')
+  await page.getByRole('button', { name: '← Variantes' }).click()
+  await expect(page.locator('.mini-swatch').first()).toHaveAttribute('title', /8.50 m²/)
 })

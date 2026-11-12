@@ -1,3 +1,5 @@
+import { roomContext } from '../store/rooms'
+import type { WallContext } from '../geometry/paintable'
 import { useEffect, useRef, useState } from 'react'
 import * as repo from '../store/repo'
 import type { Variant } from '../model/types'
@@ -14,16 +16,16 @@ interface Box {
 
 /** Comparaison côte à côte de 2 à 4 variantes, zoom et déplacement synchronisés. */
 export function CompareView({ ids }: { ids: string[] }) {
-  const [variants, setVariants] = useState<Variant[] | null>(null)
+  const [variants, setVariants] = useState<(Variant & { context: WallContext | null })[] | null>(null)
   const [box, setBox] = useState<Box | null>(null)
   const [lines, setLines] = useState(true)
   const [grid, setGrid] = useState(true)
   const drag = useRef<{ x: number; y: number; box: Box; scale: number } | null>(null)
 
   useEffect(() => {
-    Promise.all(ids.map((id) => repo.getVariant(id))).then((vs) => {
+    Promise.all(ids.map((id) => repo.getVariant(id))).then(async (vs) => {
       const ok = vs.filter((v): v is Variant => !!v)
-      setVariants(ok)
+      setVariants(await Promise.all(ok.map(async (v) => ({ ...v, context: await roomContext(v) }))))
       const w = Math.max(...ok.map((v) => v.state.wall.w))
       const h = Math.max(...ok.map((v) => v.state.wall.h))
       const pad = Math.max(w, h) * 0.04
@@ -53,11 +55,12 @@ export function CompareView({ ids }: { ids: string[] }) {
         <div className="spacer" />
         <label className="check"><input type="checkbox" checked={lines} onChange={(e) => setLines(e.target.checked)} data-testid="compare-lines" /> Traits</label>
         <label className="check"><input type="checkbox" checked={grid} onChange={(e) => setGrid(e.target.checked)} /> Grille</label>
-        <span className="muted small">Molette : zoom · glisser : déplacer (synchronisés)</span>
+        <span className="muted small compare-desktop-help">Molette : zoom · glisser : déplacer (synchronisés)</span>
+        <span className="muted small compare-mobile-help">Ouvrir une variante pour consulter ses cases et zoomer au toucher.</span>
       </header>
       <div className={`compare-grid n${n}`}>
         {variants.map((v) => {
-          const s = surfaces(v.state)
+          const s = surfaces(v.state, v.context)
           return (
             <section key={v.id} className="compare-pane" data-testid="compare-pane">
               <div className="compare-title">
@@ -85,7 +88,7 @@ export function CompareView({ ids }: { ids: string[] }) {
               </div>
               <div className="compare-legend">
                 {s.colors.map((c) => (
-                  <span key={c.colorId}><i style={{ background: c.hex }} />{c.name} {(c.area / 10000).toFixed(2)} m²</span>
+                  <span key={c.colorId}><i style={{ background: c.hex }} />{c.name} <span className="nowrap">{(c.area / 10000).toFixed(2)}&nbsp;m²</span></span>
                 ))}
                 {!s.colors.length && <span className="muted">Aucune zone peinte</span>}
               </div>

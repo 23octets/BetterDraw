@@ -15,7 +15,7 @@ test.beforeEach(async ({ page }) => {
   await newProject(page, 'Peinture')
 })
 
-test('peindre des zones, surfaces et litres, rendu en consultation', async ({ page }) => {
+test('peindre des zones, surfaces et litres, rendu en consultation', { tag: '@essentiel' }, async ({ page }) => {
   // un soleil couchant : horizon + demi-disque + rayons
   await poly(page, [[0, 170], [300, 170]])
   await page.getByTestId('tool-arc').click()
@@ -64,6 +64,7 @@ test('une zone mal fermée est refusée et le trou signalé', async ({ page }) =
   await page.getByTestId('tool-fill').click()
   await clickWall(page, 100, 100)
   await expect(page.getByTestId('flash')).toContainText('Zone mal fermée')
+  await expect(page.locator('.paint-help')).toContainText('raccorde')
   await expect(page.getByTestId('gap-marker')).toHaveCount(1)
   await expect(fills(page)).toHaveCount(0)
   await page.screenshot({ path: `${SHOTS}/step4-03-zone-mal-fermee.png` })

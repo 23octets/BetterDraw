@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 
 const shapes = (page: import('@playwright/test').Page) => page.getByTestId('shapes').locator('path')
 
-test('polyligne avec arc tangent, fermée sur le premier point', async ({ page }) => {
+test('polyligne avec arc tangent, fermée sur le premier point', { tag: '@essentiel' }, async ({ page }) => {
   await page.getByTestId('tool-polyline').click()
   await clickWall(page, 50, 200)
   await clickWall(page, 150, 200)
