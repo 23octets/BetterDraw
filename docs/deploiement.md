@@ -24,9 +24,9 @@ Workers Builds utilise `npm run build`, puis `npx wrangler deploy` en production
 `npm run preview` lance seulement le serveur local Vite : il ne publie rien.
 
 Le domaine `betterdraw.yohan.one` accepte production et previews : Cloudflare ajoute le nom
-de branche devant, donc la branche `dev` donne `dev.betterdraw.yohan.one`. Le domaine de base
-`dev.betterdraw.yohan.one`, ajouté séparément pour les previews, produit des adresses sous
-`*.dev.betterdraw.yohan.one` ; ce n'est pas lui qui sert la recette stable.
+de branche devant, donc la branche `dev` donne `dev.betterdraw.yohan.one`. Un domaine de base
+`dev.betterdraw.yohan.one` produirait des adresses sous `*.dev.betterdraw.yohan.one` ; il ne faut
+pas le superposer au domaine de recette, car ses enregistrements DNS peuvent masquer le wildcard parent.
 
 Les autres branches gardent leurs previews individuelles, liées dans le commentaire de PR.
 Le check Workers Builds n'est pas requis par GitHub : vérifier aussi son succès avant recette.
