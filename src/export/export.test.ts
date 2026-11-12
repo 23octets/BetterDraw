@@ -236,7 +236,9 @@ describe('mur de pièce', () => {
       expect(svg).toContain('x="40" y="80" width="80" height="100"')
       expect(svg).toContain('Fenêtre')
       expect(svg).toContain('Pas de mur')
-      expect(svg).toContain('stroke-dasharray="4 3"')
+      // la jonction est posée après la grille : une ligne de grille au même endroit ne la masque pas
+      expect(svg).toContain('x1="150" y1="0" x2="150"')
+      expect(svg.lastIndexOf('data-seam')).toBeGreaterThan(svg.lastIndexOf('<g opacity='))
     }
     expect(coverPageSvg(doc, { project: 'P', variant: 'V' }, room)).toContain('Ouvertures et zones sans mur déduites')
     const cover = coverPageSvg(doc, { project: 'P', variant: 'V' }, room)

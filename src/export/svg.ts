@@ -51,8 +51,14 @@ function roomOverlay(doc: DocState, room: WallContext | null | undefined, stroke
     s += `<text x="${n(r.x + r.w / 2)}" y="${n(r.y + Math.min(r.h / 2, offset))}" text-anchor="middle" font-family="${FONT}" font-size="${n(Math.min(stroke * 10, Math.max(6, Math.min(14, r.w / divisor))))}" fill="#444444">${label}</text>`
   }
   for (const o of room.openings) for (const [x1, y1, x2, y2] of windowBars(o, doc.wall.h)) s += `<line x1="${n(x1)}" y1="${n(y1)}" x2="${n(x2)}" y2="${n(y2)}" stroke="#666666" stroke-width="${n(stroke)}"/>`
-  for (const seam of room.seams ?? []) if (seam.x > 0) s += `<line x1="${n(seam.x)}" y1="0" x2="${n(seam.x)}" y2="${n(doc.wall.h)}" stroke="#666666" stroke-dasharray="4 3" stroke-width="${n(stroke)}"/>`
   return s + '</g>'
+}
+
+/** Jonctions des murs liés, posées au-dessus de la grille : une ligne de grille au même endroit ne les masque pas. */
+function seamLines(doc: DocState, room: WallContext | null | undefined, stroke: number) {
+  let s = ''
+  for (const seam of room?.seams ?? []) if (seam.x > 0) s += `<line x1="${n(seam.x)}" y1="0" x2="${n(seam.x)}" y2="${n(doc.wall.h)}" stroke="#5a3fe0" stroke-width="${n(stroke * 1.5)}" data-seam="true"/>`
+  return s
 }
 
 let clipSeq = 0
@@ -90,6 +96,7 @@ function wallBlock(doc: DocState, x: number, y: number, w: number, h: number, op
   s += wallContent(doc, 0.25 / k, opts)
   s += roomOverlay(doc, opts.room, 0.3 / k)
   if (doc.grid.show) s += gridLines(doc, 0.22 / k)
+  s += seamLines(doc, opts.room, 0.3 / k)
   for (const id of opts.highlight ?? []) {
     const c = L.cells.find((c) => c.id === id)
     if (c) s += `<rect x="${n(c.x)}" y="${n(c.y)}" width="${n(c.w)}" height="${n(c.h)}" fill="#2a6bd1" fill-opacity="0.12" stroke="#2a6bd1" stroke-width="${n(0.5 / k)}"/>`
@@ -181,6 +188,7 @@ export function cellPageSvg(doc: DocState, cell: GridCell, meta: ExportMeta, roo
   body += wallContent(doc, 0.35 / k)
   body += roomOverlay(doc, room, 0.35 / k)
   if (g.show) body += gridLines(doc, 0.3 / k, '#c8643b', false)
+  body += seamLines(doc, room, 0.35 / k)
   // voile sur le contexte hors case
   body += `<path d="M${n(vx)} ${n(vy)}h${n(vw)}v${n(vh)}h${n(-vw)}Z M${n(cell.x)} ${n(cell.y)}v${n(cell.h)}h${n(cell.w)}v${n(-cell.h)}Z" fill="#ffffff" fill-opacity="0.6" fill-rule="evenodd"/>`
   body += `<rect x="${n(cell.x)}" y="${n(cell.y)}" width="${n(cell.w)}" height="${n(cell.h)}" fill="none" stroke="#c8643b" stroke-width="${n(0.8 / k)}"/>`
@@ -229,6 +237,7 @@ export function drawingSvg(doc: DocState, opts: { grid?: boolean; lines?: boolea
     s += wallContent(doc, 0.4, { lines: opts.lines })
     s += roomOverlay(doc, opts.room, 0.4)
     if (showGrid && doc.grid.show) s += gridLines(doc, 0.3)
+    s += seamLines(doc, opts.room, 0.4)
     return s + '</svg>'
   }
   const W = 297, H = 210

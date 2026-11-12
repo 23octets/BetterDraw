@@ -12,7 +12,7 @@ export function ConsultPanel({ onExport }: { onExport: () => void }) {
   const setPickPrint = useEditor((s) => s.setPickPrint)
   const tool = useEditor((s) => s.tool)
   const setTool = useEditor((s) => s.setTool)
-  const commit = useEditor((s) => s.commit)
+  const setSettings = useEditor((s) => s.setSettings)
   const L = gridLayout(doc.wall, doc.grid)
   const c = cell ? L.cells.find((x) => x.id === cell) : null
   const nav = (k: string) => {
@@ -26,7 +26,7 @@ export function ConsultPanel({ onExport }: { onExport: () => void }) {
         <p className="big-id" data-testid="consult-cell">{c ? c.id : 'Vue d’ensemble'}</p>
         {c && <p className="hint" style={{ textAlign: 'center', margin: 0 }}>{Math.round(c.w * 10) / 10}&nbsp;×&nbsp;{Math.round(c.h * 10) / 10}&nbsp;cm</p>}
         <NumberField label="Sous-grille de la vue détail" suffix="cm" min={1} max={500} value={doc.grid.subStep ?? 10} testId="sub-step"
-          onCommit={(v) => commit(`Sous-grille : ${v} cm`, (d) => { d.grid.subStep = v })} />
+          onCommit={(v) => setSettings((d) => { d.grid.subStep = v })} />
         <div className="cell-nav">
           <span />
           <button onClick={() => nav('ArrowUp')} title="Case au-dessus">↑</button>
@@ -62,7 +62,7 @@ export function ConsultPanel({ onExport }: { onExport: () => void }) {
           ))}
         </div>
         {doc.printCells.length > 0 && (
-          <button className="ghost small" onClick={() => commit('Vider la sélection d’impression', (d) => { d.printCells = [] })}>Tout retirer</button>
+          <button className="ghost small" onClick={() => setSettings((d) => { d.printCells = [] })}>Tout retirer</button>
         )}
         <button className="primary" onClick={onExport} data-testid="open-export">Exporter le PDF chantier…</button>
       </Section>
