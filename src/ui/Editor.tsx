@@ -130,7 +130,7 @@ export function Editor({ variantId }: { variantId: string }) {
         } catch (e) { useEditor.getState().flash(storageError(e), 'error') }
       }}>Sauvegarder l’état affiché (historique de cette variante exclu)</button><button title="Ouvrir l’accueil dans un nouvel onglet en conservant ce dessin" onClick={() => window.open(location.pathname + location.search + '#/', '_blank')}>Gérer l’espace depuis l’accueil</button><button onClick={() => { if (confirm('Recharger abandonne les modifications non enregistrées. Avez-vous téléchargé la sauvegarde de secours ?')) location.reload() }}>Recharger</button></div>}
       <Toolbar />
-      <div className="editor-guide"><Guide /></div>
+      <div className="editor-guide"><Guide /><LegalInfo /></div>
       <main className="stage" ref={stageRef}>
         <Canvas />
         <CanvasOverlay />
@@ -327,7 +327,6 @@ function TopBar({ project, onRenamed, onExport, onShortcuts, shortcutsOpen, side
         <button className={mode === 'edit' ? 'on' : ''} onClick={() => setMode('edit')} data-testid="mode-edit">Édition</button>
         <button className={mode === 'consult' ? 'on' : ''} onClick={() => setMode('consult')} data-testid="mode-consult" title="Voir le résultat sans les traits, et lire la grille case par case">Consultation</button>
       </div>
-      <LegalInfo />
       <GridMenu />
       <div className="spacer" />
       <span className={`save-state${failed ? ' error' : saving ? ' busy' : ''}`} data-testid="save-state" title={failed ? 'Non enregistré' : saving ? 'Enregistrement…' : 'Enregistré'}><span className="btn-label lbl-lg">{failed ? 'Non enregistré' : saving ? 'Enregistrement…' : 'Enregistré'}</span></span>

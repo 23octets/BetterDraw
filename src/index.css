@@ -837,3 +837,5 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .legal-dialog dt { font-weight: 600; }
 .legal-dialog dd { margin: 4px 0 12px; }
 .home-head { flex-wrap: wrap; gap: 16px; }
+
+.editor-guide { display: flex; align-items: center; gap: 12px; }
