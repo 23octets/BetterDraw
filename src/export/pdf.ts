@@ -1,3 +1,4 @@
+import { legal } from '../config/legal'
 import type { WallContext } from '../geometry/paintable'
 import { jsPDF } from 'jspdf'
 import { svg2pdf } from 'svg2pdf.js'
@@ -30,7 +31,7 @@ function parseSvg(svg: string): SVGSVGElement {
 export async function buildPdf(doc: DocState, meta: ExportMeta, room?: WallContext | null): Promise<Blob> {
   const pages = exportPages(doc, meta, room)
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-  pdf.setProperties({ title: `${meta.project} — ${meta.variant}`, creator: 'frsque' })
+  pdf.setProperties({ title: `${meta.project} — ${meta.variant}`, creator: legal.productName })
   for (let i = 0; i < pages.length; i++) {
     if (i > 0) pdf.addPage('a4', 'landscape')
     const el = parseSvg(pages[i])

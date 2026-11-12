@@ -1,3 +1,4 @@
+import { LegalInfo } from './LegalInfo'
 import { COMPACT_QUERY } from './compact'
 import { gridLayout } from '../geometry/grid'
 import { neighborCell, zoomToCell } from '../tools/consult'
@@ -129,7 +130,7 @@ export function Editor({ variantId }: { variantId: string }) {
         } catch (e) { useEditor.getState().flash(storageError(e), 'error') }
       }}>Sauvegarder l’état affiché (historique de cette variante exclu)</button><button title="Ouvrir l’accueil dans un nouvel onglet en conservant ce dessin" onClick={() => window.open(location.pathname + location.search + '#/', '_blank')}>Gérer l’espace depuis l’accueil</button><button onClick={() => { if (confirm('Recharger abandonne les modifications non enregistrées. Avez-vous téléchargé la sauvegarde de secours ?')) location.reload() }}>Recharger</button></div>}
       <Toolbar />
-      <div className="editor-guide"><Guide /></div>
+      <div className="editor-guide"><Guide /><LegalInfo /></div>
       <main className="stage" ref={stageRef}>
         <Canvas />
         <CanvasOverlay />

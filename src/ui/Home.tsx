@@ -1,3 +1,5 @@
+import { legal } from '../config/legal'
+import { LegalInfo } from './LegalInfo'
 import { AccountButton } from '../account/AccountGate'
 import { liveQuery } from 'dexie'
 import { Guide } from './Guide'
@@ -78,10 +80,11 @@ export function Home() {
         <div className="brand">
           <span className="brand-mark" aria-hidden>▦</span>
           <div>
-            <h1>frsque</h1>
+            <h1>{legal.productName}</h1>
             <p>Dessiner à l'échelle, peindre au mur.</p>
           </div>
         </div>
+        <LegalInfo />
         <AccountButton />
       </header>
       <div className="welcome-actions">

@@ -30,6 +30,7 @@ vite.config.*.timestamp-*
 # Cloudflare Wrangler
 .wrangler/
 
+# recherches publiques temporaires
 # Clés et recherches Dexie Cloud
 .firecrawl/
 dexie-cloud.key
