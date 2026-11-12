@@ -116,6 +116,18 @@ export async function recordChange(variantId: string, label: string, state: DocS
   })
 }
 
+/** Enregistre un réglage (affichage, préférence) dans l'état courant, sans entrée d'historique. */
+export async function saveSettings(variantId: string, state: DocState, expected: Variant) {
+  await db.transaction('rw', db.variants, db.projects, async () => {
+    const v = await db.variants.get(variantId)
+    if (!v) throw new Error('variante introuvable')
+    checkExpected(v, expected)
+    const ts = now()
+    await db.variants.update(variantId, { state, updatedAt: ts })
+    await db.projects.update(v.projectId, { updatedAt: ts })
+  })
+}
+
 export async function listEntries(variantId: string) {
   return db.entries.where('variantId').equals(variantId).sortBy('seq')
 }

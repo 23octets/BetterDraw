@@ -11,6 +11,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   useModal('[data-testid=settings-modal]', onClose)
   const doc = useEditor((s) => s.doc)
   const commit = useEditor((s) => s.commit)
+  const setSettings = useEditor((s) => s.setSettings)
   const { wall, grid } = doc
   const room = useEditor((s) => s.room)
   const layout = gridLayout(wall, grid)
@@ -34,7 +35,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           {room ? (
             <section className="settings-block">
               <h4>Taille du mur</h4>
-              <p className="hint" data-testid="wall-size-locked">{wall.w} × {wall.h} cm · {((wall.w * wall.h) / 10000).toFixed(2)} m². La taille de ce mur vient du plan de la pièce : change-la depuis la pièce (longueur du mur, hauteur sous plafond).</p>
+              <p className="hint" data-testid="wall-size-locked">{wall.w}&nbsp;×&nbsp;{wall.h}&nbsp;cm · {((wall.w * wall.h) / 10000).toFixed(2)}&nbsp;m². La taille de ce mur vient du plan de la pièce : change-la depuis la pièce (longueur du mur, hauteur sous plafond).</p>
             </section>
           ) : (
           <section className="settings-block">
@@ -45,12 +46,12 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
               <NumberField label="Hauteur" suffix="cm" min={10} max={5000} value={wall.h} testId="wall-h"
                 onCommit={(h) => commit(`Hauteur du mur : ${h} cm`, (d) => { d.wall.h = h })} />
             </div>
-            <p className="hint">Surface : {((wall.w * wall.h) / 10000).toFixed(2)} m² · grille de {layout.cols} × {layout.rows} cases</p>
+            <p className="hint">Surface&nbsp;: {((wall.w * wall.h) / 10000).toFixed(2)}&nbsp;m² · grille de {layout.cols}&nbsp;×&nbsp;{layout.rows}&nbsp;cases</p>
           </section>
           )}
           <section className="settings-block">
             <h4>Origine des cotes et des repères</h4>
-            <p className="hint">Le coin d’où partent les mesures (0 cm) et où commence la case A1. Au mur, choisis un coin fiable, en général le bas, côté sol.</p>
+            <p className="hint">Le coin d’où partent les mesures (0&nbsp;cm) et où commence la case A1. Au mur, choisis un coin fiable, en général le bas, côté sol.</p>
             <div className="origin-chooser">
               <svg viewBox={`-16 -16 ${pw + 32} ${ph + 32}`} width={pw + 32} height={ph + 32} className="origin-preview">
                 <rect x={0} y={0} width={pw} height={ph} className="op-wall" />
@@ -58,7 +59,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                   const [cx, cy] = corner[o.id]
                   const on = grid.origin === o.id
                   return (
-                    <g key={o.id} className={`op-corner${on ? ' on' : ''}`} onClick={() => commit('Origine de la grille', (d) => { d.grid.origin = o.id })} data-testid={`origin-${o.id}`} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.dispatchEvent(new MouseEvent('click', { bubbles: true })) } }} role="button" aria-pressed={on} aria-label={o.label}>
+                    <g key={o.id} className={`op-corner${on ? ' on' : ''}`} onClick={() => setSettings((d) => { d.grid.origin = o.id })} data-testid={`origin-${o.id}`} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.dispatchEvent(new MouseEvent('click', { bubbles: true })) } }} role="button" aria-pressed={on} aria-label={o.label}>
                       <circle cx={cx} cy={cy} r={on ? 11 : 8} />
                       {on && <text x={cx} y={cy + 4} textAnchor="middle">0</text>}
                     </g>
@@ -83,7 +84,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
               <div className="origin-list" role="radiogroup">
                 {ORIGINS.map((o) => (
                   <label key={o.id} className="check">
-                    <input type="radio" name="origin" checked={grid.origin === o.id} onChange={() => commit('Origine de la grille', (d) => { d.grid.origin = o.id })} />
+                    <input type="radio" name="origin" checked={grid.origin === o.id} onChange={() => setSettings((d) => { d.grid.origin = o.id })} />
                     {o.label}
                   </label>
                 ))}
@@ -95,7 +96,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             <p className="hint">Pas de la grille fine sur laquelle s’accrochent les points tracés et les mesures (en plus des traits et de la grille de carroyage). Alt désactive l’aimantage.</p>
             <div className="row">
               <NumberField label="Pas d’aimantage" suffix="cm" min={0.5} max={100} value={grid.snapStep} testId="snap-step"
-                onCommit={(v) => commit(`Aimantage : ${v} cm`, (d) => { d.grid.snapStep = v })} />
+                onCommit={(v) => setSettings((d) => { d.grid.snapStep = v })} />
               <span />
             </div>
           </section>

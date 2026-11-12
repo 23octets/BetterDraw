@@ -19,7 +19,7 @@ export function zoomToCell(id: string | null) {
 export function togglePrintCell(id: string) {
   const st = useEditor.getState()
   const on = st.doc.printCells.includes(id)
-  st.commit(on ? `Retirer la case ${id} de l'impression` : `Imprimer la case ${id}`, (d) => {
+  st.setSettings((d) => {
     d.printCells = on ? d.printCells.filter((x) => x !== id) : [...d.printCells, id]
   })
 }
