@@ -13,7 +13,7 @@ export function LegalInfo() {
     <button type="button" className="icon-btn ghost" onClick={() => {
       dialog.current?.setAttribute('aria-modal', 'true')
       dialog.current?.showModal()
-    }}>Mentions légales</button>
+    }}><span>Mentions légales</span></button>
     {createPortal(<dialog ref={dialog} className="legal-dialog" onClose={() => dialog.current?.removeAttribute('aria-modal')} aria-labelledby="legal-title" onKeyDown={(e) => e.stopPropagation()}>
       <header className="modal-head">
         <h2 id="legal-title">{legal.productName} — Mentions légales et confidentialité</h2>

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { clickWall, newProject } from './helpers'
+import { legal } from '../src/config/legal'
 
 test('@essentiel mentions accessibles et parcours principal sans réseau tiers', async ({ page, context, baseURL }) => {
   const external: string[] = []
@@ -46,4 +47,35 @@ test('@essentiel mentions accessibles et parcours principal sans réseau tiers',
     await Promise.all([page.waitForEvent('download'), page.getByTestId(`export-${format}`).click()])
   }
   expect(external, 'Aucune tentative de connexion à un tiers sur ce parcours').toEqual([])
+})
+
+for (const width of [390, 768, 1024, 1440]) {
+  test(`@essentiel mentions lisibles à ${width} px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/')
+    const button = page.getByRole('button', { name: 'Mentions légales', exact: true })
+    const fits = () => button.evaluate((el) => {
+      const box = el.getBoundingClientRect()
+      return el.scrollWidth <= el.clientWidth && box.left >= 0 && box.right <= innerWidth
+    })
+    await expect.poll(fits).toBe(true)
+    await button.click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await newProject(page)
+    await expect.poll(fits).toBe(true)
+    await button.click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+  })
+}
+
+test('@essentiel titre du produit servi sans JavaScript', async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false })
+  try {
+    const page = await context.newPage()
+    await page.goto(baseURL!)
+    await expect(page).toHaveTitle(legal.productName)
+  } finally {
+    await context.close()
+  }
 })
