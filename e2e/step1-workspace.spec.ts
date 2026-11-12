@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 test('création de projet, mur par défaut et grille cotée', async ({ page }) => {
   await page.screenshot({ path: `${SHOTS}/step1-01-accueil.png` })
   await newProject(page)
-  await expect(page.getByTestId('project-name')).toHaveText('Chambre de Léa')
+  await expect(page.getByTestId('project-name')).toHaveValue('Chambre de Léa')
   await expect(page.getByTestId('wall')).toHaveAttribute('width', '300')
   await expect(page.getByTestId('wall')).toHaveAttribute('height', '250')
   const labels = page.getByTestId('grid-labels')

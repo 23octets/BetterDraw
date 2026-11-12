@@ -217,7 +217,8 @@ export function Canvas() {
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} fill={doc.background.hex} className="wall" data-testid="wall" />
         <DocLayers doc={doc} mode={mode} />
         <OpeningsLayer wallH={doc.wall.h} />
-        <GridLinesAdaptive doc={doc} strong={mode === 'consult'} idPrefix="cv" style={gridPreview} />
+        <GridLinesAdaptive doc={doc} idPrefix="cv" style={gridPreview} />
+        <SeamsLayer wallH={doc.wall.h} />
         <rect x={0} y={0} width={doc.wall.w} height={doc.wall.h} className="wall-outline" />
         {tool.renderWorld?.()}
       </g>
@@ -227,10 +228,28 @@ export function Canvas() {
   )
 }
 
+/**
+ * Jonctions entre murs liés. Posées au-dessus de la grille : dans une zone peinte, la grille repeint
+ * chaque ligne de la couleur de l'aplat, ce qui masquait une jonction tombant sur une ligne de grille.
+ */
+function SeamsLayer({ wallH }: { wallH: number }) {
+  const seams = useEditor((s) => s.room?.seams)
+  if (!seams?.length) return null
+  return (
+    <g className="seams-layer" data-testid="seams-layer">
+      {seams.map((s, k) => (
+        <g key={k} className="group-seam" data-testid="group-seam">
+          {s.x > 0 && <line x1={s.x} y1={0} x2={s.x} y2={wallH} />}
+        </g>
+      ))}
+    </g>
+  )
+}
+
 /** Portes et fenêtres de la pièce, en surimpression (on ne peint pas dedans en 3D). */
 function OpeningsLayer({ wallH }: { wallH: number }) {
   const room = useEditor((s) => s.room)
-  if (!room || (!room.openings.length && !room.masks?.length && !room.seams?.length)) return null
+  if (!room || (!room.openings.length && !room.masks?.length)) return null
   return (
     <g className="openings-layer" data-testid="openings-layer">
       <defs>
@@ -243,11 +262,6 @@ function OpeningsLayer({ wallH }: { wallH: number }) {
           <rect x={m.x} y={m.y} width={m.w} height={m.h} className="opening-fill" />
           <rect x={m.x} y={m.y} width={m.w} height={m.h} fill="url(#opening-hatch)" className="opening-hatch" />
           <text x={m.x + m.w / 2} y={Math.min(m.h / 2, 40)} textAnchor="middle" className="opening-label" fontSize={Math.max(6, Math.min(14, m.w / 5))}>Pas de mur</text>
-        </g>
-      ))}
-      {room.seams?.map((s, k) => (
-        <g key={`s${k}`} className="group-seam" data-testid="group-seam">
-          {s.x > 0 && <line x1={s.x} y1={0} x2={s.x} y2={wallH} />}
         </g>
       ))}
       {room.openings.map((o) => {

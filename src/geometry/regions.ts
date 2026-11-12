@@ -323,6 +323,8 @@ export function findGaps(doc: DocState, region: Region, graph: RegionGraph, tol:
   const gaps: Vec[] = []
   const paths = [...doc.shapes.map(toPaperPath), toPaperPath(wallShape(doc.wall))]
   for (const end of graph.danglingEnds) {
+    // un bout de trait hors du mur ne laisse aucun trou : le bord du mur ferme la zone
+    if (end.x <= 0 || end.y <= 0 || end.x >= doc.wall.w || end.y >= doc.wall.h) continue
     const pt = new P.Point(end.x, end.y)
     // l'extrémité doit toucher la région (dedans ou sur son bord)
     const inside = region.item.contains(pt) || region.item.getNearestPoint(pt).getDistance(pt) < tol

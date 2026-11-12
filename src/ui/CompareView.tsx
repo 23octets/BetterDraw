@@ -88,7 +88,7 @@ export function CompareView({ ids }: { ids: string[] }) {
               </div>
               <div className="compare-legend">
                 {s.colors.map((c) => (
-                  <span key={c.colorId}><i style={{ background: c.hex }} />{c.name} {(c.area / 10000).toFixed(2)} m²</span>
+                  <span key={c.colorId}><i style={{ background: c.hex }} />{c.name} <span className="nowrap">{(c.area / 10000).toFixed(2)}&nbsp;m²</span></span>
                 ))}
                 {!s.colors.length && <span className="muted">Aucune zone peinte</span>}
               </div>
