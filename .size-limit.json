@@ -1,5 +1,5 @@
 [
-  { "name": "Application (chargement initial)", "path": "dist/assets/index-*.js", "gzip": true, "limit": "285 kB" },
+  { "name": "Application (chargement initial)", "path": ["dist/assets/index-*.js", "dist/assets/geometry-*.js"], "gzip": true, "limit": "285 kB" },
   { "name": "Page pièce 3D", "path": "dist/assets/RoomPage-*.js", "gzip": true, "limit": "170 kB" },
   { "name": "Export PDF", "path": "dist/assets/pdf-*.js", "gzip": true, "limit": "170 kB" },
   { "name": "Total JS", "path": "dist/assets/*.js", "gzip": true, "limit": "740 kB" }

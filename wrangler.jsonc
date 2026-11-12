@@ -8,5 +8,6 @@
   // URL workers.dev et previews par branche gardées, comme lors du premier déploiement
   "workers_dev": true,
   "preview_urls": true,
+  "previews": {},
   "observability": { "enabled": true }
 }
