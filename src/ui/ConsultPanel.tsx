@@ -24,7 +24,7 @@ export function ConsultPanel({ onExport }: { onExport: () => void }) {
     <div className="consult-panel">
       <Section title="Consultation" testId="consult-panel">
         <p className="big-id" data-testid="consult-cell">{c ? c.id : 'Vue d’ensemble'}</p>
-        {c && <p className="hint" style={{ textAlign: 'center', margin: 0 }}>{Math.round(c.w * 10) / 10} × {Math.round(c.h * 10) / 10} cm</p>}
+        {c && <p className="hint" style={{ textAlign: 'center', margin: 0 }}>{Math.round(c.w * 10) / 10}&nbsp;×&nbsp;{Math.round(c.h * 10) / 10}&nbsp;cm</p>}
         <NumberField label="Sous-grille de la vue détail" suffix="cm" min={1} max={500} value={doc.grid.subStep ?? 10} testId="sub-step"
           onCommit={(v) => commit(`Sous-grille : ${v} cm`, (d) => { d.grid.subStep = v })} />
         <div className="cell-nav">
