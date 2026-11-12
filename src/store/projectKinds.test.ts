@@ -45,12 +45,21 @@ describe('pièce 3D, mur 2D, ou les deux', () => {
     await v1.open()
     await v1.table('projects').bulkAdd([{ id: 'a', name: 'Mur', createdAt: 1, updatedAt: 1 }, { id: 'b', name: 'Pièce', createdAt: 1, updatedAt: 1, room: rectRoom(300, 300, ['r1', 'r2', 'r3', 'r4']) }])
     await v1.table('walls').bulkAdd([{ id: 'w', projectId: 'a', name: 'Mur 1' }, { id: 'r1', projectId: 'b', name: 'Mur 1' }, { id: 'old', projectId: 'b', name: 'Mur retiré' }])
+    const doc = defaultDoc()
+    doc.shapes = [{ id: 'saved-line', pts: [{ x: 10, y: 20 }, { x: 50, y: 60 }], segs: [{ t: 'line' }], closed: false }]
+    const variant = { id: 'v', projectId: 'a', wallId: 'w', name: 'Variante sauvegardée', createdAt: 1, updatedAt: 2, headSeq: 1, maxSeq: 1, state: doc }
+    const entry = { variantId: 'v', seq: 1, patches: [], inversePatches: [], label: 'Tracé', timestamp: 2 }
+    await v1.table('variants').add(variant)
+    await v1.table('entries').add(entry)
     v1.close()
     const v2 = new FrsqueDB(name)
     await v2.open()
     expect((await v2.walls.get('w'))!.standalone).toBe(true)
     expect((await v2.walls.get('r1'))!.standalone).toBeUndefined()
     expect((await v2.walls.get('old'))!.standalone).toBeUndefined()
+    // La migration classe les murs ; le dessin et son historique doivent rester intacts.
+    expect(await v2.variants.get('v')).toEqual(variant)
+    expect(await v2.entries.get(['v', 1])).toEqual(entry)
     v2.close()
     await Dexie.delete(name)
   })
