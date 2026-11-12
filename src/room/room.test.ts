@@ -293,14 +293,17 @@ describe('persistance des pièces', () => {
     expect(await rooms.roomContext(solo.variant)).toBeNull()
   })
 
-  it('transforme un mur seul en pièce', async () => {
+  it('ajoute une pièce à un mur seul : le mur 2D reste, le premier mur reçoit une copie du dessin', async () => {
     const { project, variant } = await repo.createProject('Mur', { w: 350, h: 240 })
-    await rooms.convertToRoom(project.id)
+    await rooms.addRoom(project.id)
     const p = (await repo.getProject(project.id))!
     expect(p.room!.walls).toHaveLength(4)
     const infos = await rooms.loadRoomWalls(p)
-    expect(infos[0].display!.id).toBe(variant.id)
+    expect(infos[0].display!.id).not.toBe(variant.id)
+    expect(infos[0].display!.state.wall).toEqual({ w: 350, h: 240 })
     expect(infos[1].display!.state.wall.h).toBe(240)
+    expect((await repo.getVariant(variant.id))!.wallId).toBe(variant.wallId)
+    expect(repo.projectKind(p, await repo.listWalls(p.id))).toBe('both')
   })
 
   it('lier des murs : dessin commun, taille suivie, contexte de l’éditeur, import', async () => {

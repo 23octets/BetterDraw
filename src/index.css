@@ -89,6 +89,10 @@ input[type='checkbox'], input[type='radio'] { width: 15px; height: 15px; margin:
 .new-project-fields { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
 .new-project-fields .field { width: 130px; }
 .new-project-fields .field.grow { flex: 1; min-width: 220px; width: auto; }
+/* le choix de forme garde la largeur de ses deux boutons (sinon « En L » est rogné) */
+.new-project-fields .field.shape-field { width: auto; flex: none; }
+.new-project-top .seg { max-width: 100%; }
+.new-project-top .seg button { white-space: nowrap; }
 .new-project-fields .times { color: var(--muted); padding-bottom: 8px; }
 .projects { display: grid; gap: 14px; }
 .projects-head { display: flex; align-items: center; justify-content: space-between; }
@@ -110,7 +114,10 @@ input[type='checkbox'], input[type='radio'] { width: 15px; height: 15px; margin:
 .card-title { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-meta { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); min-width: 0; }
 .card-meta .icon { flex: 0 0 auto; }
-.card-actions { display: flex; align-items: center; gap: 6px; padding: 10px 14px 12px; margin-top: auto; }
+.card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 14px 12px; margin-top: auto; min-width: 0; }
+/* les actions passent à la ligne plutôt que de sortir de la carte */
+.card-actions > button { flex: none; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kind-badge { font-weight: 600; color: var(--ink-2); }
 .pick-badge { position: absolute; top: 10px; left: 10px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: rgba(255,255,255,0.92); box-shadow: 0 1px 4px rgba(0,0,0,0.15); cursor: pointer; }
 .pick-badge.on { background: var(--primary); }
 .pick-badge input { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
@@ -336,7 +343,8 @@ input[type='checkbox'], input[type='radio'] { width: 15px; height: 15px; margin:
 .variant-name { font-weight: 600; font-size: 14.5px; height: 28px !important; border-color: transparent !important; background: transparent !important; padding: 0 4px !important; margin-left: -4px; }
 .variant-name:hover { border-color: var(--line) !important; }
 .variant-name:focus { background: #fff !important; }
-.variant-switcher { display: flex; gap: 6px; align-items: center; flex: 0 0 auto; }
+/* Le nom peut rétrécir dans le titre ; le bouton Variantes garde sa largeur. */
+.variant-switcher { display: flex; gap: 6px; align-items: center; min-width: 0; flex: 0 1 auto; }
 .variant-switcher select { width: auto; max-width: 160px; }
 .small { font-size: 12px; }
 p.small { margin: 0; }
@@ -808,3 +816,16 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
   .compare-desktop-help { display: none; }
   .compare-mobile-help { display: inline; }
 }
+
+/* Import d'une fresque depuis un autre mur ou un autre projet */
+.modal.fresco-import { width: min(960px, 94vw); height: min(760px, 90vh); }
+.fresco-import .modal-pad { min-height: 0; }
+.fresco-sources { display: grid; gap: 16px; }
+.fresco-source h4 { margin: 0 0 8px; font-size: 13px; }
+.fresco-variants { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.fresco-pick { display: grid; gap: 4px; width: 100%; height: auto; padding: 6px; text-align: left; justify-items: start; }
+.fresco-pick .thumb-frame { width: 100%; }
+.fresco-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.fresco-name { font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.project-msg { max-width: 1400px; width: 100%; margin: 12px auto 0; padding: 0 20px; }
+[data-testid=flat-wall] .thumb-frame { margin-bottom: 8px; }

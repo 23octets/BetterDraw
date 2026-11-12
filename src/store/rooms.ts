@@ -1,11 +1,12 @@
 import { nanoid } from 'nanoid'
 import { produceWithPatches } from 'immer'
-import { db } from './db'
+import { db, markStandaloneWalls } from './db'
 import { recordChange } from './repo'
 import { defaultDoc } from '../model/defaults'
 import type { DocState, Opening, Project, Rect, RoomGroup, RoomPlan, Variant, Wall } from '../model/types'
 import { DEFAULT_ROOM, groupLayout, groupOf, lRoom, rectRoom, wallLength } from '../room/geometry'
 import { mergeDocs } from '../room/merge'
+import { translateShapes } from '../geometry/edit'
 
 const now = () => Date.now()
 
@@ -28,6 +29,8 @@ export async function createRoomProject(
   name: string,
   size: { w: number; d: number; h: number } = { w: DEFAULT_ROOM.w, d: DEFAULT_ROOM.d, h: DEFAULT_ROOM.h },
   shape: RoomShape = 'rect',
+  /** Ajoute aussi un mur 2D indépendant de cette taille (projet « pièce + mur 2D »). */
+  wall2d?: { w: number; h: number },
 ) {
   const t = now()
   const pid = nanoid(10)
@@ -37,6 +40,12 @@ export async function createRoomProject(
   const project: Project = { id: pid, name, createdAt: t, updatedAt: t, room }
   const variants = wallIds.map((id, i) => newVariant(pid, id, wallLength(room, i), room.height))
   const walls: Wall[] = wallIds.map((id, i) => ({ id, projectId: pid, name: `Mur ${i + 1}`, variantId: variants[i].id }))
+  if (wall2d) {
+    const id = nanoid(10)
+    const v = newVariant(pid, id, wall2d.w, wall2d.h)
+    variants.push(v)
+    walls.push({ id, projectId: pid, name: 'Mur 2D', variantId: v.id, standalone: true })
+  }
   await db.transaction('rw', db.projects, db.walls, db.variants, async () => {
     await db.projects.add(project)
     await db.walls.bulkAdd(walls)
@@ -45,28 +54,125 @@ export async function createRoomProject(
   return project
 }
 
-/** Transforme un projet « mur seul » en pièce : le mur existant devient le premier mur. */
-export async function convertToRoom(projectId: string) {
+/**
+ * Ajoute une pièce 3D à un projet « mur 2D seul ». Le mur 2D est conservé ; le premier mur
+ * de la pièce, à sa largeur et à sa hauteur, reçoit une copie de son dessin.
+ */
+export async function addRoom(projectId: string) {
   const project = await db.projects.get(projectId)
   if (!project || project.room) return
-  const walls = await db.walls.where('projectId').equals(projectId).toArray()
   const variants = await db.variants.where('projectId').equals(projectId).toArray()
-  const first = walls[0]
   const v0 = [...variants].sort((a, b) => b.updatedAt - a.updatedAt)[0]
   const w = v0?.state.wall.w ?? DEFAULT_ROOM.w
   const h = v0?.state.wall.h ?? DEFAULT_ROOM.h
-  const ids = [first?.id ?? nanoid(10), nanoid(10), nanoid(10), nanoid(10)]
+  const ids = [nanoid(10), nanoid(10), nanoid(10), nanoid(10)]
   const room = rectRoom(w, DEFAULT_ROOM.d, ids, h)
+  const existing = await db.walls.where('projectId').equals(projectId).toArray()
   await db.transaction('rw', db.projects, db.walls, db.variants, async () => {
-    if (!first) await db.walls.add({ id: ids[0], projectId, name: 'Mur 1' })
-    else if (v0) await db.walls.update(first.id, { variantId: v0.id })
-    for (let i = 1; i < 4; i++) {
+    for (const wall of existing) if (!wall.group && !wall.standalone) await db.walls.update(wall.id, { standalone: true })
+    for (let i = 0; i < 4; i++) {
       const v = newVariant(projectId, ids[i], wallLength(room, i), h, v0?.state)
+      if (i === 0 && v0) v.state = { ...structuredClone(v0.state), wall: { w: v.state.wall.w, h } }
       await db.walls.add({ id: ids[i], projectId, name: `Mur ${i + 1}`, variantId: v.id })
       await db.variants.add(v)
     }
     await db.projects.update(projectId, { room, updatedAt: now() })
   })
+}
+
+/** Ajoute un mur 2D indépendant à une pièce (projet « pièce + mur 2D »). */
+export async function addStandaloneWall(projectId: string, size?: { w: number; h: number }) {
+  const project = await db.projects.get(projectId)
+  if (!project) throw new Error('Projet introuvable')
+  const variants = await db.variants.where('projectId').equals(projectId).toArray()
+  const base = [...variants].sort((a, b) => b.updatedAt - a.updatedAt)[0]?.state
+  const w = size?.w ?? (project.room ? Math.round(wallLength(project.room, 0)) : DEFAULT_ROOM.w)
+  const h = size?.h ?? project.room?.height ?? DEFAULT_ROOM.h
+  const id = nanoid(10)
+  const v = newVariant(projectId, id, w, h, base)
+  await db.transaction('rw', db.projects, db.walls, db.variants, async () => {
+    await db.walls.add({ id, projectId, name: 'Mur 2D', variantId: v.id, standalone: true })
+    await db.variants.add(v)
+    await db.projects.update(projectId, { updatedAt: now() })
+  })
+  return v
+}
+
+/** Mur où l'on peut peindre une fresque : mur 2D, mur du plan ou groupe de murs liés. */
+export interface FrescoSource {
+  project: Project
+  wall: Wall
+  variants: Variant[]
+}
+
+/** Murs actifs de tous les projets (pas ceux retirés du plan), avec leurs variantes. */
+export async function listFrescoSources(): Promise<FrescoSource[]> {
+  const projects = await db.projects.orderBy('updatedAt').reverse().toArray()
+  const out: FrescoSource[] = []
+  for (const project of projects) {
+    const walls = await db.walls.where('projectId').equals(project.id).toArray()
+    const variants = await db.variants.where('projectId').equals(project.id).toArray()
+    const room = project.room
+    const order = (w: Wall) => {
+      if (w.standalone || !room) return -1
+      const i = room.walls.findIndex((x) => x.id === w.id)
+      if (i >= 0) return i
+      const g = room.groups?.findIndex((x) => x.id === w.id) ?? -1
+      return g >= 0 ? room.walls.length + g : null
+    }
+    const active = markStandaloneWalls(project, walls)
+      .map((w) => ({ w, k: order(w) }))
+      .filter((x): x is { w: Wall; k: number } => x.k !== null)
+      .sort((a, b) => a.k - b.k)
+    for (const { w } of active) {
+      const vs = variants.filter((v) => v.wallId === w.id).sort((a, b) => a.createdAt - b.createdAt)
+      if (vs.length) out.push({ project, wall: w, variants: vs })
+    }
+  }
+  return out
+}
+
+/**
+ * Fresque mise à la taille d'un autre mur, posée au sol (coin bas gauche) : le dessin garde ses cotes,
+ * ce qui dépasse du mur reste dans le dessin, hors du mur.
+ */
+export function fitFresco(doc: DocState, size: { w: number; h: number }): DocState {
+  const out = structuredClone(doc)
+  const dy = size.h - doc.wall.h
+  out.wall = { ...size }
+  if (dy !== 0) {
+    out.shapes = translateShapes(out.shapes, { x: 0, y: dy })
+    out.fills = out.fills.map((f) => ({ ...f, seed: { x: f.seed.x, y: f.seed.y + dy } }))
+    out.images = out.images.map((im) => ({ ...im, y: im.y + dy }))
+  }
+  // les cases à imprimer dépendent de la taille du mur
+  if (size.w !== doc.wall.w || size.h !== doc.wall.h) out.printCells = []
+  return out
+}
+
+/**
+ * Copie une fresque (une variante d'un autre mur, de ce projet ou d'un autre) dans un mur :
+ * elle devient une nouvelle variante de ce mur, affichée en 3D. Rien n'est écrasé.
+ * `size` impose la taille du mur cible (mur de pièce : taille fixée par le plan) ;
+ * sans `size`, la fresque garde ses dimensions.
+ */
+export async function copyFresco(sourceVariantId: string, target: { projectId: string; wallId: string; size?: { w: number; h: number } }) {
+  const src = await db.variants.get(sourceVariantId)
+  if (!src) throw new Error('Fresque introuvable')
+  const srcWall = await db.walls.get(src.wallId)
+  const t = now()
+  const state = target.size ? fitFresco(src.state, target.size) : structuredClone(src.state)
+  const v: Variant = {
+    id: nanoid(10), projectId: target.projectId, wallId: target.wallId,
+    name: `Copie de ${srcWall?.name ?? 'mur'} · ${src.name}`.slice(0, 120),
+    createdAt: t, updatedAt: t, headSeq: 0, maxSeq: 0, state,
+  }
+  await db.transaction('rw', db.projects, db.walls, db.variants, async () => {
+    await db.variants.add(v)
+    await db.walls.update(target.wallId, { variantId: v.id })
+    await db.projects.update(target.projectId, { updatedAt: t })
+  })
+  return v
 }
 
 export interface WallInfo {

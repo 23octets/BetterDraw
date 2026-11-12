@@ -15,10 +15,13 @@ npm run dev          # http://localhost:5199
 ## Fonctionnalités
 
 - **Projets et mur** : mur rectangulaire en cm (300 × 250 cm par défaut), redimensionnable.
-- **Pièces en 3D** : un projet peut être une pièce (« Une pièce (3D) » à la création, ou bouton cube pour transformer un mur seul).
+- **Types de projet** : un mur 2D seul, une pièce 3D, ou les deux (« Pièce 3D + mur 2D »). On ajoute la partie manquante ensuite : bouton cube sur la carte d’un mur seul (le mur 2D est gardé, le premier mur de la pièce reçoit une copie de son dessin), « Ajouter un mur 2D » sur une pièce.
+- **Import de fresques** : « Importer une fresque… » (panneau d’un mur de la pièce, ou page des variantes du mur 2D) copie le dessin d’un autre mur, de ce projet ou d’un autre, en nouvelle variante. Sur un mur de pièce, la copie prend la taille du mur et reste posée au sol.
+- **Pièces en 3D** :
   - Plan 2D : angles déplaçables, aimantés sur une grille de 5 cm et sur l'alignement des autres angles (`⌥` = libre). Double-clic sur un mur pour ajouter un angle. Longueurs, hauteur sous plafond et épaisseur se règlent au clavier. Annuler / rétablir.
   - Portes et fenêtres : position depuis la gauche, largeur, hauteur, allège. On les glisse le long du mur sur le plan.
   - Chaque mur se peint dans l'éditeur habituel (vu de l'intérieur, ouvertures hachurées, taille fixée par le plan), avec passage au mur voisin ‹ ›. Les variantes sont propres à chaque mur ; la dernière ouverte est celle montrée en 3D.
+  - Affichage Plan, Plan + 3D, 3D, et « 2D » : ouvre en 2D le mur sélectionné (sinon le mur 2D du projet). « Décroché en L » entaille un angle du mur ou de l’angle sélectionné.
   - Vue 3D (Three.js) : orbite « maison de poupée » (murs côté caméra coupés), double-clic sur un mur pour le peindre, visite à la première personne (ZQSD, souris).
 - **Grille de carroyage** : pas réglable, repères A1, B2… et cotes depuis le coin choisi (bas-gauche par défaut),
   dernière case partielle si besoin.

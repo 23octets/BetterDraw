@@ -357,6 +357,25 @@ export function defaultNotchCorner(room: RoomPlan) {
   return best
 }
 
+/**
+ * Angle à entailler pour un décroché sur le mur i : son coin de droite (vu de l'intérieur),
+ * sinon son coin de gauche ; -1 si aucun des deux n'est saillant.
+ */
+export function wallNotchCorner(room: RoomPlan, i: number) {
+  const k = room.pts.length
+  const end = (i + 1) % k
+  if (isConvexCorner(room, end)) return end
+  if (isConvexCorner(room, i)) return i
+  return -1
+}
+
+/** Angle visé par « Décroché en L » selon la sélection : angle choisi, mur choisi, sinon l'angle par défaut. */
+export function notchTargetFor(room: RoomPlan, sel: { kind: 'corner'; j: number } | { kind: 'wall' | 'opening'; i: number } | null) {
+  if (sel?.kind === 'corner') return isConvexCorner(room, sel.j) ? sel.j : -1
+  if (sel && room.walls[sel.i]) return wallNotchCorner(room, sel.i)
+  return defaultNotchCorner(room)
+}
+
 const snap5 = (x: number) => Math.max(5, Math.round(x / 5) * 5)
 
 /**
