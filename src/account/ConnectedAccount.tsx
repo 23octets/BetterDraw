@@ -1,3 +1,4 @@
+import { LegalInfo } from '../ui/LegalInfo'
 import { useEffect, useState, type ReactNode } from 'react'
 import { CloudDB, type CloudCommit } from './cloud'
 import { ProjectSync, type SyncView } from './sync'
@@ -112,6 +113,7 @@ export default function ConnectedAccount({ databaseUrl, children }: { databaseUr
     <button disabled={user.isLoading} onClick={() => { setError(''); void cloud.cloud.login({ grant_type: 'otp' }).catch(() => setError('Connexion interrompue. Vous pouvez réessayer.')) }}>Se connecter par email</button>
     <button onClick={() => { localStorage.removeItem('frsque:account-mode'); window.location.hash = '/'; window.location.reload() }}>Continuer avec mes projets locaux</button>
     {error && <p role="alert">{error}</p>}
+    <LegalInfo />
     <LoginDialog cloud={cloud} />
   </main>
   const status = view.conflicts.length ? 'Versions à départager' : view.pendingRemote ? 'Mise à jour disponible' : view.error || (phase === 'error' ? 'Synchronisation impossible — vos modifications restent sur cet appareil.'

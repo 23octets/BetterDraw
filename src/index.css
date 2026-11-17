@@ -838,6 +838,15 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .project-msg { max-width: 1400px; width: 100%; margin: 12px auto 0; padding: 0 20px; }
 [data-testid=flat-wall] .thumb-frame { margin-bottom: 8px; }
 
+.legal-dialog { width: min(760px, calc(100vw - 32px)); max-height: 85dvh; padding: 0; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); background: var(--panel); overflow: auto; }
+.legal-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.legal-dialog h2 { font-size: 18px; white-space: normal; }
+.legal-dialog p { line-height: 1.6; white-space: normal; }
+.legal-dialog dt { font-weight: 600; }
+.legal-dialog dd { margin: 4px 0 12px; }
+.home-head { flex-wrap: wrap; gap: 16px; }
+
+.editor-guide { display: flex; align-items: center; gap: 12px; }
 /* Compte : les outils de dessin conservent leur mise en page en mode local. */
 .account-bar { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; padding:8px 16px; border-bottom:1px solid var(--border, #ddd); font-size:13px; }
 .account-bar [role="status"] { flex:1; }

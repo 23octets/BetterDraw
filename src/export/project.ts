@@ -1,3 +1,4 @@
+import { legal } from '../config/legal'
 import { applyPatches, enablePatches, type Patch } from 'immer'
 import { flushPersistence } from '../store/editor'
 import { nanoid } from 'nanoid'
@@ -268,7 +269,7 @@ const PROJECT_FORMATS: unknown[] = ['frsque-project', 'betterdraw-project']
 /** Valide une sauvegarde avant toute écriture ; la synchronisation conserve ses identifiants. */
 export async function parseProject(data: unknown, options: { withoutHistory?: boolean; preserveIds?: boolean } = {}) {
   const root = data && typeof data === 'object' ? (data as Record<string, unknown>) : null
-  if (!root || !PROJECT_FORMATS.includes(root.format) || !root.project || !Array.isArray(root.variants)) throw new ImportError('Ce fichier n’est pas un projet frsque')
+  if (!root || !PROJECT_FORMATS.includes(root.format) || !root.project || !Array.isArray(root.variants)) throw new ImportError(`Ce fichier n’est pas un projet ${legal.productName}`)
   if (root.version !== 1) throw new ImportError('Version de sauvegarde non prise en charge : ' + String(root.version))
   const p0 = obj(root.project, 'projet')
   const now = Date.now()
