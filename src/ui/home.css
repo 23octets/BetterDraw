@@ -1,0 +1,311 @@
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url('../assets/fonts/archivo-latin.woff2') format('woff2');
+}
+.h-wordmark { font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 100%; white-space: nowrap; }
+
+/* Accueil « Nuancier ». Maquette de référence et directions écartées : docs/accueil/.
+   Tout est rangé sous .home et préfixé h- pour ne pas croiser les styles de l'éditeur (index.css). */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 200 800;
+  font-stretch: 75% 100%;
+  font-display: swap;
+  src: url('../assets/fonts/bricolage-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 200 800;
+  font-stretch: 75% 100%;
+  font-display: swap;
+  src: url('../assets/fonts/bricolage-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+.home {
+  /* L'interface est en encre sur papier clair ; la seule couleur d'aplat est l'ocre de la palette par défaut. */
+  --h-bg: #f7f4ee; --h-mist: #ebe7de; --h-ocre: #e0a43a;
+  --h-ink: #17181c; --h-ink-2: #4a4c53; --h-line: #d8d4cb; --h-line-s: #76726a;
+  --h-ok: #3f7d4c; --h-warn: #a34a22; --h-danger: #b3261e;
+  --h-pad: clamp(18px, 4vw, 56px);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--h-bg);
+  color: var(--h-ink);
+  font: 400 17px/1.5 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  font-optical-sizing: auto;
+}
+.home h1, .home h2, .home h3, .home p { margin: 0; }
+.home h1, .home h2, .home h3 { text-wrap: balance; }
+.home h1, .home h2 { font-weight: 800; font-stretch: 88%; letter-spacing: -.022em; }
+.home h2 { font-size: clamp(28px, 3.1vw, 44px); line-height: 1; }
+.home a { color: inherit; text-underline-offset: 3px; }
+.home :focus-visible { outline: 3px solid var(--h-ink); outline-offset: 2px; }
+.h-wrap { width: 100%; box-sizing: border-box; max-width: calc(1296px + 2 * var(--h-pad)); margin-inline: auto; padding-inline: var(--h-pad); }
+
+/* ---------- Contrôles ---------- */
+.home .h-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 20px;
+  border-radius: 999px; border: 1.5px solid var(--h-ink); background: var(--h-ink); color: #fff;
+  font-weight: 600; font-size: 16.5px; line-height: 1; white-space: nowrap; cursor: pointer; list-style: none;
+}
+.home .h-btn:hover:not(:disabled) { background: #000; border-color: #000; }
+.home .h-btn.quiet { background: #fff; color: var(--h-ink); border-color: var(--h-line-s); font-weight: 500; }
+.home .h-btn.quiet:hover:not(:disabled) { background: #fff; border-color: var(--h-ink); }
+.home .h-btn.sm { height: 38px; padding: 0 13px; font-size: 15px; }
+.home .h-btn.icon { width: 38px; padding: 0; }
+.h-nav { display: flex; gap: 4px; align-items: center; }
+
+
+.h-field { display: grid; gap: 6px; font-size: 14.5px; font-weight: 600; color: var(--h-ink-2); min-width: 0; align-content: start; white-space: nowrap; }
+/* la règle générale des champs de l'éditeur est très spécifique : celle-ci doit l'être davantage */
+.home input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']), .home select {
+  height: 48px; width: 100%; min-width: 0; border: 1.5px solid var(--h-line-s); border-radius: 12px; background: #fff;
+  padding: 0 14px; font-size: 17px; font-weight: 500; color: var(--h-ink); font-variant-numeric: tabular-nums;
+}
+.home input::placeholder { color: var(--h-ink-2); opacity: .75; }
+.home input:focus, .home select:focus { outline: 3px solid var(--h-ink); outline-offset: 0; }
+.home input[type='number'] { appearance: textfield; -moz-appearance: textfield; }
+.home input[type='number']::-webkit-inner-spin-button { appearance: none; }
+.h-unit { position: relative; display: block; }
+.h-unit::after { content: 'cm'; position: absolute; right: 14px; top: 50%; translate: 0 -50%; color: var(--h-ink-2); font-weight: 500; pointer-events: none; }
+.home .h-unit input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']) { padding-right: 46px; }
+
+.h-more { position: relative; }
+.h-more summary::-webkit-details-marker { display: none; }
+.h-menu { position: absolute; left: 0; top: calc(100% + 6px); z-index: 20; min-width: 232px; padding: 6px; background: #fff; border: 1.5px solid var(--h-line-s); border-radius: 16px; box-shadow: 0 16px 32px -14px rgba(0, 0, 0, .4); display: grid; }
+.home .h-menu button { display: flex; align-items: center; justify-content: flex-start; height: 40px; padding: 0 12px; border: 0; background: none; border-radius: 10px; text-align: left; font-size: 15px; color: var(--h-ink); cursor: pointer; }
+.home .h-menu button:hover { background: var(--h-mist); }
+.home .h-menu .danger { color: var(--h-danger); }
+.h-menu hr { border: 0; border-top: 1px solid var(--h-line); margin: 5px 0; width: 100%; }
+
+/* état de la copie de secours : une pastille, et le texte en couleur d'alerte quand il faut agir */
+.h-copy { display: flex; align-items: baseline; gap: 7px; }
+.h-copy::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--h-ok); flex: none; translate: 0 -1px; }
+.h-copy.old, .h-copy.none { color: var(--h-warn); font-weight: 600; }
+.h-copy.old::before, .h-copy.none::before { background: var(--h-warn); }
+
+/* ---------- En-tête ---------- */
+.h-top { min-height: 64px; padding-block: 12px; flex-wrap: wrap; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.h-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 29px; letter-spacing: -.035em; line-height: 1; }
+.h-brand img { display: block; border-radius: 8px; box-shadow: 0 0 0 1px var(--h-line); }
+.h-notes { display: grid; gap: 8px; padding-bottom: 8px; }
+.h-alert { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border: 1.5px solid var(--h-danger); border-radius: 12px; background: #fff; font-size: 15.5px; }
+.h-msg { font-size: 15.5px; color: var(--h-ink-2); }
+
+/* ---------- Un mur et son nuancier : le projet exemple au premier passage, le dernier projet ensuite ---------- */
+.h-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.14fr); gap: clamp(24px, 4vw, 64px); align-items: center; padding-block: 92px; padding-inline: 46px; flex: 0 0 auto; max-height: 600px; }
+.h-intro h1 { font-size: clamp(44px, 5.4vw, 78px); line-height: .93; }
+.h-lede { margin-top: 16px; font-size: clamp(15px, 1.35vw, 19px); line-height: 1.4; color: var(--h-ink-2); max-width: 34em; text-wrap: pretty; }
+.h-go { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 20px; }
+.h-lead-in { font-size: 17px; font-weight: 600; color: var(--h-ink-2); margin-bottom: 8px; }
+/* un nom de projet est saisi par l'utilisateur : deux lignes au plus ; au-delà de 30 caractères, un corps plus petit sur trois lignes */
+.h-resume h1 { font-size: clamp(40px, 4.5vw, 64px); line-height: 1.06; padding-bottom: .05em; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: break-word; }
+.h-resume h1.long { font-size: clamp(32px, 3.5vw, 52px); -webkit-line-clamp: 3; }
+.h-meta { margin-top: 16px; font-size: 18px; color: var(--h-ink-2); font-variant-numeric: tabular-nums; }
+.h-resume .h-copy { margin-top: 6px; font-size: 16.5px; }
+
+.h-sample { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 228px; column-gap: 0; padding-block: 30px; align-items: stretch; margin: 0; width: 100%; max-width: 606px; justify-self: end; }
+.h-sample.room { grid-template-columns: 1fr; padding-block: 0; }
+/* Deux murs joints : seule leur face supérieure révèle l’épaisseur. */
+.h-sample:not(.room) { --wall-angle: 14deg; --wall-depth: 8px; max-width: min(606px, 72dvh); padding-top: clamp(48px, 6vw, 78px); padding-bottom: 8px; }
+.home .h-sample .h-mural {
+  overflow: visible;
+  transform: skewY(var(--wall-angle));
+  transform-origin: right center;
+  outline: 1px solid var(--h-line-s);
+}
+.h-sample .h-qty {
+  position: relative;
+  transform: skewY(calc(-1 * var(--wall-angle)));
+  transform-origin: left center;
+  outline: 1px solid var(--h-line-s);
+  box-shadow: 0 14px 20px -18px rgba(64, 56, 46, .35);
+}
+.h-wall-top { position: absolute; left: 0; top: calc(-1 * var(--wall-depth)); width: 100%; height: var(--wall-depth); overflow: visible; pointer-events: none; }
+.h-wall-top polygon { fill: #e4ded3; stroke: #76726a; stroke-width: 1; stroke-linejoin: round; }
+.h-wall-top.right polygon { fill: #ece6db; }
+.h-acts { flex-wrap: wrap; }
+.h-nav { flex-wrap: wrap; justify-content: flex-end; }
+.home-account { display: flex; gap: 12px; align-items: center; }
+.account-guest { font-size: 13px; color: var(--h-ink-2); }
+.h-new-head { max-width: 100%; }
+@media (max-width: 700px) { .home-account { flex-wrap: wrap; } }
+
+/* les vignettes reprennent les composants de l'éditeur (Thumb, RoomThumb) : on neutralise leur cadre */
+.home .thumb-frame { position: relative; padding: 0; border: 0; background: var(--h-mist); width: 100%; overflow: hidden; }
+.home .thumb-frame.clickable:focus-visible { outline: 3px solid var(--h-ink); outline-offset: 2px; }
+.home .thumb-svg { filter: none; transition: none; transform: none; }
+.h-mural .thumb-svg, .h-color-links { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.h-color-links path { fill: none; stroke: #35332e; stroke-width: 1.1; stroke-linejoin: round; }
+.h-color-links .halo { stroke: #fffdf8; stroke-width: 3.5; stroke-opacity: .85; }
+.h-color-links circle { fill: #fffdf8; stroke: #35332e; stroke-width: 1.1; }
+.h-qty { display: grid; }
+.h-chips { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-rows: 1fr; height: 100%; }
+.h-chips li { display: grid; grid-template-columns: 54px 1fr; align-items: stretch; background: var(--h-mist); }
+.h-chips li + li { border-top: 1px solid var(--h-line-s); }
+.h-chips .sw { display: grid; place-items: center; border-right: 1px solid var(--h-line-s); }
+.h-chips .sw span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #fff; color: var(--h-ink); font-weight: 800; font-size: 14.5px; line-height: 1; }
+.h-chips .sw.more { font-weight: 800; font-size: 15px; background: #fff; }
+.h-chips .tx { padding: 8px 14px; display: grid; align-content: center; min-width: 0; }
+.h-chips strong { font-weight: 700; font-size: 16.5px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.h-chips small { font-size: 14.5px; color: var(--h-ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* ---------- Nouveau projet : le seul aplat de la page ---------- */
+.h-band { background: var(--h-ocre); }
+.h-new { padding-block: 40px; display: grid; grid-template-columns: minmax(200px, 1fr) minmax(104px, 132px) minmax(104px, 132px) auto; align-items: end; gap: 12px 16px; }
+.h-new-head { display: grid; gap: 10px; min-width: 0; }
+.home .h-new-head h2 { font-size: 26px; white-space: nowrap; }
+.h-new .h-field { color: var(--h-ink); }
+.home .h-new input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']) { border: 2px solid var(--h-ink); }
+.home.retour .h-new .h-btn { background: transparent; color: var(--h-ink); border-width: 2px; }
+.home.retour .h-new .h-btn:hover { background: var(--h-ink); color: #fff; }
+.home .h-unfold { display: none; }
+
+/* ---------- Projets : une carte par mur, avec la bande de ses couleurs ---------- */
+.h-projects { padding-block: clamp(28px, 3vw, 40px) clamp(48px, 6vw, 80px); }
+.h-section-head { display: flex; justify-content: space-between; align-items: center; gap: 6px 16px; flex-wrap: wrap; }
+.h-tools { display: flex; gap: 12px 18px; flex-wrap: wrap; align-items: center; margin-top: 18px; font-size: 15px; color: var(--h-ink-2); }
+.h-tools label { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.home .h-tools input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']), .home .h-tools select { height: 38px; font-size: 15px; padding: 0 12px; }
+.h-tools input { flex: 1 1 240px; max-width: 360px; }
+.home .h-tools select { width: auto; }
+.h-none { margin-top: 20px; color: var(--h-ink-2); }
+.h-grid { list-style: none; margin: 20px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 36px 24px; }
+.h-card { display: grid; grid-template-rows: auto auto 1fr auto; min-width: 0; }
+.h-card .thumb-frame { cursor: pointer; }
+.h-card .thumb-svg { position: absolute; inset: 20px; width: calc(100% - 40px); height: calc(100% - 40px); filter: drop-shadow(0 1px 0 rgba(23, 24, 28, .22)) drop-shadow(0 8px 12px rgba(23, 24, 28, .13)); transition: scale .18s ease; }
+.h-card .thumb-frame:hover .thumb-svg { scale: 1.03; }
+.h-card .room-thumb .thumb-svg { background: none; }
+/* bande des couleurs du projet, proportionnelle aux surfaces ; le filet garde visibles les teintes claires */
+.h-strip { display: flex; height: 18px; border: 1.5px solid var(--h-ink); }
+.h-strip:empty { visibility: hidden; }
+.h-strip i { flex: 1 0 4%; }
+.h-strip i + i { border-left: 1.5px solid var(--h-ink); }
+.h-card .tx { padding: 14px 0 12px; min-width: 0; }
+.h-card h3 { font-size: 20px; font-weight: 750; letter-spacing: -.02em; line-height: 1.2; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: break-word; }
+.h-card p { margin-top: 2px; font-size: 15px; color: var(--h-ink-2); line-height: 1.4; font-variant-numeric: tabular-nums; }
+.h-acts { display: flex; gap: 8px; align-items: center; }
+
+
+/* Une composition élastique commune : le hero prend l'espace disponible,
+   la confidentialité et le footer terminent la page. Aucun contenu n'est rogné. */
+.home > main { flex: 1 0 auto; display: flex; flex-direction: column; min-width: 0; }
+.h-top, .h-notes, .h-band, .h-projects, .h-privacy, .h-footer { flex: none; }
+.h-privacy { flex: 1 0 auto; display: flex; background: var(--h-bg); border-top: 1px solid var(--h-line); }
+.h-promises { display: grid; grid-template-columns: 180px minmax(0, 1fr); align-items: center; gap: 32px; padding-block: 16px; }
+.h-promises ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.h-promises li { min-width: 0; min-height: 40px; display: flex; align-items: center; gap: 12px; padding-inline: 24px; border-left: 1px solid var(--h-line); }
+.h-promises li:first-child { padding-left: 0; border-left: 0; }
+.h-promises .icon { flex: none; }
+.h-promises li span { font-size: clamp(17px, 1.55vw, 22px); font-weight: 700; line-height: 1.12; letter-spacing: -.02em; text-wrap: balance; }
+.h-footer { min-height: 48px; width: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: flex-end; background: var(--h-bg); border: 0; }
+.home .h-footer > button { margin-left: auto; width: auto; min-height: 44px; padding: 0 8px; border: 0; background: transparent; font-size: 14px; color: var(--h-ink-2); text-decoration: none; text-underline-offset: 3px; }
+.home .h-footer > button:hover:not(:disabled) { background: transparent; text-decoration: underline; text-decoration-thickness: 2px; }
+.h-footer .home-account button { height: 32px; padding-inline: 12px; border: 1px solid var(--h-line-s); border-radius: 999px; background: transparent; color: var(--h-ink); font-size: 13px; }
+@media (hover: hover) and (pointer: fine) {
+  .home .h-btn { transition: translate .16s ease, box-shadow .16s ease, background-color .16s ease, border-color .16s ease; }
+  .home .h-btn:hover:not(:disabled) { translate: 0 -2px; box-shadow: 0 4px 0 var(--h-ink); }
+  .home .h-btn.quiet:hover:not(:disabled) { background: var(--h-mist); }
+  .home .h-btn:active:not(:disabled) { translate: 0 0; box-shadow: none; }
+}
+@media (min-width: 701px) and (max-width: 980px) {
+  .h-hero { gap: 24px; }
+  .h-sample { grid-template-columns: minmax(0, 1fr) 170px; }
+  .h-chips li { grid-template-columns: 32px 1fr; }
+  .h-chips .tx { padding: 6px; }
+  .h-chips strong { font-size: 13px; }
+  .h-chips small { font-size: 12px; line-height: 1.2; }
+  .h-promises { grid-template-columns: 1fr; gap: 10px; }
+}
+@media (max-width: 700px) {
+  .home { --h-pad: 16px; }
+  .h-top { min-height: 60px; padding-block: 6px; gap: 8px; }
+  .h-brand { font-size: 24px; gap: 6px; }
+  .h-brand img { width: 28px; height: 28px; }
+  .h-nav .h-btn { height: 40px; padding-inline: 12px; font-size: 13px; }
+  .h-hero { display: contents; }
+  .h-intro, .h-resume { order: 1; padding: 6px var(--h-pad); }
+  .h-intro h1 { max-width: 16ch; font-size: 32px; line-height: .98; }
+  .h-lede { margin-top: 10px; font-size: 14px; line-height: 1.35; max-width: none; }
+  .h-intro .h-go, .h-resume .h-go { margin-top: 8px; gap: 8px; }
+  .h-go .h-btn { height: 36px; font-size: 14px; padding-inline: 14px; }
+  .h-resume h1, .h-resume h1.long { font-size: 30px; line-height: 1.02; -webkit-line-clamp: 2; }
+  .h-lead-in { margin-bottom: 4px; font-size: 14px; }
+  .h-meta { margin-top: 8px; font-size: 13px; }
+  .h-resume .h-copy { font-size: 13px; }
+  .h-band { order: 2; }
+  .h-new { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; padding-block: 14px; }
+  .h-new-head, .h-new > .h-unfold { grid-column: 1 / -1; }
+  .h-new-head { gap: 6px; }
+  .home .h-new-head h2 { font-size: 20px; }
+  .home .h-new input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']) { height: 40px; font-size: 16px; padding-left: 10px; }
+  .h-new .h-field { gap: 3px; font-size: 11.5px; line-height: 1.2; }
+  .h-new .h-unit::after { right: 8px; font-size: 12px; }
+  .home .h-new .h-unit input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']) { padding-right: 30px; }
+  .home .h-new > .h-btn { height: 40px; font-size: 13px; padding-inline: 10px; }
+  .h-new > .h-btn:not(.h-unfold) svg { display: none; }
+  .h-new.folded > *:not(.h-unfold) { display: none; }
+  .home .h-new.folded .h-unfold { display: inline-flex; width: 100%; }
+  .h-sample { order: 3; width: calc(100% - 2 * var(--h-pad)); max-width: 440px; align-self: center; justify-self: stretch; margin: 8px 0 4px; }
+  /* tan(10°) réserve la remontée réelle du mur transformé, plus son chant. */
+  .h-sample:not(.room) { --wall-angle: 10deg; --wall-depth: 6px; max-width: 440px; grid-template-columns: minmax(0, 1fr) 136px; padding: calc((min(100vw - 2 * var(--h-pad), 440px) - 136px) * .176327 + 16px) 0 0; }
+  .h-sample:not(.room) .h-mural { min-height: 0; }
+  .h-chips li { min-height: 32px; grid-template-columns: 28px minmax(0, 1fr); }
+  .h-chips .tx { padding: 1px 6px; }
+  .h-chips strong { font-size: 13px; }
+  .h-chips small { font-size: 12px; line-height: 1.2; }
+  .h-projects { order: 4; }
+  .h-grid { grid-template-columns: 1fr; gap: 24px; }
+  .h-privacy { order: 5; }
+  .h-promises { grid-template-columns: 1fr; align-content: center; gap: 8px; padding-block: 14px; }
+  .h-promises li { min-height: 0; flex-direction: column; gap: 5px; padding-inline: 8px; text-align: center; }
+  .h-promises li span { font-size: 15px; line-height: 1.12; }
+  .h-promises .icon { width: 20px; height: 20px; }
+  .h-footer { min-height: 44px; }
+  .h-footer .account-guest { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home .h-btn, .h-card .thumb-svg { transition: none; }
+  .home .h-btn:hover:not(:disabled) { translate: none; }
+}
+
+/* Sur un écran court, la bande de création garde de l'air sans pousser le footer. */
+@media (min-width: 701px) and (max-height: 800px) {
+  .h-new { padding-block: 28px; }
+  .h-sample:not(.room) { padding-top: 48px; }
+}
+
+@media (max-width: 700px) and (min-height: 850px) {
+  .h-intro, .h-resume { padding-top: 14px; }
+  .h-new { padding-block: 18px; }
+}
+
+/* Bénéfices : composition en trois colonnes. */
+.h-privacy .h-promises { grid-template-columns: 1fr; gap: 0; padding-block: 16px; min-height: 160px; }
+.h-privacy--columns li { flex-direction: column; justify-content: center; text-align: center; gap: 16px; padding: 8px 24px; min-height: 100px; }
+.h-privacy--columns li:first-child { padding-left: 24px; }
+.h-privacy--columns li span { font-size: clamp(20px, 2vw, 26px); max-width: 15ch; }
+.h-privacy--columns .icon { width: 28px; height: 28px; }
+@media (max-width: 700px) {
+  .h-privacy .h-promises { padding-block: 8px; min-height: 0; }
+  .h-privacy--columns li { gap: 8px; padding: 0 8px; min-height: 0; }
+  .h-privacy--columns li:first-child { padding-left: 8px; }
+  .h-privacy--columns li span { font-size: 18px; }
+  .h-privacy--columns .icon { width: 24px; height: 24px; }
+}
+
+@media (min-width: 701px) and (max-height: 800px) {
+  .h-sample:not(.room) { padding-top: 24px; }
+  .h-privacy .h-promises { min-height: 0; padding-block: 8px; }
+  .h-privacy--columns li { min-height: 0; gap: 8px; padding-block: 4px; }
+  .h-privacy--columns li span { font-size: 20px; }
+  .h-privacy--columns .icon { width: 24px; height: 24px; }
+}

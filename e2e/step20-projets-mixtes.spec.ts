@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openRoomsOnPlan, resetDb } from './helpers'
+import { newRoom, openRoomsOnPlan, resetDb } from './helpers'
 
 test.beforeEach(async ({ page }) => {
   await resetDb(page)
@@ -8,10 +8,11 @@ test.beforeEach(async ({ page }) => {
 
 async function create(page: Page, kind: 'wall' | 'room' | 'both', name: string) {
   await page.goto('/#/')
-  await page.getByTestId(`kind-${kind}`).click()
+  if (await page.locator('.h-unfold').isVisible()) await page.locator('.h-unfold').click()
+  if (kind !== 'wall') { await newRoom(page, name, 'rect', kind === 'both'); return }
   await page.getByTestId('new-project-form').locator('input[name=name]').fill(name)
   await page.getByRole('button', { name: 'Créer le projet' }).click()
-  await page.waitForURL(kind === 'wall' ? /#\/v\// : /#\/r\//)
+  await page.waitForURL(/#\/v\//)
 }
 
 /** Boutons d'action sortant de la zone intérieure (padding compris) de leur carte. */
@@ -19,13 +20,16 @@ const overflowingActions = (page: Page) =>
   page.evaluate(() => {
     const bad: string[] = []
     for (const card of document.querySelectorAll('[data-testid=project-card]')) {
-      const r = card.getBoundingClientRect()
+      // Sur mobile, le hero utilise display: contents : mesurer sa zone d'actions réelle.
+      const r = (card.querySelector('.h-resume') ?? card).getBoundingClientRect()
       const bar = card.querySelector('.card-actions')!
       const cs = getComputedStyle(bar)
       const left = r.left + parseFloat(cs.paddingLeft) - 0.5
       const right = r.right - parseFloat(cs.paddingRight) + 0.5
-      for (const b of bar.querySelectorAll('button')) {
+      for (const b of bar.querySelectorAll('button, summary')) {
+        if (b.tagName !== 'SUMMARY' && b.closest('details:not([open])')) continue
         const q = b.getBoundingClientRect()
+        if (!q.width || !q.height) continue // actions du menu fermé
         if (q.left < left || q.right > right) bad.push(`${(card as HTMLElement).dataset.kind}: ${b.textContent || b.getAttribute('aria-label')}`)
       }
     }
@@ -38,7 +42,7 @@ const clippedFormButtons = (page: Page) =>
     const bad: string[] = []
     for (const b of document.querySelectorAll<HTMLElement>('[data-testid=new-project-form] button')) {
       if (b.scrollWidth > b.clientWidth + 1) bad.push(`rogné : ${b.textContent}`)
-      const seg = b.closest('.seg')
+      const seg = b.closest('.h-seg')
       if (seg) {
         const s = seg.getBoundingClientRect(), q = b.getBoundingClientRect()
         if (q.left < s.left - 0.5 || q.right > s.right + 0.5) bad.push(`hors du groupe : ${b.textContent}`)
@@ -47,7 +51,7 @@ const clippedFormButtons = (page: Page) =>
     return bad
   })
 
-test('accueil : les actions tiennent dans la carte et « En L » est visible, quelle que soit la largeur', async ({ page }) => {
+test('accueil : les actions et le formulaire tiennent à toutes les largeurs', async ({ page }) => {
   await create(page, 'wall', 'Mur seul')
   await create(page, 'room', 'Nouvelle pièce')
   await create(page, 'both', 'Pièce et mur 2D avec un nom vraiment long')
@@ -56,11 +60,9 @@ test('accueil : les actions tiennent dans la carte et « En L » est visible, qu
   for (const width of [1440, 1180, 900, 700, 520, 390]) {
     await page.setViewportSize({ width, height: 900 })
     expect(await overflowingActions(page), `largeur ${width}`).toEqual([])
-    for (const kind of ['room', 'both'] as const) {
-      await page.getByTestId(`kind-${kind}`).click()
-      await expect(page.getByTestId('shape-L')).toBeVisible()
-      expect(await clippedFormButtons(page), `largeur ${width}, ${kind}`).toEqual([])
-    }
+    if (await page.locator('.h-unfold').isVisible()) await page.locator('.h-unfold').click()
+    expect(await clippedFormButtons(page), `largeur ${width}`).toEqual([])
+    await expect(page.getByRole('group', { name: 'Type de projet' })).toHaveCount(0)
   }
 })
 
@@ -121,7 +123,7 @@ test('décroché en L sur le mur sélectionné', async ({ page }) => {
 
 test('importer une fresque d’un autre projet dans un mur de la pièce', { tag: '@essentiel' }, async ({ page }) => {
   await page.goto('/#/')
-  await page.getByRole('button', { name: 'Créer un projet exemple' }).click()
+  await page.getByRole('button', { name: 'Ouvrir le projet exemple' }).click()
   await page.getByTestId('canvas').waitFor()
   await create(page, 'room', 'Chambre')
   await page.getByTestId('plan-wall-0').click()

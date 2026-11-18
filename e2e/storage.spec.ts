@@ -1,15 +1,15 @@
 import { test, expect } from '@playwright/test'
-import { openRoomsOnPlan } from './helpers'
+import { newRoom, openRoomsOnPlan } from './helpers'
 
 test('explique le stockage et sauvegarde depuis l’accueil', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByText('Vos projets restent uniquement')).toBeVisible()
+  await expect(page.getByText('Tes projets en local', { exact: true }).first()).toBeVisible()
   await page.locator('input[name="name"]').fill('Sauvegarde locale')
   await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
   await expect(page.getByTestId('save-state')).toBeVisible()
   await page.goto('/')
   const download = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Sauvegarder Sauvegarde locale (.json)' }).click()
+  await page.getByRole('button', { name: 'Télécharger une copie de secours de Sauvegarde locale' }).click()
   expect((await download).suggestedFilename()).toContain('.frsque.json')
 })
 
@@ -98,7 +98,7 @@ test('un quota atteint laisse une alerte durable et une sauvegarde de secours', 
   await expect(page.getByTestId('save-state')).toHaveText('Enregistré')
   await page.getByRole('button', { name: 'Projets', exact: true }).click()
   await expect(page.getByTestId('new-project-form')).toBeVisible()
-  await page.getByRole('button', { name: 'Ouvrir', exact: true }).click()
+  await page.getByRole('button', { name: 'Reprendre le dessin', exact: true }).click()
   await expect(page.getByTestId('canvas')).toBeVisible()
 })
 
@@ -112,7 +112,7 @@ test('un nettoyage défaillant laisse l’accueil et les sauvegardes accessibles
   })
   await page.goto('/')
   await expect(page.getByTestId('new-project-form')).toBeVisible()
-  await expect(page.getByText('Vos projets restent uniquement')).toBeVisible()
+  await expect(page.getByText('Tes projets en local', { exact: true }).first()).toBeVisible()
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
@@ -127,8 +127,7 @@ test('explique les fichiers qui ne sont pas des sauvegardes JSON', async ({ page
 test('un quota après scission du plan permet une sauvegarde réimportable', async ({ page }) => {
   await page.goto('/')
   await openRoomsOnPlan(page)
-  await page.getByTestId('kind-room').click()
-  await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
+  await newRoom(page)
   await expect(page.getByTestId('plan')).toBeVisible()
   await page.evaluate(() => {
     const put = IDBObjectStore.prototype.put
@@ -196,21 +195,33 @@ test('une sauvegarde incomplète demande confirmation et conserve son avertissem
   })
   await page.goto('/')
   page.once('dialog', (dialog) => dialog.dismiss())
-  await page.getByRole('button', { name: /Sauvegarder .*\(\.json\)/ }).click()
+  await page.getByRole('button', { name: /Télécharger une copie de secours de / }).click()
   await expect(page.getByTestId('import-msg')).toHaveText('Sauvegarde annulée.')
   page.once('dialog', (dialog) => dialog.accept())
   const downloaded = page.waitForEvent('download')
-  await page.getByRole('button', { name: /Sauvegarder .*\(\.json\)/ }).click()
+  await page.getByRole('button', { name: /Télécharger une copie de secours de / }).click()
   await downloaded
   await expect(page.getByTestId('import-msg')).toContainText('Sauvegarde incomplète téléchargée')
   await expect(page.getByTestId('import-msg')).toContainText('images sont absentes')
+  await expect(page.locator('.h-resume .h-copy')).toHaveText('Aucune copie de secours')
+  await page.evaluate(async () => {
+    const repoPath = '/src/store/repo.ts'
+    const { createProject } = await import(/* @vite-ignore */ repoPath)
+    await createProject('Mur sans image')
+  })
+  await expect(page.getByTestId('project-card')).toHaveCount(2)
+  page.once('dialog', (dialog) => dialog.accept())
+  const grouped = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Tout télécharger', exact: true }).first().click()
+  await grouped
+  await expect(page.locator('.h-copy.none')).toHaveCount(1)
+  await expect(page.locator('.h-copy.ok')).toHaveCount(1)
 })
 
 test('la sortie attend un enregistrement de pièce encore en cours avant de signaler son échec', { tag: '@essentiel' }, async ({ page }) => {
   await page.goto('/')
   await openRoomsOnPlan(page)
-  await page.getByTestId('kind-room').click()
-  await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
+  await newRoom(page)
   await expect(page.getByTestId('plan')).toBeVisible()
   await page.evaluate(async () => {
     const path = '/src/store/db.ts'
