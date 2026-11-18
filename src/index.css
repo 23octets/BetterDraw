@@ -803,7 +803,6 @@ button.on .btn-badge { background: #fff; color: var(--primary); }
 .legal-dialog p { line-height: 1.6; white-space: normal; }
 .legal-dialog dt { font-weight: 600; }
 .legal-dialog dd { margin: 4px 0 12px; }
-.home-head { flex-wrap: wrap; gap: 16px; }
 
 .editor-guide { display: flex; align-items: center; gap: 12px; }
 /* Compte : les outils de dessin conservent leur mise en page en mode local. */

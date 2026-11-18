@@ -169,7 +169,7 @@ export class RoomScene {
   private textures = new Map<string, THREE.Texture>()
   private restMat = new THREE.MeshStandardMaterial({ color: 0xf1eee8, roughness: 0.95 })
   private sun: THREE.DirectionalLight
-  private clock = new THREE.Clock()
+  private timer = new THREE.Timer()
   private ro: ResizeObserver
   private room: RoomPlan | null = null
   private opts: SceneOptions = { lines: false, cutaway: true }
@@ -188,7 +188,7 @@ export class RoomScene {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.shadowMap.enabled = true
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    this.renderer.shadowMap.type = THREE.PCFShadowMap
     this.renderer.domElement.dataset.testid = 'room-3d-canvas'
     container.appendChild(this.renderer.domElement)
 
@@ -225,6 +225,7 @@ export class RoomScene {
     this.ro = new ResizeObserver(() => this.resize())
     this.ro.observe(container)
     this.resize()
+    this.timer.connect(container.ownerDocument)
     this.renderer.setAnimationLoop(() => this.tick())
   }
 
@@ -613,7 +614,8 @@ export class RoomScene {
   }
 
   private tick() {
-    const dt = Math.min(this.clock.getDelta(), 0.05)
+    this.timer.update()
+    const dt = Math.min(this.timer.getDelta(), 0.05)
     if (this.mode === 'orbit') {
       this.orbit.update()
       // vue « maison de poupée » : les murs entre la caméra et la pièce sont coupés
@@ -658,6 +660,7 @@ export class RoomScene {
   dispose() {
     this.disposed = true
     this.renderer.setAnimationLoop(null)
+    this.timer.dispose()
     this.ro.disconnect()
     this.walk.dispose()
     this.orbit.dispose()

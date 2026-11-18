@@ -5,6 +5,7 @@ import type { DocState, Project, ProjectKind, Variant } from '../model/types'
 import { DEFAULT_WALL } from '../model/defaults'
 import { exampleDoc } from '../model/example'
 import { importProject, ImportError, InvalidHistoryError, serializeProject, type ProjectFile } from '../export/project'
+import { db } from '../store/db'
 import { storageError } from '../store/storage'
 import { BACKUP_LABEL, backupState, backupTimes, forgetBackup, markBackedUp, type BackupState } from '../store/backups'
 import { resolveFills, surfaces, type ColorSurface } from '../store/fills'
@@ -550,7 +551,7 @@ function NewProject({ collapsible, onError }: { collapsible: boolean; onError: (
 }
 
 function Privacy() {
-  const cloud = localStorage.getItem('frsque:account-mode') === 'cloud'
+  const cloud = db.name.startsWith('betterdraw-account-')
   return (
     <section className="h-privacy h-privacy--columns" aria-label="Confidentialité">
       <div className="h-promises h-wrap">
@@ -559,6 +560,7 @@ function Privacy() {
           <li><Icon name="device" size={28} /><span>{cloud ? 'Copie locale' : 'Tes projets en local'}</span></li>
           <li><Icon name="eyeOff" size={28} /><span>Sans pistage</span></li>
         </ul>
+        {cloud && <p>Vérifie le statut « Synchronisé » avant de fermer ou d’effacer les données du site.</p>}
       </div>
     </section>
   )
