@@ -65,6 +65,8 @@ jobs:
           cache: npm
       - run: npm ci
       # seuls les pushes sur dev passent la suite complète ; PR et merge queue gardent le socle @essentiel
+      - name: Choisir les polices du rendu
+        run: mkdir -p ~/.config/fontconfig && cp .github/fontconfig/fonts.conf ~/.config/fontconfig/
       - name: Tests E2E
         run: npm run ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' && 'test:e2e' || 'test:e2e:essentiel' }}
       - name: Publier le rapport Playwright
