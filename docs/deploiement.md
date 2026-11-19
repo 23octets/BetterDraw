@@ -34,6 +34,12 @@ de branche devant, donc la branche `dev` donne `dev.frsque.diy`. Un domaine de b
 `dev.frsque.diy` produirait des adresses sous `*.dev.frsque.diy` ; il ne faut
 pas le superposer au domaine de recette, car ses enregistrements DNS peuvent masquer le wildcard parent.
 
+Bascule vers `frsque.diy` : les adresses de preview dérivent du domaine de la **production**
+déployée. Tant que `main` n'a pas été déployée avec `frsque.diy`, la recette reste sur
+`https://dev.betterdraw.yohan.one` (webhook Dexie de recette compris). Ne supprimer
+`betterdraw.yohan.one` qu'après cette promotion et la vérification de `https://dev.frsque.diy`,
+puis repointer le webhook de la base de recette vers `https://dev.frsque.diy/api/accounts/admit`.
+
 Les autres branches gardent leurs previews individuelles, liées dans le commentaire de PR.
 Le check Workers Builds n'est pas requis par GitHub : vérifier aussi son succès avant recette.
 Les certificats et le DNS sont gérés par Cloudflare ; vérifier l'accès HTTPS après activation.
