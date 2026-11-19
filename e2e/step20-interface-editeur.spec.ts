@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { newProject, openRoomsOnPlan, resetDb } from './helpers'
+import { newRoom, newProject, openRoomsOnPlan, resetDb } from './helpers'
 
 test.beforeEach(async ({ page }) => {
   await resetDb(page)
@@ -7,9 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 async function openRoomWall(page: Page, name = 'Salon') {
   await openRoomsOnPlan(page)
-  await page.getByTestId('kind-room').click()
-  await page.locator('input[name=name]').fill(name)
-  await page.getByRole('button', { name: 'Créer le projet' }).click()
+  await newRoom(page, name)
   await page.getByTestId('plan-wall-0').click({ force: true })
   await page.getByTestId('paint-wall').click()
   await page.getByTestId('canvas').waitFor()

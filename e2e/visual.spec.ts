@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { clickWall, newProject, resetDb, setField } from './helpers'
+import { newRoom, clickWall, newProject, resetDb, setField } from './helpers'
 
 /**
  * Régression visuelle : ces tests ne tournent qu'en CI, car les images de référence
@@ -61,12 +61,7 @@ test('dessin peint : édition puis consultation', async ({ page }) => {
 })
 
 test('pièce : plan et vue 3D avec murs peints', async ({ page }) => {
-  await page.getByTestId('kind-room').click()
-  await page.locator('input[name=name]').fill('Visuel')
-  await page.locator('input[name=room-w]').fill('400')
-  await page.locator('input[name=room-d]').fill('320')
-  await page.locator('input[name=room-h]').fill('250')
-  await page.getByRole('button', { name: 'Créer le projet' }).click()
+  await newRoom(page, 'Visuel')
 
   await page.getByTestId('plan-wall-0').click({ force: true })
   await page.getByTestId('add-window').click()

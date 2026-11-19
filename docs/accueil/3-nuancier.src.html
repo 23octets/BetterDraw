@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>frsque — maquette 3, Nuancier</title>
+<!-- Police hébergée avec le site (aucun appel réseau) : Bricolage Grotesque, variable. -->
+<link rel="stylesheet" href="fonts/bricolage.css">
+<!--@favicon-->
+<!--@baseCss-->
+<style>
+:root {
+  /* La palette par défaut de chaque nouveau projet, telle quelle, sert aux aplats ; l'interface reste en encre sur blanc.
+     Dans cette direction, le violet des boutons de l'éditeur (--primary dans src/index.css) devient cette même encre : un seul jeton à changer.
+     La sélection sur le dessin n'est pas concernée : l'éditeur la trace déjà avec un autre jeton, --sel (bleu). */
+  --canard: #1f6f78; --terra: #c8643b; --ocre: #e0a43a; --sauge: #9caf88; --rose: #e8b4a6; --anthracite: #33363b;
+  --bg: #f7f4ee; --mist: #ebe7de; --ink: #17181c; --ink-2: #4a4c53; --line: #d8d4cb; --line-s: #76726a;
+  --act: #17181c; --act-h: #000; --act-ink: #fff; --focus: #17181c;
+  --ctl: #fff; --input: #fff; --seg-bg: #fff; --hover: #ebe7de;
+  --danger: #b3261e; --ok: #3f7d4c; --warn: #a34a22;
+  --r: 999px; --pad: clamp(18px, 4vw, 56px); --maxw: 1296px;
+  --d-ink: var(--ink); --d-wall: #fff; --d-cote: #a34a22;
+}
+body { font: 400 17px/1.5 'Bricolage Grotesque', system-ui, sans-serif; font-optical-sizing: auto; }
+h1, h2 { font-weight: 800; font-stretch: 88%; letter-spacing: -.022em; }
+h2 { font-size: clamp(28px, 3.1vw, 44px); line-height: 1; }
+.field input, .tools input, .tools select { border-radius: 12px; }
+.menu { border-radius: 16px; } .menu button { border-radius: 10px; }
+.seg { border-radius: 999px; }
+
+.top { height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 29px; letter-spacing: -.035em; line-height: 1; }
+.brand svg { width: 32px; height: 32px; border-radius: 8px; display: block; box-shadow: 0 0 0 1px var(--line); }
+
+/* ---------- Un mur et son nuancier : le projet exemple au premier passage, ton dernier projet ensuite ---------- */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.14fr); gap: clamp(28px, 4vw, 72px); align-items: center; padding-block: clamp(8px, 1.2vw, 16px) clamp(28px, 3vw, 40px); }
+.hero h1 { font-size: clamp(44px, 6.2vw, 94px); line-height: .93; text-wrap: balance; }
+.lede { margin-top: 22px; font-size: clamp(18px, 1.5vw, 21px); line-height: 1.42; color: var(--ink-2); max-width: 27em; text-wrap: pretty; }
+.go { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 28px; }
+.resume .lead-in { font-size: 17px; font-weight: 600; color: var(--ink-2); margin-bottom: 8px; }
+/* un nom de projet est saisi par l'utilisateur : deux lignes au plus, coupé proprement au-delà */
+.resume h1 { font-size: clamp(40px, 4.5vw, 64px); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: break-word; line-height: 1.06; padding-bottom: .05em; }
+/* un nom de plus de 30 caractères passe dans un corps plus petit, sur trois lignes au plus */
+.resume h1.long { font-size: clamp(32px, 3.5vw, 52px); -webkit-line-clamp: 3; }
+.resume .meta { margin-top: 16px; font-size: 18px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.resume .copy { margin-top: 6px; font-size: 16.5px; }
+.resume .more .menu { right: auto; left: 0; }
+.sample { display: grid; grid-template-columns: minmax(0, 1fr) 228px; column-gap: 6px; align-items: stretch; margin: 0; width: 100%; max-width: 606px; justify-self: end; }
+.sample > .mural { display: block; width: 100%; height: auto; }
+.sample .mural text { font: 800 13px 'Bricolage Grotesque', sans-serif; fill: var(--ink); }
+.qty { display: grid; }
+.qty summary { display: none; }
+/* nuancier replié (téléphone) : les numéros de zone n'ont plus de légende, ils s'effacent */
+.sample:has(.qty:not([open])) > .mural g { display: none; }
+/* jusqu'à 5 teintes, une ligne chacune ; au-delà, la dernière ligne résume le reste (« + 2 teintes ») pour ne pas dépasser la fresque */
+.chips { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-rows: 1fr; height: 100%; }
+.chips li { display: grid; grid-template-columns: 54px 1fr; align-items: stretch; background: var(--mist); }
+.chips li + li { border-top: 2px solid var(--bg); }
+.chips .sw { display: grid; place-items: center; }
+.chips .sw span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #fff; color: var(--ink); font-weight: 800; font-size: 14.5px; line-height: 1; }
+.chips .tx { padding: 8px 14px; display: grid; align-content: center; }
+.chips strong { font-weight: 700; font-size: 16.5px; line-height: 1.2; white-space: nowrap; }
+.chips small { font-size: 14.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sample figcaption { grid-column: 1 / -1; margin-top: 12px; font-size: 15.5px; color: var(--ink-2); }
+.sample figcaption strong { color: var(--ink); font-weight: 700; }
+
+/* ---------- Nouveau projet : le seul aplat de l'interface ---------- */
+.band-ocre { background: var(--ocre); --label: var(--ink); --line-s: var(--ink); }
+.new { padding-block: 18px 20px; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px 28px; }
+.new-head { display: grid; gap: 8px; justify-items: start; }
+.new-head h2 { font-size: 28px; white-space: nowrap; }
+.new .seg { border-width: 2px; background: transparent; }
+.new .field input { border-width: 2px; }
+.new-fields { flex: 1 1 560px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.new .f-name { flex: 1 1 150px; }
+.new .f-w, .new .f-h, .new .f-d { flex: 0 1 124px; }
+.new .f-c { flex: 0 1 168px; }
+.new .f-shape { flex: none; }
+/* en mode pièce, le nom prend sa ligne ; forme et mesures se rangent dessous */
+.new[data-mode=room] .f-name { flex: 1 1 100%; }
+/* au retour, le seul bouton plein de la page est « Reprendre le dessin » */
+body.retour .new .btn { background: transparent; color: var(--ink); border-width: 2px; }
+body.retour .new .btn:hover { background: var(--ink); color: #fff; }
+.new .f-shape .seg { background: #fff; }
+.room-sum { flex: 1 1 100%; font-size: 16px; font-variant-numeric: tabular-nums; }
+.room-sum strong { font-weight: 700; }
+
+/* ---------- Projets : une carte par mur, avec la bande de ses couleurs ---------- */
+.projects { padding-block: clamp(28px, 3vw, 40px) clamp(48px, 6vw, 80px); }
+.section-head { display: flex; align-items: baseline; gap: 6px 16px; flex-wrap: wrap; }
+.section-head > p { color: var(--ink-2); }
+.projects .status { margin-top: 10px; }
+.projects .tools { margin-top: 18px; }
+.grid { list-style: none; margin: 20px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 36px 24px; }
+.card { display: grid; grid-template-rows: auto auto 1fr auto; min-width: 0; }
+.thumb { position: relative; display: block; aspect-ratio: 3 / 2; background: var(--mist); border: 0; padding: 0; cursor: pointer; width: 100%; }
+.thumb .mural { position: absolute; inset: 20px; width: calc(100% - 40px); height: calc(100% - 40px); filter: drop-shadow(0 1px 0 rgba(23, 24, 28, .22)) drop-shadow(0 8px 12px rgba(23, 24, 28, .13)); transition: scale .18s ease; }
+.thumb:hover .mural { scale: 1.03; }
+/* bande des couleurs du projet, proportionnelle aux surfaces ; le filet garde visibles les teintes claires */
+.strip { display: flex; height: 18px; border: 1.5px solid var(--ink); }
+.strip i { flex: var(--f, 1) 0 4%; background: var(--c); }
+.strip i + i { border-left: 1.5px solid var(--ink); }
+.card .tx { padding: 14px 0 12px; min-width: 0; }
+.card h3 { font-size: 20px; font-weight: 750; letter-spacing: -.02em; line-height: 1.2; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: break-word; }
+.card p { margin-top: 2px; font-size: 15px; color: var(--ink-2); line-height: 1.4; font-variant-numeric: tabular-nums; }
+.acts { display: flex; gap: 8px; align-items: center; }
+.acts .more { margin-left: 0; }
+
+/* ---------- Méthode ---------- */
+.band-mist { background: var(--mist); }
+.method { padding-block: clamp(44px, 5vw, 72px); }
+.method .section-head { align-items: center; justify-content: space-between; margin-bottom: 30px; row-gap: 16px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 28px; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; gap: 8px; align-content: start; }
+.step-pic { width: 100%; max-width: 184px; height: auto; display: block; }
+.steps h3 { font-size: 20px; font-weight: 750; letter-spacing: -.015em; line-height: 1.2; margin-top: 6px; }
+.steps h3::before { content: counter(s) '. '; color: var(--d-cote); }
+.steps p { font-size: 15.5px; line-height: 1.45; color: var(--ink-2); }
+
+/* ---------- Enregistrement ---------- */
+/* l'explication sur toute la largeur (titre à gauche, texte à droite), puis une colonne par action */
+.storage { padding-block: clamp(44px, 5vw, 72px) 36px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px clamp(20px, 2.6vw, 40px); }
+.storage > .st-main { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; row-gap: 8px; }
+.st-main .st-head { grid-column: 1; grid-row: 1 / span 2; }
+.st-main > p { grid-column: 2 / -1; max-width: 720px; }
+.storage > .st-item { min-width: 0; display: flex; flex-direction: column; gap: 8px; border-top: 3px solid var(--ink); padding-top: 14px; }
+/* premier passage : une seule action, alignée sous le texte */
+body.premier .storage > .st-item { grid-column: 2 / -1; max-width: 720px; }
+.storage h2 { font-size: clamp(26px, 2.6vw, 36px); }
+.storage h3 { font-size: 19px; font-weight: 750; letter-spacing: -.015em; line-height: 1.25; text-wrap: balance; }
+.storage p { font-size: 15.5px; line-height: 1.45; color: var(--ink-2); }
+.storage p strong { color: var(--ink); font-weight: 700; }
+.storage .usage { font-variant-numeric: tabular-nums; }
+.storage .st-acts { margin-top: auto; padding-top: 10px; }
+.storage .st-state { color: var(--ink); margin-top: auto; }
+.end { padding-bottom: 48px; font-size: 15px; color: var(--ink-2); }
+
+@media (max-width: 980px) {
+  .storage { grid-template-columns: 1fr; gap: 24px; }
+  .storage > .st-main { display: block; }
+  .st-head { margin-bottom: 12px; }
+  .st-main p + p { margin-top: 8px; }
+  body.premier .storage > .st-item { grid-column: auto; }
+  .storage .st-acts, .storage .st-state { margin-top: 4px; padding-top: 4px; }
+}
+@media (max-width: 980px) {
+  .hero { grid-template-columns: 1fr; }
+  /* une colonne : le dessin s'étire, le nuancier garde sa largeur */
+  .sample { justify-self: stretch; max-width: none; }
+  .steps { grid-template-columns: 1fr; row-gap: 22px; max-width: 640px; }
+  .steps li { grid-template-columns: 104px 1fr; column-gap: 16px; }
+  .steps li .step-pic { grid-row: 1 / span 2; }
+  .steps h3 { margin-top: 0; }
+}
+@media (max-width: 560px) {
+  .top { height: 60px; }
+  .hero { padding-top: 18px; }
+  body.premier .hero > .only-premier { padding-top: 18px; }
+  .hero h1 { font-size: 44px; }
+  .resume h1 { font-size: 40px; }
+  .resume h1.long { font-size: 31px; }
+  .go { margin-top: 20px; }
+  /* sur téléphone, le nuancier se déplie à la demande pour que le formulaire reste proche */
+  .sample { grid-template-columns: 1fr; }
+  .qty summary { display: flex; align-items: center; justify-content: space-between; height: 46px; padding: 0 14px; background: var(--mist); font-weight: 650; font-size: 16px; cursor: pointer; list-style: none; }
+  .qty summary::-webkit-details-marker { display: none; }
+  .qty summary::after { content: '+'; font-size: 22px; font-weight: 500; }
+  .qty[open] summary::after { content: '–'; }
+  .chips li { border-top: 2px solid var(--bg); min-height: 52px; }
+  .new .f-name { flex: 1 1 100%; }
+  .new .f-w, .new .f-h, .new .f-d, .new .f-c { flex: 1 1 40%; }
+  .new-fields .btn { flex: 1 1 100%; }
+  /* liste compacte : la fresque et sa bande à gauche, le texte à droite, les actions dessous */
+  .grid { grid-template-columns: 1fr; gap: 0; }
+  .card { grid-template-columns: 108px minmax(0, 1fr); grid-template-rows: auto auto 1fr auto; column-gap: 14px; padding: 16px 0; border-top: 1.5px solid var(--line); }
+  .card .thumb { grid-column: 1; grid-row: 1; }
+  .card .thumb .mural { inset: 8px; width: calc(100% - 16px); height: calc(100% - 16px); }
+  .card .strip { grid-column: 1; grid-row: 2; height: 12px; }
+  .card .tx { grid-column: 2; grid-row: 1 / span 3; padding: 0; min-width: 0; }
+  .card .acts { grid-column: 1 / -1; margin-top: 12px; }
+  .storage { gap: 26px; }
+  /* premier passage sur téléphone : le formulaire remonte juste sous le texte, avant le nuancier */
+  body.premier main { display: flex; flex-direction: column; }
+  body.premier .hero { display: contents; }
+  body.premier .hero > * { margin-inline: var(--pad); }
+  body.premier .hero > .only-premier { order: 1; padding-bottom: 26px; }
+  body.premier .band-ocre { order: 2; }
+  body.premier .sample { order: 3; margin-block: 28px 8px; width: auto; }
+  body.premier main > section:not(.hero):not(.band-ocre) { order: 4; }
+}
+</style>
+</head>
+<body>
+
+<header class="top wrap">
+  <div class="brand"><!--@icon--> frsque</div>
+  <!--@nav-->
+</header>
+
+<main>
+  <section class="hero wrap">
+    <div class="only-premier">
+      <h1>Peins ton mur avant de le peindre.</h1>
+      <p class="lede">Dessine ton décor en centimètres et essaie tes couleurs zone par zone. frsque compte les surfaces et les litres, puis t’aide à tout reporter sur le vrai mur.</p>
+      <div class="go"><button class="btn quiet" type="button">Ouvrir le projet exemple</button></div>
+    </div>
+    <div class="only-retour resume">
+      <p class="lead-in">Ton dernier projet</p>
+      <h1>Chambre de Léa</h1>
+      <p class="meta">300&nbsp;×&nbsp;250&nbsp;cm, <a href="#">3&nbsp;variantes</a>, modifié&nbsp;le&nbsp;8&nbsp;nov.</p>
+      <p class="copy old">Modifié depuis la dernière copie</p>
+      <div class="go">
+        <button class="btn" type="button">Reprendre le dessin</button>
+        <button class="btn quiet" type="button"><!--@iDown--> Télécharger une copie</button>
+        <details class="more"><summary class="btn quiet icon" aria-label="Autres actions pour Chambre de Léa"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" fill="currentColor"><circle cx="4.5" cy="10" r="1.4"/><circle cx="10" cy="10" r="1.4"/><circle cx="15.5" cy="10" r="1.4"/></svg></summary><div class="menu"><button type="button">Voir les 3 variantes</button><button type="button">Transformer en pièce 3D</button><hr><button type="button" class="danger">Supprimer le projet…</button></div></details>
+      </div>
+    </div>
+    <figure class="sample">
+      <svg class="mural" viewBox="0 0 300 250" role="img" aria-label="Fresque : deux montagnes et un soleil, zones numérotées de 1 à 5">
+        <!--@m1in-->
+        <g text-anchor="middle">
+          <circle cx="52" cy="40" r="11" fill="#fff"/><text x="52" y="44.6">1</text>
+          <circle cx="150" cy="217" r="11" fill="#fff"/><text x="150" y="221.6">2</text>
+          <circle cx="82" cy="140" r="11" fill="#fff"/><text x="82" y="144.6">3</text>
+          <circle cx="212" cy="150" r="11" fill="#fff"/><text x="212" y="154.6">4</text>
+          <circle cx="232" cy="70" r="11" fill="#fff"/><text x="232" y="74.6">5</text>
+        </g>
+      </svg>
+      <details class="qty" open>
+        <summary>Quantités par couleur</summary>
+        <ol class="chips">
+          <li><span class="sw" style="background:var(--rose)"><span>1</span></span><span class="tx"><strong>Rose poudré</strong><small>3,3&nbsp;m², 0,66&nbsp;L</small></span></li>
+          <li><span class="sw" style="background:var(--terra)"><span>2</span></span><span class="tx"><strong>Terracotta</strong><small>2,0&nbsp;m², 0,40&nbsp;L</small></span></li>
+          <li><span class="sw" style="background:var(--sauge)"><span>3</span></span><span class="tx"><strong>Vert sauge</strong><small>1,0&nbsp;m², 0,20&nbsp;L</small></span></li>
+          <li><span class="sw" style="background:var(--canard)"><span>4</span></span><span class="tx"><strong>Bleu canard</strong><small>0,8&nbsp;m², 0,16&nbsp;L</small></span></li>
+          <li><span class="sw" style="background:var(--ocre)"><span>5</span></span><span class="tx"><strong>Ocre</strong><small>0,4&nbsp;m², 0,08&nbsp;L</small></span></li>
+        </ol>
+      </details>
+      <figcaption><span class="only-premier">Le projet exemple&nbsp;: un mur de <strong>300&nbsp;×&nbsp;250&nbsp;cm</strong>. </span><strong>7,5&nbsp;m²</strong> à couvrir en deux couches, <strong>1,5&nbsp;L</strong> de peinture en tout.</figcaption>
+    </figure>
+  </section>
+
+  <section class="band-ocre" id="nouveau" aria-labelledby="t-new">
+    <form class="new wrap" data-form data-collapse>
+      <div class="new-head">
+        <h2 id="t-new">Nouveau projet</h2>
+        <!--@kindSeg-->
+      </div>
+      <div class="new-fields">
+          <!--@formFields-->
+          <button class="btn" type="submit"><!--@iPlus--> Créer le projet</button>
+      </div>
+      <p class="room-sum" data-room hidden aria-live="polite"></p>
+      <!--@formToggle-->
+    </form>
+  </section>
+
+  <section class="projects wrap only-retour" id="projets" aria-labelledby="t-proj">
+    <div class="section-head">
+      <h2 id="t-proj">Tes autres projets</h2>
+      <p><span data-n>5</span> projets en tout, <span data-nv>12</span>&nbsp;variantes</p>
+    </div>
+    <!--@statusLine-->
+    <!--@tools-->
+    <ul class="grid" data-list data-extra="1"><!--@each others4-->
+      <li class="card" data-project data-v="{{nv}}">
+        <button class="thumb" type="button" aria-label="Ouvrir {{name}}">{{mural}}</button>
+        <div class="strip" aria-hidden="true">{{strip}}</div>
+        <div class="tx">
+          <h3 title="{{name}}">{{name}}</h3>
+          <p>{{dims}}</p>
+          <p>{{paint}}</p>
+          <p><a href="#">{{vars}}</a>, modifié le&nbsp;{{date}}</p>
+          <p class="copy {{copie}}">{{copyText}}</p>
+        </div>
+        <div class="acts"><button class="btn sm quiet" type="button">Ouvrir</button><button class="btn sm quiet" type="button" title="Télécharger une copie de secours de {{name}}"><!--@iDown--> Télécharger</button>{{menu}}</div>
+      </li><!--@end-->
+    </ul>
+  </section>
+
+  <section class="band-mist" id="methode" aria-labelledby="t-method">
+    <div class="method wrap">
+      <div class="section-head">
+        <h2 id="t-method">Du dessin au mur, en cinq&nbsp;étapes</h2>
+        <button class="btn sm quiet only-retour" type="button">Ouvrir le projet exemple</button>
+      </div>
+      <!--@steps-->
+    </div>
+  </section>
+
+  <section class="storage wrap" id="stockage" aria-labelledby="t-store">
+      <!--@storage-->
+  </section>
+</main>
+
+<footer class="end wrap"></footer>
+
+<!--@commonJs-->
+<script>
+// Sur téléphone, le nuancier du héros est replié au départ.
+if (matchMedia('(max-width: 560px)').matches) document.querySelector('.qty').open = false
+</script>
+</body>
+</html>

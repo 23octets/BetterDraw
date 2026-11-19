@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test'
 import { clickWall, resetDb } from './helpers'
 
-test('guide accessible et refermable à l’accueil et dans l’éditeur', async ({ page }) => {
+test('guide accessible dans l’éditeur, absent de l’accueil', async ({ page }) => {
   await resetDb(page)
-  for (const editor of [false, true]) {
-    if (editor) await page.getByRole('button', { name: 'Créer un projet exemple' }).click()
+  await expect(page.getByText('Guide en 5 étapes', { exact: true })).toHaveCount(0)
+  for (const editor of [true]) {
+    if (editor) await page.getByRole('button', { name: 'Ouvrir le projet exemple' }).click()
     await page.getByText('Guide en 5 étapes', { exact: true }).click()
     await expect(page.getByTestId('guide')).toBeVisible()
     await expect(page.getByTestId('guide').locator('li')).toHaveCount(5)
@@ -30,7 +31,7 @@ test('guide accessible et refermable à l’accueil et dans l’éditeur', async
 test('exemple persistant, modifiable, exportable et supprimable', async ({ page }) => {
   await resetDb(page)
   await expect(page.getByTestId('project-card')).toHaveCount(0)
-  await page.getByRole('button', { name: 'Créer un projet exemple' }).click()
+  await page.getByRole('button', { name: 'Ouvrir le projet exemple' }).click()
   await expect(page.getByTestId('fills').locator('path')).toHaveCount(4)
   await page.screenshot({ path: 'test-results/projet-exemple.png' })
   await page.getByTestId('swatch-Rose poudré').click()
@@ -46,6 +47,7 @@ test('exemple persistant, modifiable, exportable et supprimable', async ({ page 
   await page.reload()
   await expect(page.getByTestId('project-card')).toHaveCount(1)
   page.on('dialog', (dialog) => dialog.accept())
+  await page.getByTestId('project-menu').click()
   await page.getByRole('button', { name: 'Supprimer Exemple — Paysage géométrique' }).click()
   await expect(page.getByTestId('project-card')).toHaveCount(0)
   await page.reload()
