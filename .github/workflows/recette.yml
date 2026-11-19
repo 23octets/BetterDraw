@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 5
     environment:
       name: recette
-      url: https://dev.betterdraw.yohan.one
+      url: https://dev.frsque.diy
     steps:
       - name: Recette approuvée pour cette révision
         env:

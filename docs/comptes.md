@@ -3,7 +3,9 @@
 Le site reste servi par Cloudflare Workers. Dexie Cloud assure la connexion par code
 email et le transport des projets privés. La production garde les comptes désactivés
 jusqu’à sa configuration et sa recette explicites : `/api/cloud` renvoie une URL nulle
-quand `DEXIE_DATABASE_URL` n’est pas défini.
+quand `DEXIE_DATABASE_URL` n’est pas défini, et `ACCOUNTS_REGISTRATION=closed` refuse toute
+nouvelle identité au webhook. Ressources, ouverture, sauvegarde, suppression et incidents :
+[exploitation-comptes.md](exploitation-comptes.md).
 
 ## Stockage et conflits
 
@@ -72,7 +74,7 @@ Vite ni dans Git.
 
 1. Créer une base Dexie de recette et conserver `dexie-cloud.key` hors du dépôt.
 2. Autoriser seulement les origines utilisées, notamment `http://localhost:5199` et
-   `https://dev.betterdraw.yohan.one` (`npx dexie-cloud whitelist <origine>`).
+   `https://dev.frsque.diy` (`npx dexie-cloud whitelist <origine>`).
 3. Appliquer les migrations D1 :
    `npx wrangler d1 migrations apply betterdraw-accounts-dev --remote --config wrangler.dev.jsonc`.
 4. Publier le Worker avec `DEXIE_ADMISSION_SECRET` depuis un fichier JSON privé :
