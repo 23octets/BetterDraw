@@ -73,7 +73,7 @@ npm run test:all
 npm run size         # budget de taille du bundle, après npm run build (.size-limit.json)
 ```
 
-En CI, les PR vers `dev` et `main`, les pushes de ces branches et la merge queue lancent les E2E complets. Les PR vers d’autres bases lancent le socle `@essentiel` : dessin, peinture, historique, exports, sauvegardes et récupération. Ajouter ce tag seulement à un test qui protège les données de l'utilisateur ou un parcours central.
+En CI, toutes les PR et la merge queue lancent seulement le socle `@essentiel`, qui bloque le merge ; la suite complète tourne à chaque push sur `dev`, avant la recette. Les E2E s'exécutent dans l'image Docker officielle de Playwright, sans installation apt. Le socle couvre dessin, peinture, historique, exports, sauvegardes et récupération. Ajouter ce tag seulement à un test qui protège les données de l'utilisateur ou un parcours central.
 
 Les icônes de `public/` se régénèrent depuis les SVG de `assets/icon/` avec `assets/icon/generer.sh` (Chrome sur macOS et ImageMagick).
 

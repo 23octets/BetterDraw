@@ -3,7 +3,7 @@
 ## Circuit
 
 1. Créer les branches de travail depuis `dev` et ouvrir leurs PR vers `dev` (Dependabot fait de même).
-2. Attendre les vérifications, les E2E complets et la preview Cloudflare. Fusionner vers `dev`.
+2. Attendre les vérifications, le socle E2E `@essentiel` et la preview Cloudflare. Fusionner vers `dev` ; la suite E2E complète tourne alors sur `dev` et doit être verte avant la recette.
 3. Faire la recette sur https://dev.frsque.diy avec des données de test.
 4. Ouvrir une PR `dev` → `main`. Après les checks, le job **Recette** attend l'approbation
    de `rocktane` dans Actions → **Promotion et recette** → **Review deployments** → `recette`.
