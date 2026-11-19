@@ -124,8 +124,10 @@ localStorage de l’éditeur et des pièces, les exports locaux (`src/export/`),
 `src/account/` (authentification et synchronisation facultatives Dexie Cloud),
 et `worker/index.ts` (configuration des comptes, admission dans D1). Le mode invité
 reste local ; le compte connecté transmet ses projets et images à Dexie Cloud.
-Aucun outil d’audience, traceur publicitaire ni police distante n’a été trouvé
-dans le code de l’application. La connexion nécessaire à la synchronisation
+Aucun traceur publicitaire ni police distante n’a été trouvé dans le code de l’application.
+La mesure d’audience Umami (`src/config/analytics.ts`, instance auto-hébergée sur
+`stats.yohan.one`) se charge seulement sur `frsque.diy`, sans cookies, sans paramètres ni
+fragments d’adresse et avec Do Not Track respecté ; recette, previews, local et E2E ne la chargent pas. La connexion nécessaire à la synchronisation
 est distincte du parcours invité et n’est pas présentée comme du stockage local seul. Les sauvegardes JSON incluent les images ;
 les exports PDF, PNG et SVG les excluent. Le nettoyage des images inutilisées
 reste distinct de la suppression des projets.
