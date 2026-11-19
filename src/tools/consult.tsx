@@ -160,8 +160,8 @@ export function useConsultTool(active: boolean): ToolHandlers {
           })}
           {hy.map((l, i) => {
             const y = toScreen({ x: 0, y: l.pos }).y
-            const top = Math.abs(y - tl.y) < 1
-            const dy = top ? 20 : -8
+            // centrée sur sa ligne comme les sous-cotes : décalée vers l'intérieur, elle chevauchait la première sous-cote
+            const dy = 5
             return (
               <g key={`h${i}`}>
                 <text x={tl.x - 10} y={y + dy} className="consult-cote" textAnchor="end">↕ {fmt(l.cote)} cm</text>

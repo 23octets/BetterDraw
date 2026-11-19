@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import type { PerspectiveCamera, Timer, WebGLRenderer } from 'three'
-import { resetDb } from './helpers'
+import { newRoom, resetDb } from './helpers'
 
 // La scène est déjà exposée pour les tests de textures dans step19-piece.
 interface TimingScene {
@@ -24,8 +24,7 @@ test('3D : temps de visite, pause en arrière-plan et libération à la fermetur
   })
   page.on('pageerror', (error) => errors.push(error.message))
   await resetDb(page)
-  await page.getByTestId('kind-room').click()
-  await page.getByRole('button', { name: 'Créer le projet' }).click()
+  await newRoom(page)
   await expect(page.getByTestId('room-3d-canvas')).toBeVisible()
   await expect.poll(() => scene(page)).toEqual({ connected: true, listening: true })
 

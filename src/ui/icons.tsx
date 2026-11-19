@@ -1,4 +1,6 @@
 const P: Record<string, React.ReactNode> = {
+  user: <><circle cx="11" cy="7" r="3" /><path d="M4 19v-2a7 7 0 0 1 14 0v2" /></>,
+  device: <><rect x="2" y="3" width="18" height="12" rx="1.5" /><path d="M11 15v4M7 19h8" /></>,
   select: <path d="M5 3l12 8-5 1.5L9.5 18z" />,
   polyline: <path d="M3 17l5-9 5 5 6-9" />,
   arc: <path d="M3 17a9 9 0 0 1 16 0" />,

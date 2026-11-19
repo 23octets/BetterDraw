@@ -29,6 +29,20 @@ export async function cleanOrphanImages() {
   })
 }
 
+/** Images qu'un nettoyage supprimerait (inutilisées depuis plus de 24 h) : leur nombre et leur poids approché. */
+export async function orphanImageStats() {
+  return db.transaction('r', db.images, db.variants, db.entries, async () => {
+    const refs = imageReferences(await db.variants.toArray(), await db.entries.toArray())
+    let count = 0, bytes = 0
+    await db.images.each((im) => {
+      if (refs.has(im.id) || (im.addedAt && im.addedAt >= Date.now() - 86400000)) return
+      count++
+      bytes += Math.round(im.dataUrl.length * 0.75) // une image en base64 pèse un tiers de plus que ses octets
+    })
+    return { count, bytes }
+  })
+}
+
 export function storageError(error: unknown) {
   const names = new Set<string>()
   const seen = new Set<unknown>()

@@ -10,6 +10,8 @@ interface Env {
   ACCOUNTS: { prepare(sql: string): Statement }
   DEXIE_DATABASE_URL?: string
   DEXIE_ADMISSION_SECRET?: string
+  /** `closed` refuse toute nouvelle identité ; les comptes existants ne passent pas par le webhook. */
+  ACCOUNTS_REGISTRATION?: string
 }
 
 export async function handleRequest(request: Request, env: Env): Promise<Response> {
@@ -23,6 +25,9 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
       return new Response('Unauthorized', { status: 401 })
     }
     if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 })
+    if (env.ACCOUNTS_REGISTRATION === 'closed') {
+      return Response.json({ ok: true, action: 'reject' }, { headers: { 'Cache-Control': 'no-store' } })
+    }
     try {
       const body = await request.text()
       if (body.length > 4096) return new Response('Payload too large', { status: 413 })

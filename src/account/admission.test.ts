@@ -42,4 +42,13 @@ describe('plafond serveur', () => {
       expect((await result.json()).action).toBe('reject')
     } finally { db.close() }
   })
+  it('refuse les nouvelles identités quand les inscriptions sont fermées', async () => {
+    const { db, env } = setup()
+    try {
+      const closed = { ...env, ACCOUNTS_REGISTRATION: 'closed' }
+      expect((await handleRequest(request(0, 'bad'), closed)).status).toBe(401)
+      expect(await (await handleRequest(request(1), closed)).json()).toEqual({ ok: true, action: 'reject' })
+      expect(db.prepare('SELECT COUNT(*) AS total FROM accounts').get()?.total).toBe(0)
+    } finally { db.close() }
+  })
 })

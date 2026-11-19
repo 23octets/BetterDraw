@@ -3,14 +3,14 @@
 ## Circuit
 
 1. Créer les branches de travail depuis `dev` et ouvrir leurs PR vers `dev` (Dependabot fait de même).
-2. Attendre les vérifications, les E2E complets et la preview Cloudflare. Fusionner vers `dev`.
-3. Faire la recette sur https://dev.betterdraw.yohan.one avec des données de test.
+2. Attendre les vérifications, le socle E2E `@essentiel` et la preview Cloudflare. Fusionner vers `dev` ; la suite E2E complète tourne alors sur `dev` et doit être verte avant la recette.
+3. Faire la recette sur https://dev.frsque.diy avec des données de test.
 4. Ouvrir une PR `dev` → `main`. Après les checks, le job **Recette** attend l'approbation
    de `rocktane` dans Actions → **Promotion et recette** → **Review deployments** → `recette`.
    Ce workflow tourne en parallèle du CI : attendre aussi les checks verts avant d’approuver.
 5. Approuver seulement après la recette de la révision proposée, puis mettre la PR dans la
    merge queue. La suite complète y tourne avant la fusion. `main` déploie automatiquement
-   https://betterdraw.yohan.one via Workers Builds.
+   https://frsque.diy via Workers Builds.
 
 Pour synchroniser `main` vers `dev`, passer par une PR de synchronisation et la fusionner
 avec **Create a merge commit**, sans squash ni rebase : cette ascendance évite de rejouer les
@@ -29,10 +29,16 @@ Workers Builds utilise `npm run build`, puis `npx wrangler deploy` en production
 `npx wrangler preview` sur les autres branches. Wrangler est verrouillé dans le projet.
 `npm run preview` lance seulement le serveur local Vite : il ne publie rien.
 
-Le domaine `betterdraw.yohan.one` accepte production et previews : Cloudflare ajoute le nom
-de branche devant, donc la branche `dev` donne `dev.betterdraw.yohan.one`. Un domaine de base
-`dev.betterdraw.yohan.one` produirait des adresses sous `*.dev.betterdraw.yohan.one` ; il ne faut
+Le domaine `frsque.diy` accepte production et previews : Cloudflare ajoute le nom
+de branche devant, donc la branche `dev` donne `dev.frsque.diy`. Un domaine de base
+`dev.frsque.diy` produirait des adresses sous `*.dev.frsque.diy` ; il ne faut
 pas le superposer au domaine de recette, car ses enregistrements DNS peuvent masquer le wildcard parent.
+
+Bascule vers `frsque.diy` : les adresses de preview dérivent du domaine de la **production**
+déployée. Tant que `main` n'a pas été déployée avec `frsque.diy`, la recette reste sur
+`https://dev.betterdraw.yohan.one` (webhook Dexie de recette compris). Ne supprimer
+`betterdraw.yohan.one` qu'après cette promotion et la vérification de `https://dev.frsque.diy`,
+puis repointer le webhook de la base de recette vers `https://dev.frsque.diy/api/accounts/admit`.
 
 Les autres branches gardent leurs previews individuelles, liées dans le commentaire de PR.
 Le check Workers Builds n'est pas requis par GitHub : vérifier aussi son succès avant recette.
