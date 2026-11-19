@@ -23,6 +23,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - name: Choisir les polices du rendu
+        run: mkdir -p ~/.config/fontconfig && cp .github/fontconfig/fonts.conf ~/.config/fontconfig/
       - run: npx playwright test e2e/visual.spec.ts --update-snapshots=all
       - uses: actions/upload-artifact@v7
         with:
