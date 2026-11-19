@@ -33,11 +33,30 @@ jobs:
         run: npm run check:cloudflare
       - run: npm run size
 
+  playwright:
+    name: Version de Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: package-lock.json
+          sparse-checkout-cone-mode: false
+      - id: version
+        run: echo "version=$(jq -r '.packages["node_modules/@playwright/test"].version' package-lock.json)" >> "$GITHUB_OUTPUT"
+
   e2e:
     name: E2E
-    # version fixée : les captures de référence dépendent du système et de ses polices
+    needs: playwright
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # image officielle : Chromium et ses dépendances sont déjà installés, aucun apt à chaque run.
+    # Les captures de référence dépendent de cette image ; elle suit la version de Playwright du lockfile.
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.playwright.outputs.version }}-noble
+      options: --user 1001 --ipc=host
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -45,26 +64,9 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - name: Lire la version de Playwright
-        id: playwright
-        run: echo "version=$(npx playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
-      - name: Restaurer les navigateurs
-        id: browsers
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      - name: Installer Chromium et ses dépendances
-        if: steps.browsers.outputs.cache-hit != 'true'
-        timeout-minutes: 12
-        run: bash .github/scripts/with-apt-retry.sh npx playwright install --with-deps chromium
-      - name: Installer les dépendances système
-        if: steps.browsers.outputs.cache-hit == 'true'
-        timeout-minutes: 12
-        run: bash .github/scripts/with-apt-retry.sh npx playwright install-deps chromium
-      # dev, main et la merge queue passent la suite complète ; les autres bases gardent le socle @essentiel
+      # seuls les pushes sur dev passent la suite complète ; PR et merge queue gardent le socle @essentiel
       - name: Tests E2E
-        run: npm run ${{ github.event_name == 'pull_request' && github.base_ref != 'main' && github.base_ref != 'dev' && 'test:e2e:essentiel' || 'test:e2e' }}
+        run: npm run ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' && 'test:e2e' || 'test:e2e:essentiel' }}
       - name: Publier le rapport Playwright
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7

@@ -11,6 +11,10 @@ jobs:
   update:
     name: Captures de référence
     runs-on: ubuntu-24.04
+    # même image que le job E2E de la CI : mettre la version à jour avec @playwright/test
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      options: --user 1001 --ipc=host
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
@@ -19,9 +23,6 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - name: Installer Chromium et ses dépendances
-        timeout-minutes: 12
-        run: bash .github/scripts/with-apt-retry.sh npx playwright install --with-deps chromium
       - run: npx playwright test e2e/visual.spec.ts --update-snapshots=all
       - uses: actions/upload-artifact@v7
         with:
