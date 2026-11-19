@@ -14,7 +14,8 @@
     "test:e2e:essentiel": "playwright test --grep @essentiel",
     "test:all": "npm run typecheck && vitest run && playwright test",
     "typecheck": "tsc -b --noEmit",
-    "check:cloudflare": "node scripts/check-cloudflare.mjs && wrangler deploy --dry-run"
+    "check:cloudflare": "node scripts/check-cloudflare.mjs && wrangler deploy --dry-run",
+    "sauvegarder:comptes": "node scripts/sauvegarder-comptes.mjs"
   },
   "dependencies": {
     "dexie": "^4.4.7",

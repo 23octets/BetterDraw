@@ -5,14 +5,14 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-11-10",
   "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
-  "routes": [{ "pattern": "betterdraw.yohan.one", "custom_domain": true, "previews_enabled": true }],
+  "routes": [{ "pattern": "frsque.diy", "custom_domain": true, "previews_enabled": true }],
   // URL workers.dev et previews par branche gardées, comme lors du premier déploiement
   // Domaine ajouté dans Cloudflare pour les previews ; garder la configuration versionnée.
   "workers_dev": true,
   "preview_urls": true,
   // Requis par `npx wrangler preview`, lancé par Workers Builds sur les branches hors production
   "previews": {
-    "vars": { "DEXIE_DATABASE_URL": "https://z20z3177s.dexie.cloud" },
+    "vars": { "DEXIE_DATABASE_URL": "https://z20z3177s.dexie.cloud", "ACCOUNTS_REGISTRATION": "open" },
     "d1_databases": [{
       "binding": "ACCOUNTS",
       "database_name": "betterdraw-accounts-dev",
@@ -20,5 +20,15 @@
       "migrations_dir": "migrations"
     }]
   },
+  // Production : D1, base Dexie (https://zqtxtighb.dexie.cloud) et secret du webhook sont prêts,
+  // mais les comptes restent désactivés : sans DEXIE_DATABASE_URL, /api/cloud renvoie null, et
+  // ACCOUNTS_REGISTRATION=closed refuse toute nouvelle identité. Activation : docs/exploitation-comptes.md.
+  "vars": { "ACCOUNTS_REGISTRATION": "closed" },
+  "d1_databases": [{
+    "binding": "ACCOUNTS",
+    "database_name": "betterdraw-accounts-prod",
+    "database_id": "5e4f49a5-5255-4e63-81ef-b9d22521d648",
+    "migrations_dir": "migrations"
+  }],
   "observability": { "enabled": true }
 }
