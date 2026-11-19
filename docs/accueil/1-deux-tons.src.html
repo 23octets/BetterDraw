@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>frsque — maquette 1, Deux tons</title>
+<!-- Police hébergée avec le site (aucun appel réseau) : Archivo, largeur et graisse variables. -->
+<link rel="stylesheet" href="fonts/archivo.css">
+<!--@favicon-->
+<!--@baseCss-->
+<style>
+:root {
+  /* Deux tons : le papier de l'éditeur au-dessus de la ligne, un mur rose poudré en dessous (une des six teintes de la palette par défaut).
+     Le nom y est peint avec les autres teintes de cette palette ; la terracotta de l'icône en fait partie.
+     Dans cette direction, le violet des boutons de l'éditeur (--primary dans src/index.css) devient l'encre : un seul jeton à changer.
+     La sélection sur le dessin n'est pas concernée : l'éditeur la trace déjà avec un autre jeton, --sel (bleu). */
+  --bg: #efebe3; --wall: #e8b4a6; --paper-2: #e6e0d4; --sheet: #fbfaf7; --terra: #a84f2c;
+  --ink: #1d1f22; --ink-2: #55524c; --line: #d6cfc1; --line-s: #827b6e;
+  --act: #1d1f22; --act-h: #000; --act-ink: #fbfaf7; --focus: #1d1f22;
+  --ctl: #fbfaf7; --input: #fff; --seg-bg: #efebe3; --hover: rgba(29, 31, 34, .07);
+  --danger: #b3261e; --ok: #3f7d4c; --warn: #a84f2c;
+  --r: 9px; --pad: 3.9vw; --maxw: 1328px;
+  --d-ink: var(--ink); --d-wall: var(--sheet); --d-cote: var(--terra);
+}
+body { font: 400 17px/1.5 Archivo, system-ui, sans-serif; font-stretch: 100%; }
+h2 { font-size: clamp(28px, 2.9vw, 40px); font-weight: 800; font-stretch: 112%; letter-spacing: -.025em; line-height: 1.05; }
+
+/* ---------- Le mur en deux tons ----------
+   Trois couches superposées dans la même case de grille.
+   .tone-a : le papier ; le nom n'y est qu'un tracé au crayon sur son carroyage.
+   .tone-b : le mur ; le nom y est peint. Cette couche est découpée par la ligne de peinture de l'icône,
+             c'est elle qui fait passer le nom du tracé à la peinture.
+   .over   : tout le contenu (raccourcis, devise, texte, formulaire), posé par-dessus sans être découpé. */
+.hero { display: grid; position: relative; overflow: hidden; --drop: calc(var(--word) * .23); --line-l: calc(var(--top) + var(--word) * .43); --line-r: calc(var(--line-l) + var(--drop)); }
+.tone, .over { grid-area: 1 / 1; padding: 0 var(--pad); min-width: 0; position: relative; }
+.tone { padding-top: var(--top); }
+.tone-a { background: var(--bg); }
+.tone-b { background: var(--wall); clip-path: polygon(0 var(--line-l), 100% var(--line-r), 100% 100%, 0 100%); }
+.word { margin: 0; font-size: var(--word); line-height: .8; font-weight: 900; font-stretch: 125%; letter-spacing: -.045em; white-space: nowrap; user-select: none; }
+.tone-a .word { color: var(--bg); -webkit-text-stroke: .026em var(--ink); paint-order: stroke fill; }
+/* les six lettres, peintes avec la palette par défaut */
+.tone-b .word i { font-style: normal; }
+.tone-b .word i:nth-child(1), .tone-b .word i:nth-child(5) { color: #1f6f78; }
+.tone-b .word i:nth-child(2), .tone-b .word i:nth-child(6) { color: #c8643b; }
+.tone-b .word i:nth-child(3) { color: #33363b; }
+.tone-b .word i:nth-child(4) { color: #e0a43a; }
+/* Le carroyage posé sur le nom : 16 colonnes, 4 rangées, calé sur les lettres.
+   Marge de 0,04 em de chaque côté ; la ligne du haut passe juste au-dessus du f, la troisième ligne est la ligne de base. */
+.carro { position: absolute; z-index: 1; pointer-events: none; left: calc(var(--pad) - .04em); top: calc(var(--top) - .015em); font-size: var(--word); width: 4em; height: 1em; color: var(--ink); }
+.carro svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.carro path { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-dasharray: 6 5; opacity: .42; }
+.carro ol { list-style: none; margin: 0; padding: 0; position: absolute; display: grid; font: 650 12px/1 Archivo, sans-serif; color: var(--ink-2); }
+.carro .cols { left: 0; right: 0; bottom: calc(100% + 6px); grid-template-columns: repeat(16, 1fr); text-align: center; }
+.carro .rows { top: 0; bottom: 0; right: calc(100% + 8px); grid-template-rows: repeat(4, 1fr); align-items: center; }
+.tone-b .carro ol { color: var(--ink); }
+
+.top { height: var(--top); display: flex; align-items: center; justify-content: flex-end; }
+.lead { position: relative; min-width: 0; }
+.word-space { height: calc(var(--word) * 1.02); }
+.tag { font-size: var(--tag); font-weight: 800; font-stretch: 112%; letter-spacing: -.022em; white-space: nowrap; color: var(--ink); }
+.tag span { display: block; }
+.panel { background: var(--sheet); color: var(--ink); border-radius: 20px; padding: clamp(18px, 2vw, 28px); display: grid; gap: 16px; box-shadow: 0 1px 0 rgba(29, 31, 34, .14), 0 26px 44px -28px rgba(110, 50, 30, .7); }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap; }
+.panel-title { font-size: 22px; font-weight: 760; font-stretch: 108%; letter-spacing: -.01em; line-height: 1.1; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: end; }
+.f-name, .f-shape { grid-column: 1 / -1; }
+.fields .btn { justify-self: start; }
+.room-sum { flex: 1 1 100%; font-size: 15.5px; line-height: 1.4; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.room-sum strong { color: var(--ink); font-weight: 680; }
+
+/* Premier passage : un seul tableau. À gauche le nom, la devise, le texte et le projet exemple ;
+   à droite le formulaire, posé à cheval sur la ligne de peinture comme le nom. */
+body.premier .hero { --top: 64px; --form: 440px; --word: calc((92.2vw - 5vw - var(--form)) / 4); --tag: clamp(30px, 4.1vw, 60px); }
+body.premier .scene { display: grid; grid-template-columns: minmax(0, 1fr) var(--form); column-gap: 5vw; align-items: start; padding-bottom: clamp(36px, 4vw, 56px); }
+body.premier .tag { line-height: 1.05; margin-top: 14px; }
+body.premier .panel { margin-top: 4px; }
+.lede { margin-top: 22px; font-size: clamp(19px, 1.75vw, 25px); line-height: 1.38; font-weight: 500; max-width: 25em; text-wrap: pretty; }
+.col-r { min-width: 0; }
+body.retour .col-r { display: contents; }
+.demo { margin: 24px 0 0; padding-inline: 4px; display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: 18px; align-items: center; }
+.demo .mural { display: block; width: 100%; height: auto; outline: 3px solid var(--bg); }
+.demo .gridlines { stroke: #1d1f22; opacity: .75; }
+.demo p { font-size: 15.5px; line-height: 1.42; font-weight: 500; }
+.demo .btn { margin-top: 12px; }
+
+/* Retour : le nom se replie en bandeau, la devise chevauche la ligne à sa droite, le formulaire tient sur une ligne. */
+body.retour .hero { --top: 24px; --word: clamp(64px, 6.6vw, 96px); --drop: 3.2vw; --tag: clamp(18px, 2vw, 30px); }
+body.retour .top { position: absolute; right: var(--pad); top: 10px; height: 44px; z-index: 1; }
+body.retour .over { padding-top: var(--top); }
+body.retour .word-space { height: calc(var(--word) * 1.1 + 16px); }
+/* la ligne de peinture passe dans l'interligne de la devise : « Dessiner à l'échelle » côté papier, « peindre au mur » côté mur */
+body.retour .tag { position: absolute; left: calc(var(--word) * 4 + 22px); top: calc(var(--word) * .985 - .875em); line-height: 1.08; font-size: clamp(17px, 1.7vw, 24px); }
+body.retour .tag span { display: inline; }
+/* au retour, le nom garde son carroyage mais pas le cadre extérieur, qui le ferait passer pour un objet sélectionné :
+   trois rangées, fermées en bas par une ligne sur laquelle se pose la devise */
+.carro .cb { display: none; }
+body.retour .carro ol, body.retour .carro .cf { display: none; }
+body.retour .carro .cb { display: inline; }
+body.retour .carro svg { clip-path: inset(calc(25% - 1px) 0 -2px 0); }
+body.retour .carro .cols { bottom: calc(100% + 3px); }
+body.retour .scene { padding-bottom: 30px; }
+body.retour .panel { display: flex; align-items: flex-start; gap: 14px 22px; flex-wrap: wrap; padding: 16px 20px 18px; border-radius: 16px; }
+@media (max-width: 600px) { body.retour .panel:not(.open) { padding: 10px; } }
+body.retour .panel-head { display: grid; gap: 8px; justify-content: start; }
+body.retour .panel-title { font-size: 19px; }
+body.retour .fields { flex: 1 1 520px; display: flex; flex-wrap: wrap; gap: 12px; }
+body.retour .f-name { flex: 1 1 170px; }
+body.retour .f-w, body.retour .f-h, body.retour .f-d { flex: 0 1 122px; }
+body.retour .f-c { flex: 0 1 166px; }
+body.retour .f-shape { flex: none; }
+/* en mode pièce, le nom prend sa ligne ; forme et mesures se rangent dessous */
+body.retour [data-mode=room] .f-name { flex: 1 1 100%; }
+/* au retour, le seul bouton plein de la page est « Reprendre » */
+body.retour .fields .btn { background: var(--ctl); color: var(--ink); }
+body.retour .fields .btn:hover { background: var(--ink); color: var(--act-ink); }
+
+/* ---------- Projets : chaque fresque est accrochée à un mur en deux tons, coupé par la même ligne ---------- */
+.section-head { display: flex; align-items: baseline; gap: 6px 16px; flex-wrap: wrap; }
+.section-head > p { color: var(--ink-2); }
+.projects { padding-block: clamp(30px, 3.4vw, 46px) clamp(44px, 5vw, 72px); }
+.projects .status { margin-top: 8px; }
+.projects .tools { margin-top: 18px; }
+.grid { list-style: none; margin: 22px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 36px 26px; }
+.proj { display: grid; grid-template-rows: auto 1fr auto; gap: 14px; min-width: 0; }
+.proj > div { min-width: 0; }
+@media (min-width: 601px) {
+  /* Le dernier projet ouvert est mis en vedette sur toute la largeur : sa fresque à gauche ; à droite son nom
+     (toute la colonne, trois lignes au plus), son état, puis ses actions sur leur propre ligne. */
+  .proj:first-child { grid-column: 1 / -1; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; align-content: center; column-gap: clamp(24px, 3.2vw, 44px); row-gap: 0; background: var(--sheet); border-radius: 14px; padding-right: clamp(20px, 2.6vw, 36px); }
+  .proj:first-child .thumb { grid-column: 1; grid-row: 1 / -1; aspect-ratio: auto; width: min(52vw, 620px); height: min(340px, 26vw); border-radius: 14px 0 0 14px; }
+  .proj:first-child .thumb .mural { inset: 28px 28px 34px; width: calc(100% - 56px); height: calc(100% - 62px); }
+  .proj:first-child > div:not(.acts) { grid-column: 2; grid-row: 1; align-self: end; }
+  .proj:first-child .acts { grid-column: 2; grid-row: 2; align-self: start; padding-top: 18px; }
+  .proj:first-child > div:not(.acts)::before { content: 'Ton dernier projet'; display: block; font-size: 16px; font-weight: 620; color: var(--ink-2); margin-bottom: 4px; }
+  .proj:first-child h3 { font-size: clamp(28px, 2.7vw, 38px); font-weight: 800; font-stretch: 110%; letter-spacing: -.022em; line-height: 1.08; margin-bottom: 8px; }
+  .proj:first-child h3.long { font-size: clamp(24px, 2.1vw, 30px); }
+  .proj:first-child p { font-size: 16.5px; }
+  .proj:first-child .btn.sm { --h: 46px; padding-inline: 20px; font-size: 16px; }
+  .proj:first-child .lbl-short { display: none; }
+  .proj:first-child .lbl-long { display: inline; }
+}
+@media (min-width: 601px) and (max-width: 980px) {
+  /* tablette : la fresque de la vedette cède de la place au texte et aux actions */
+  .proj:first-child .thumb { width: 40vw; height: 30vw; }
+  .proj:first-child .btn.sm { --h: 40px; padding-inline: 14px; font-size: 15px; }
+  .proj:first-child .acts { flex-wrap: wrap; }
+}
+.thumb { position: relative; display: block; aspect-ratio: 3 / 2; background: linear-gradient(176.6deg, var(--paper-2) 0 76%, #e3c5b8 calc(76% + 1px) 100%); border-radius: 14px; border: 0; padding: 0; cursor: pointer; width: 100%; overflow: hidden; }
+.thumb .mural { position: absolute; inset: 20px 20px 24px; width: calc(100% - 40px); height: calc(100% - 44px); filter: drop-shadow(0 8px 10px rgba(40, 25, 10, .22)); transition: scale .18s ease; }
+.thumb:hover .mural { scale: 1.025; }
+.proj h3 { font-size: 19px; font-weight: 720; letter-spacing: -.01em; line-height: 1.2; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: break-word; }
+.proj p { margin-top: 3px; font-size: 15px; color: var(--ink-2); line-height: 1.4; font-variant-numeric: tabular-nums; }
+.acts { display: flex; gap: 8px; align-items: center; }
+.acts .more { margin-left: 0; }
+
+/* ---------- Méthode ---------- */
+.method { background: var(--paper-2); padding-block: clamp(44px, 5vw, 76px); }
+.method .section-head { align-items: center; justify-content: space-between; margin-bottom: 30px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 28px; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; gap: 10px; align-content: start; }
+.step-pic { width: 100%; max-width: 186px; height: auto; display: block; }
+.steps h3 { margin-top: 6px; font-size: 19px; font-weight: 740; line-height: 1.2; letter-spacing: -.01em; display: flex; gap: 10px; align-items: baseline; }
+.steps h3::before { content: counter(s); color: var(--terra); font-weight: 900; font-stretch: 125%; font-size: 24px; }
+.steps p { font-size: 15.5px; line-height: 1.45; color: var(--ink-2); }
+
+/* ---------- Enregistrement ---------- */
+.storage { padding-block: clamp(44px, 5vw, 76px) 40px; }
+.storage-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); column-gap: clamp(24px, 5vw, 88px); align-items: start; }
+.st-main { grid-row: 1 / span 3; }
+.st-main h2 { font-size: clamp(26px, 2.5vw, 34px); margin-bottom: 14px; }
+.st-main p { max-width: 33em; color: var(--ink-2); margin-bottom: 10px; }
+.storage strong { color: var(--ink); font-weight: 680; }
+.usage { font-size: 15px; font-variant-numeric: tabular-nums; }
+.st-item { grid-column: 2; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 24px; align-items: center; padding: 18px 0; border-top: 1.5px solid var(--line); }
+.st-item:last-child { border-bottom: 1.5px solid var(--line); }
+.st-item h3 { font-size: 17.5px; font-weight: 720; line-height: 1.25; }
+.st-item p { grid-column: 1; margin-top: 3px; font-size: 15px; line-height: 1.45; color: var(--ink-2); }
+.st-item .st-acts { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+.st-item .st-state { color: var(--ink); margin-top: 8px; }
+/* premier passage : le titre à gauche ; à droite l'explication, puis l'import */
+body.premier .storage-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.4fr); }
+body.premier .st-main { display: contents; }
+body.premier .st-main .st-head { grid-column: 1; grid-row: 1 / span 4; }
+body.premier .st-main > p { grid-column: 2; max-width: none; }
+body.premier .st-item { grid-column: 2; margin-top: 12px; border-bottom: 1.5px solid var(--line); }
+.end { padding-bottom: 48px; font-size: 15px; color: var(--ink-2); }
+
+@media (max-width: 980px) {
+  /* une colonne ; les raccourcis passent au-dessus du nom, qui prend toute la largeur */
+  .top { align-items: flex-start; padding-top: 4px; }
+  .method .section-head .btn { margin-top: 12px; }
+  body.premier .hero { --top: 76px; --word: calc((100vw - 2 * var(--pad)) / 4); --tag: clamp(28px, 6.4vw, 44px); }
+  body.premier .scene { display: flex; flex-direction: column; align-items: stretch; }
+  body.premier .lead, body.premier .col-r { display: contents; }
+  .word-space { order: 0; flex: none; }
+  .tag { order: 1; white-space: normal; text-wrap: balance; }
+  .lede { order: 2; }
+  body.premier .panel { order: 3; margin-top: 24px; }
+  .demo { order: 4; margin-top: 26px; }
+  body.retour .hero { --top: 62px; --word: clamp(60px, 12vw, 96px); }
+  body.retour .word-space { height: calc(var(--word) * 1.12); }
+  body.retour .top { position: static; height: var(--top); align-items: flex-start; padding-top: 8px; }
+  body.retour .over { padding-top: 0; }
+  body.retour .tag { display: none; }
+  .steps { grid-template-columns: 1fr; row-gap: 22px; max-width: 640px; }
+  .steps li { grid-template-columns: 104px 1fr; column-gap: 16px; }
+  .steps li .step-pic { grid-row: 1 / span 2; }
+  .steps h3 { margin-top: 0; }
+  .storage-grid { grid-template-columns: 1fr; }
+  .st-main, .st-item { grid-column: 1; grid-row: auto; }
+  body.premier .storage-grid { grid-template-columns: 1fr; }
+  body.premier .st-main .st-head, body.premier .st-main > p, body.premier .st-item { grid-column: 1; grid-row: auto; }
+}
+@media (max-width: 600px) {
+  :root { --pad: 18px; }
+  body { font-size: 16px; }
+  body.retour .hero { --top: 46px; }
+  body.premier .hero { --top: 48px; }
+  .top { padding-top: 2px; }
+  /* sur téléphone, le nom se passe de carroyage */
+  .carro { display: none; }
+  body.retour .f-name { flex: 1 1 100%; }
+  body.retour .f-w, body.retour .f-h, body.retour .f-d, body.retour .f-c { flex: 1 1 40%; }
+  .fields .btn { justify-self: stretch; flex: 1 1 100%; }
+  .demo { grid-template-columns: 132px 1fr; gap: 16px; }
+  .demo p { font-size: 15.5px; }
+  /* liste compacte : la fresque à gauche, le texte à droite, les actions dessous */
+  .grid { grid-template-columns: 1fr; gap: 0; }
+  .proj { grid-template-columns: 108px minmax(0, 1fr); grid-template-rows: auto auto; gap: 12px 14px; padding: 16px 0; border-top: 1.5px solid var(--line); }
+  .thumb { border-radius: 10px; align-self: start; }
+  .thumb .mural { inset: 9px 9px 11px; width: calc(100% - 18px); height: calc(100% - 20px); }
+  .proj .acts { grid-column: 1 / -1; }
+  .st-item { grid-template-columns: 1fr; }
+  .st-item .st-acts { grid-column: 1; grid-row: auto; margin-top: 10px; }
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="tone tone-a" aria-hidden="true">
+    <div class="word">frsque</div>
+    <!--@carro-->
+  </div>
+  <div class="tone tone-b" aria-hidden="true">
+    <div class="word"><i>f</i><i>r</i><i>s</i><i>q</i><i>u</i><i>e</i></div>
+    <!--@carro-->
+  </div>
+  <div class="over">
+    <header class="top"><!--@nav--></header>
+    <div class="scene">
+      <div class="lead">
+        <!-- le nom dessiné par les deux couches occupe cet espace ; il est repris ici pour les lecteurs d'écran -->
+        <h1 class="word-space"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">frsque</span></h1>
+        <p class="tag"><span>Dessiner à l’échelle,</span> <span>peindre au mur.</span></p>
+        <p class="lede only-premier">Trace ton décor en centimètres, essaie tes couleurs zone par zone, puis reporte-le sur le vrai mur grâce à une grille cotée.</p>
+      </div>
+      <div class="col-r">
+      <form class="panel" data-form data-collapse aria-labelledby="t-new">
+        <div class="panel-head">
+          <h2 class="panel-title" id="t-new">Nouveau projet</h2>
+          <!--@kindSeg-->
+        </div>
+        <div class="fields">
+          <!--@formFields-->
+          <button class="btn" type="submit"><!--@iPlus--> Créer le projet</button>
+        </div>
+        <p class="room-sum" data-room hidden aria-live="polite"></p>
+        <!--@formToggle-->
+      </form>
+        <figure class="demo only-premier">
+          <!--@m1grid-->
+          <figcaption>
+            <p>Juste envie d’essayer&nbsp;? Le projet exemple est un mur de 300&nbsp;×&nbsp;250&nbsp;cm déjà peint, avec sa&nbsp;grille.</p>
+            <button class="btn sm quiet" type="button">Ouvrir le projet&nbsp;exemple</button>
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <section class="projects wrap only-retour" id="projets" aria-labelledby="t-proj">
+    <div class="section-head">
+      <h2 id="t-proj">Tes projets</h2>
+      <p><span data-n>5</span> projets, <span data-nv>12</span>&nbsp;variantes</p>
+    </div>
+    <!--@statusLine-->
+    <!--@tools-->
+    <ul class="grid" data-list><!--@each elevProjects-->
+      <li class="proj" data-project data-v="{{nv}}">
+        <button class="thumb" type="button" aria-label="Ouvrir {{name}}">{{mural}}</button>
+        <div>
+          <h3 title="{{name}}">{{name}}</h3>
+          <p>{{dims}}</p>
+          <p><a href="#">{{vars}}</a>, modifié le&nbsp;{{date}}</p>
+          <p class="copy {{copie}}">{{copyText}}</p>
+        </div>
+        <div class="acts"><button class="{{openClass}}" type="button">{{open}}</button><button class="btn sm quiet" type="button" title="Télécharger une copie de secours de {{name}}"><!--@iDown--> <span class="lbl-short">Télécharger</span><span class="lbl-long">Télécharger une copie</span></button>{{menu}}</div>
+      </li><!--@end-->
+    </ul>
+  </section>
+
+  <section class="method" id="methode" aria-labelledby="t-method">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="t-method">Comment ça se passe, en cinq&nbsp;étapes</h2>
+        <button class="btn sm quiet only-retour" type="button">Ouvrir le projet exemple</button>
+      </div>
+      <!--@steps-->
+    </div>
+  </section>
+
+  <section class="storage wrap" id="stockage" aria-labelledby="t-store">
+    <div class="storage-grid">
+      <!--@storage-->
+    </div>
+  </section>
+</main>
+
+<footer class="end wrap"></footer>
+
+<!--@commonJs-->
+</body>
+</html>

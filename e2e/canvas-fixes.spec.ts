@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { clickWall, newProject, openRoomsOnPlan, resetDb } from './helpers'
+import { newRoom, clickWall, newProject, openRoomsOnPlan, resetDb } from './helpers'
 
 const fills = (page: Page) => page.getByTestId('fills').locator('path')
 
@@ -74,8 +74,7 @@ test.describe('mur seul', () => {
 test('murs liés : la jonction reste visible sur une ligne de grille, même dans une zone peinte', async ({ page }) => {
   await resetDb(page)
   await openRoomsOnPlan(page)
-  await page.getByTestId('kind-room').click()
-  await page.getByRole('button', { name: 'Créer le projet' }).click()
+  await newRoom(page)
   await page.getByTestId('plan-wall-0').click({ force: true })
   await page.getByTestId('link-walls').click()
   await page.getByTestId('plan-wall-1').click({ force: true })

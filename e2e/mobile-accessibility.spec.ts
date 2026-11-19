@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { clickWall, newProject, resetDb, wallToPage } from './helpers'
+import { newRoom, clickWall, newProject, resetDb, wallToPage } from './helpers'
 
 test('les dialogues confinent et restaurent le focus', async ({ page }) => {
   await resetDb(page)
@@ -124,8 +124,7 @@ test.describe('consultation tactile des pièces et tablettes', () => {
   test.use({ viewport: { width: 375, height: 812 }, hasTouch: true })
   test('la pièce oriente vers la consultation des murs', async ({ page }) => {
     await resetDb(page)
-    await page.getByTestId('kind-room').click()
-    await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
+    await newRoom(page)
     const nav = page.getByRole('navigation', { name: 'Consulter les murs' })
     await expect(nav).toBeVisible()
     await expect(page.locator('.plan-help')).toBeHidden()
@@ -166,8 +165,7 @@ for (const viewport of [{ width: 375, height: 812 }, { width: 667, height: 375 }
     test.use({ viewport, hasTouch: true })
     test('un glissement fait défiler sans déplacer un angle', async ({ page }) => {
       await resetDb(page)
-      await page.getByTestId('kind-room').click()
-      await page.getByRole('button', { name: 'Créer le projet', exact: true }).click()
+      await newRoom(page)
       const corner = page.getByTestId('plan-corner-0')
       const before = await corner.evaluate((el) => [el.getAttribute('cx'), el.getAttribute('cy')])
       const box = (await corner.boundingBox())!

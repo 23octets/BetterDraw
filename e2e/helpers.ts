@@ -48,3 +48,16 @@ export async function setField(page: Page, testId: string, value: string | numbe
   await f.fill(String(value))
   await f.press('Enter')
 }
+
+/** Prépare une pièce pour les parcours dédiés ; l'accueil crée désormais un mur. */
+export async function newRoom(page: Page, name = 'Nouvelle pièce', shape: 'rect' | 'L' = 'rect', withWall = false) {
+  await page.evaluate(async ({ name, shape, withWall }) => {
+    const path = '/src/store/rooms.ts'
+    const defaultsPath = '/src/room/geometry.ts'
+    const { createRoomProject } = await import(/* @vite-ignore */ path)
+    const { DEFAULT_ROOM } = await import(/* @vite-ignore */ defaultsPath)
+    const project = await createRoomProject(name, DEFAULT_ROOM, shape, withWall ? { w: 300, h: 250 } : undefined)
+    window.location.hash = `/r/${project.id}`
+  }, { name, shape, withWall })
+  await page.getByTestId('room-wall-item').first().waitFor({ state: 'attached' })
+}

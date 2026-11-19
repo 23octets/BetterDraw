@@ -1,0 +1,5 @@
+# pages assemblées et captures régénérées par build.mjs
+/*.html
+!/*.src.html
+/shots/
+/planches/
